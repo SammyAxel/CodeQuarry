@@ -4,160 +4,217 @@ import { Terminal } from 'lucide-react';
 export const pyCourse = {
   id: 'py-101',
   title: 'Python Snakes',
-  description: 'Data science, scripts, and automation. The language that reads like English.',
+  description: 'From zero to hero. Master the language that powers AI, Data Science, and the Backend.',
   icon: <Terminal className="w-8 h-8 text-blue-400" />,
   level: 'Beginner',
   modules: [
     {
         id: 'py-m0',
-        title: 'Welcome to the Snake Pit',
-        type: 'video', // <--- NEW TYPE
-        // In real app: import videoFile from './assets/video.mp4'; videoUrl: videoFile
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 
-        duration: '10:00',
-        description: 'Before we code, let us understand the philosophy of Python.'
+        title: 'The Python Philosophy',
+        type: 'video',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', // Placeholder video
+        duration: '5:00',
+        description: 'Why Python? It is not just about code; it is about writing logic that reads like English. Understand the Zen of Python before you type a single line.'
     },
     {
         id: 'py-m1',
-        title: 'Why Python?',
-        type: 'article', // <--- NEW TYPE
-        readTime: '5 min',
+        title: 'Setting the Stage',
+        type: 'article',
+        readTime: '4 min',
         content: `
-          <h2>The Zen of Python</h2>
-          <p>Python isn't just a language; it's a lifestyle. It was created by Guido van Rossum and emphasizes code readability.</p>
-          <h3>Key Principles:</h3>
-          <ul>
-            <li>Beautiful is better than ugly.</li>
-            <li>Explicit is better than implicit.</li>
-            <li>Simple is better than complex.</li>
-          </ul>
-          <p>We are going to stick to these rules as we mine for code.</p>
+<h2>Why are we here?</h2>
+<p>Python is the "Swiss Army Knife" of programming. It is used by:</p>
+<ul class="list-disc pl-5 space-y-2 my-4 text-gray-300">
+  <li><strong>NASA</strong> for analyzing space data.</li>
+  <li><strong>Netflix</strong> for recommending movies.</li>
+  <li><strong>Google</strong> for... well, everything.</li>
+</ul>
+<p>In this course, we aren't just memorizing syntax. We are learning to <em>think</em> like a Pythonista.</p>
+<hr class="border-gray-700 my-6" />
+<h3>The Rules of the Road</h3>
+<ol class="list-decimal pl-5 space-y-2 text-gray-300">
+  <li><strong>Indentation is Law:</strong> Python uses whitespace to define blocks of code. No curly braces <code>{}</code> here.</li>
+  <li><strong>Case Matters:</strong> <code>Print</code> and <code>print</code> are two different things.</li>
+  <li><strong>Readability:</strong> Write code that your future self can understand.</li>
+</ol>
         `
     },
     {
       id: 'py-m2',
-      title: 'Hiss World (Print)',
-      theory: `### The Print Function
-Python is famous for being clean. No semi-colons, no curly braces clutter.
+      title: 'Hello, World! (Output)',
+      type: 'practice',
+      theory: `### Speaking to the Machine
+The \`print()\` function is your way of sending a signal from the code to the console. It handles strings (text), numbers, and even math.
 
 \`\`\`python
-print("Text goes here")
+print("This is a string")
 print(42)
+print(10 + 5)
 \`\`\`
+
+Notice that text needs **quotes** (either single \`''\` or double \`""\`), but numbers do not.
 `,
-      instruction: 'Use the print() function to output "Python is goated".',
-      initialCode: '# Python code here\n',
+      instruction: 'Write a program that prints "System Ready" to the console.',
+      initialCode: '# Send the signal\n',
       language: 'python',
-      expectedOutput: 'Python is goated',
-      requiredSyntax: /print/
+      expectedOutput: 'System Ready',
+      requiredSyntax: /print\s*\(\s*['"]System Ready['"]\s*\)/
     },
     {
       id: 'py-m3',
-      title: 'Snake Case (Variables)',
-      theory: `### Variables
-Python variables are dynamic. You don't need to declare their type. Just name it and claim it.
+      title: 'The Vault (Variables)',
+      type: 'practice',
+      theory: `### Storing Data
+Variables are like labeled boxes in a warehouse. You can put data in, take it out, or change it.
 
-Naming convention: Use \`snake_case\` (underscores), not \`camelCase\`.
+In Python, you don't need to specify the *type* of data (like \`int\` or \`string\`). Python figures it out. This is called **Dynamic Typing**.
 
 \`\`\`python
-my_score = 100
-player_name = "Neo"
+# Creating variables
+hero_name = "Link"
+rupees = 50
+is_alive = True
+
+# Updating variables
+rupees = rupees + 10
 \`\`\`
+
+**Naming Rules:**
+1. Use \`snake_case\` (all lowercase with underscores).
+2. Cannot start with a number.
+3. No spaces.
 `,
-      instruction: 'Create a variable called player_name and set it to "ReadyOne". Then print the variable (not the string!).',
-      initialCode: '# No semi-colons needed!\n',
+      instruction: 'Create a variable named `agent_id` and assign it the number 007 (just write 7). Then create a variable `status` and assign it "Active". Finally, print the `status`.',
+      initialCode: '# Define your variables below\n',
       language: 'python',
-      expectedOutput: 'ReadyOne',
-      // STRICT CHECK: Must define variable AND print the variable name, not the string literal
-      requiredSyntax: /player_name\s*=\s*['"]ReadyOne['"][\s\S]*print\s*\(\s*player_name\s*\)/
+      expectedOutput: 'Active',
+      requiredSyntax: /agent_id\s*=\s*7[\s\S]*status\s*=\s*['"]Active['"][\s\S]*print\s*\(\s*status\s*\)/
     },
     {
       id: 'py-m4',
-      title: 'Quick Math (Exponents)',
-      theory: `### Exponents
-Standard math applies, but powers use double asterisks \`**\`.
+      title: 'Data Types & Math',
+      type: 'practice',
+      theory: `### The Big Three
+1. **Strings (\`str\`):** Text. \`"Hello"\`
+2. **Integers (\`int\`):** Whole numbers. \`42\`
+3. **Floats (\`float\`):** Decimals. \`3.14\`
 
-\`\`\`python
-# 2 to the power of 3
-print(2 ** 3) 
-\`\`\`
+### Math Operations
+- Add: \`+\`
+- Subtract: \`-\`
+- Multiply: \`*\`
+- Divide: \`/\` (Always returns a float)
+- Exponent (Power): \`**\` (e.g., \`2 ** 3\` is 8)
+- Modulo (Remainder): \`%\` (e.g., \`10 % 3\` is 1)
 `,
-      instruction: 'Print the result of 5 to the power of 2 using the ** operator.',
-      initialCode: '# 5 squared is...\n',
+      instruction: 'Calculate the area of a square with side length 5. Create a variable `side = 5`, then print `side ** 2`.',
+      initialCode: 'side = 5\n# Calculate area\n',
       language: 'python',
       expectedOutput: '25',
-      requiredSyntax: /\*\*/
+      requiredSyntax: /side\s*\*\*\s*2/
     },
     {
       id: 'py-m5',
-      title: 'Ghost Mode (Comments)',
-      theory: `### Comments
-Code is for humans first, computers second. Use comments to leave notes. In Python, we use the hashtag \`#\`.
+      title: 'The Gatekeeper (Conditionals)',
+      type: 'practice',
+      theory: `### If, Elif, Else
+Code isn't just a straight line. It branches. We use logic to choose which path to take.
+
+**Key Syntax:**
+1. The **Condition** (returns True/False).
+2. The **Colon** \`:\` (starts the block).
+3. The **Indentation** (defines what is inside the block).
 
 \`\`\`python
-# This line is ignored by the computer
-print("Visible") # This part runs
+score = 85
+
+if score >= 90:
+    print("A Grade")
+elif score >= 80:
+    print("B Grade")
+else:
+    print("Try again")
 \`\`\`
 `,
-      instruction: 'Write a comment that says "# Hidden" and then print "Visible".',
-      initialCode: '# Write your comment here\n',
+      instruction: 'Write an if/else block. If `battery` is greater than 20, print "Green". Else, print "Red".',
+      initialCode: 'battery = 15\n\n# Write logic here\n',
       language: 'python',
-      expectedOutput: 'Visible',
-      requiredSyntax: /#\s*Hidden/
+      expectedOutput: 'Red',
+      requiredSyntax: /if\s+battery\s*>\s*20\s*:[\s\S]*print\s*\(\s*['"]Green['"]\s*\)[\s\S]*else\s*:[\s\S]*print\s*\(\s*['"]Red['"]\s*\)/
     },
     {
       id: 'py-m6',
       title: 'The Inventory (Lists)',
+      type: 'practice',
       theory: `### Lists
-Variables can hold multiple items using square brackets \`[]\`. This is called a List.
+A List is an ordered collection of items. In other languages, these are called Arrays.
 
 \`\`\`python
-loot = ["Sword", "Potion", "Map"]
-scores = [10, 20, 30]
+# Creating a list
+inventory = ["Sword", "Shield", "Potion"]
+
+# Accessing items (Index starts at 0!)
+print(inventory[0]) # Prints "Sword"
+
+# Adding items
+inventory.append("Map")
 \`\`\`
 `,
-      instruction: 'Create a list variable named "inventory" with at least one item. Then print "Bag Packed".',
-      initialCode: '# inventory = ...\n',
+      instruction: 'Create a list called `party` with three names: "Warrior", "Mage", "Rogue". Then print the first member (index 0).',
+      initialCode: '# Assemble your party\n',
       language: 'python',
-      expectedOutput: 'Bag Packed',
-      requiredSyntax: /inventory\s*=\s*\[.*\]/
+      expectedOutput: 'Warrior',
+      requiredSyntax: /party\s*=\s*\[['"]Warrior['"],\s*['"]Mage['"],\s*['"]Rogue['"]\][\s\S]*print\s*\(\s*party\[0\]\s*\)/
     },
     {
       id: 'py-m7',
-      title: 'Fork in the Road (If/Else)',
-      theory: `### Conditionals
-Logic flows based on conditions. Python uses indentation (tabs/spaces) to group code.
+      title: 'The Infinite Loop (Loops)',
+      type: 'practice',
+      theory: `### For Loops
+The \`for\` loop is used to iterate over a sequence (like a list or a range of numbers).
 
 \`\`\`python
-health = 10
-if health < 20:
-    print("Heal up!")
-\`\`\`
+# Loop through a range (0 to 4)
+for i in range(5):
+    print(i)
 
-Note the colon \`:\` at the end of the line!`,
-      instruction: 'Write an if statement checking if 10 > 5. Inside it, print "Logic works".',
-      initialCode: '# if 10 > 5:\n',
+# Loop through a list
+loot = ["Gold", "Silver"]
+for item in loot:
+    print("Found: " + item)
+\`\`\`
+`,
+      instruction: 'You have a list of `enemies`. Write a for loop that prints each enemy name.',
+      initialCode: 'enemies = ["Goblin", "Orc", "Dragon"]\n\n# Write your loop\n',
       language: 'python',
-      expectedOutput: 'Logic works',
-      requiredSyntax: /if\s+10\s*>\s*5\s*:/
+      expectedOutput: 'GoblinOrcDragon', // Concatenated output check
+      requiredSyntax: /for\s+\w+\s+in\s+enemies\s*:[\s\S]*print\s*\(\s*\w+\s*\)/
     },
     {
       id: 'py-m8',
-      title: 'Loop de Loop (For Loops)',
-      theory: `### Loops
-Repeat actions without rewriting code. The \`for\` loop is your best friend.
+      title: 'The Spellbook (Functions)',
+      type: 'practice',
+      theory: `### Defining Functions
+Functions allow you to reuse code. You define them once, and call them whenever you need.
+
+**Syntax:**
+- \`def\`: Keywords to start.
+- \`name()\`: Name of the function.
+- \`return\`: Passes data back to where it was called.
 
 \`\`\`python
-# Prints 0, 1, 2
-for i in range(3):
-    print(i)
+def double_it(number):
+    return number * 2
+
+result = double_it(10)
+print(result) # 20
 \`\`\`
 `,
-      instruction: 'Write a for loop using range(3). Inside the loop, print "Repetition".',
-      initialCode: '# for i in range(3):\n',
+      instruction: 'Define a function named `heal` that takes `hp` as an argument and prints "Restored". Then call the function with any number.',
+      initialCode: '# Define the spell\n',
       language: 'python',
-      expectedOutput: 'Repetition',
-      requiredSyntax: /for\s+.*\s+in\s+range\(3\):/
+      expectedOutput: 'Restored',
+      requiredSyntax: /def\s+heal\s*\(hp\)\s*:[\s\S]*print\s*\(\s*['"]Restored['"]\s*\)[\s\S]*heal\s*\(\d+\)/
     }
   ]
 };
