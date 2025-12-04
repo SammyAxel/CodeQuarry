@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Force highlight.js to have a transparent background to prevent style conflicts */
+.hljs {
+  background: transparent !important;
+}
