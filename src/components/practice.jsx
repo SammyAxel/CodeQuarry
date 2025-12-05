@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'; 
 import { 
-  Trophy, ChevronRight, PanelLeftOpen, Code2, RotateCcw, 
-  Play, PanelLeftClose, BookOpen, FileCode, AlertCircle, Gem,
+  Trophy, ChevronRight, PanelLeftOpen, Code2, RotateCcw,
+  Play, PanelLeftClose, BookOpen, FileCode, AlertCircle, Gem, CheckCircle2,
   Terminal, Map as MapIcon, Trash2, Loader2, RefreshCw
 } from 'lucide-react'; 
 
@@ -10,8 +10,8 @@ import { CodeEditor } from './CodeEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { useCodeEngine } from '../hooks/useCodeEngine';
 
-export const PracticeMode = ({ module, navProps, onOpenMap, markComplete }) => { 
-  const [code, setCode] = useState(module.initialCode || '');
+export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCompleted, savedCode }) => { 
+  const [code, setCode] = useState(savedCode || module.initialCode || '');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [syntaxError, setSyntaxError] = useState(null);
@@ -20,7 +20,7 @@ export const PracticeMode = ({ module, navProps, onOpenMap, markComplete }) => {
 
   // Sync state on module change
   useEffect(() => {
-    setCode(module.initialCode || '');
+    setCode(savedCode || module.initialCode || '');
     setOutput(['> Terminal ready...']);
     setShowSuccessModal(false);
     setSyntaxError(null);
@@ -62,10 +62,9 @@ export const PracticeMode = ({ module, navProps, onOpenMap, markComplete }) => {
                 <p className="text-purple-300/80 mb-8">This piece of code is flawless. Well done.</p>
                 <div className="flex flex-col gap-3 mt-8">
                   <button onClick={() => {
-                      if (markComplete) {
-                        markComplete();
-                        // Use a short timeout to allow React state to update before navigating
-                        setTimeout(() => navProps.onNext(), 50);
+                      if (onMarkComplete) {
+                        onMarkComplete(code);
+                        navProps.onNext();
                       } else { navProps.onNext(); }
                     }}
                     className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 transform hover:scale-105"
@@ -89,7 +88,12 @@ export const PracticeMode = ({ module, navProps, onOpenMap, markComplete }) => {
            </div>
         </div>
 
-        <NavigationControls {...navProps} dark />
+        <div className="flex items-center gap-4">
+          {isCompleted && (
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/50 px-3 py-1.5 rounded-full"><CheckCircle2 className="w-4 h-4" /> Completed</div>
+          )}
+          <NavigationControls {...navProps} dark />
+        </div>
 
         <div className="flex items-center gap-3">
            {isEngineLoading && <span className="text-xs text-yellow-500 flex gap-2"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</span>}

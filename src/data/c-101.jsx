@@ -6,7 +6,7 @@ export const cCourse = {
   title: 'C Commandos',
   description: 'The grandfather of modern languages. Managing memory like a boss.',
   icon: <Cpu className="w-8 h-8 text-purple-400" />,
-  level: 'Hardcore',
+  level: 'Beginner',
   modules: [
     {
       id: 'c-m1',

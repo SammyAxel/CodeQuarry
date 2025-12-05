@@ -1,13 +1,14 @@
 import React from 'react';
-import { FileText, Clock, ChevronRight } from 'lucide-react'; // <--- Added icons\
+import { FileText, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
 
-import NavigationControls from './NavControl.jsx'; // <--- Import the component!
+import NavigationControls from './NavControl.jsx';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 /* ========================================================================
    COMPONENT: ARTICLE ESSAY
    (Handles the read-and-learn content)
    ======================================================================== */
-export const ArticleEssay = ({ module, navProps }) => {
+export const ArticleEssay = ({ module, navProps, onMarkComplete, isCompleted }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0d1117] overflow-y-auto">
       {/* Header */}
@@ -21,7 +22,12 @@ export const ArticleEssay = ({ module, navProps }) => {
             <p className="text-xs text-gray-500">{module.readTime || '5 min'} read</p>
           </div>
         </div>
-        <NavigationControls {...navProps} dark />
+        <div className="flex items-center gap-4">
+          {isCompleted && (
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/50 px-3 py-1.5 rounded-full"><CheckCircle2 className="w-4 h-4" /> Completed</div>
+          )}
+          <NavigationControls {...navProps} dark />
+        </div>
       </div>
 
       {/* Content */}
@@ -36,12 +42,15 @@ export const ArticleEssay = ({ module, navProps }) => {
         </div>
 
         <article className="prose prose-invert prose-lg max-w-none prose-headings:font-bold prose-headings:text-white prose-p:text-gray-300 prose-a:text-blue-400 prose-code:text-purple-300 prose-code:bg-purple-900/20 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800">
-           <div dangerouslySetInnerHTML={{ __html: module.content }} />
+           <MarkdownRenderer text={module.content} />
         </article>
 
         <div className="mt-12 pt-12 border-t border-gray-800 flex justify-between items-center">
            <p className="text-gray-500 italic">End of article</p>
-           <button onClick={navProps.onNext} className="flex items-center gap-2 text-white hover:text-purple-400 font-bold transition-colors">
+           <button onClick={() => {
+              if (!isCompleted) onMarkComplete();
+              navProps.onNext();
+           }} className="flex items-center gap-2 text-white hover:text-purple-400 font-bold transition-colors">
               Next Lesson <ChevronRight className="w-5 h-5" />
            </button>
         </div>

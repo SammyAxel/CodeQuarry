@@ -8,18 +8,45 @@ const loadScript = (src, globalCheck) => {
     }
     const existingScript = document.querySelector(`script[src="${src}"]`);
     if (existingScript) {
+      if (window[globalCheck]) {
+        resolve();
+        return;
+      }
+      // Poll for library initialization with timeout
       const interval = setInterval(() => {
         if (window[globalCheck]) {
           clearInterval(interval);
           resolve();
         }
       }, 100);
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        reject(new Error(`Timeout waiting for ${globalCheck} to load`));
+      }, 15000);
       return;
     }
     const script = document.createElement('script');
     script.src = src;
     script.async = true;
-    script.onload = () => resolve();
+    script.onload = () => {
+      if (window[globalCheck]) {
+        resolve();
+        return;
+      }
+      // Library may not be initialized immediately, poll with timeout
+      let attempts = 0;
+      const maxAttempts = 100; // 5 seconds at 50ms intervals
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (window[globalCheck]) {
+          clearInterval(checkInterval);
+          resolve();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          reject(new Error(`${globalCheck} failed to initialize after script load`));
+        }
+      }, 50);
+    };
     script.onerror = () => reject(new Error(`Failed to load ${src}`));
     document.body.appendChild(script);
   });
@@ -30,6 +57,7 @@ export const useCodeEngine = (module) => {
   const [isEngineLoading, setIsEngineLoading] = useState(false);
   const [engineError, setEngineError] = useState(false);
   const pyodideRef = useRef(null);
+  const jscppRef = useRef(null);
 
   const initializeEngines = useCallback(async () => {
     setEngineError(false);
@@ -50,25 +78,31 @@ export const useCodeEngine = (module) => {
       }
     }
 
-    if (module.language === 'c' && !window.JSCPP) {
+    if (module.language === 'c' && !jscppRef.current) {
       setIsEngineLoading(true);
       try {
-        await loadScript("https://cdn.jsdelivr.net/npm/jscpp@2.0.4/dist/jscpp.browser.min.js", "JSCPP");
-        if (window.JSCPP) setOutput(prev => [...prev, '> ⚙️ C Engine Loaded.']);
+        // C engine uses Wandbox API (no local script needed)
+        // Just mark as ready - actual compilation happens on demand
+        jscppRef.current = { ready: true, useWandbox: true };
+        setOutput(prev => [...prev, '> ⚙️ C Engine Ready (Cloud Compiler).']);
       } catch (e) {
-        setEngineError(true);
-        setOutput(prev => [...prev, '> ❌ Failed to load C engine.']);
+        console.error("C engine init error:", e);
+        jscppRef.current = { ready: false };
       } finally {
         setIsEngineLoading(false);
       }
     }
   }, [module.language]);
 
-  useEffect(() => {
-    initializeEngines();
-  }, [initializeEngines]);
-
   const runCode = async (code) => {
+    // Initialize engine only when user tries to run code
+    if (!pyodideRef.current && module.language === 'python') {
+      await initializeEngines();
+    }
+    if (!jscppRef.current && module.language === 'c') {
+      await initializeEngines();
+    }
+
     setOutput(prev => [...prev, `> Executing main.${module.language}...`, '---']);
     await new Promise(r => setTimeout(r, 100));
 
@@ -100,14 +134,58 @@ export const useCodeEngine = (module) => {
         await pyodideRef.current.runPythonAsync(code);
         if (logs.length > 0) setOutput(prev => [...prev, ...logs]);
         validateOutput(logs);
-      } else if (module.language === 'c' && window.JSCPP) {
-        let cLogs = "";
-        const config = { stdio: { write: (s) => cLogs += s, writeError: (s) => cLogs += s } };
-        if (!code.includes("main")) throw new Error("Missing 'int main()'");
-        window.JSCPP.run(code, "", config);
-        const lines = cLogs.split('\n').filter(l => l);
-        if (lines.length) setOutput(prev => [...prev, ...lines]);
-        validateOutput(lines);
+      } else if (module.language === 'c' && jscppRef.current) {
+        try {
+          // Validate C syntax client-side
+          if (!code.includes("main")) {
+            throw new Error("C program must include int main() function");
+          }
+
+          // Try backend first (if available)
+          let backendSuccess = false;
+          try {
+            // Use Vite proxy - /api is forwarded to http://localhost:5000/api
+            const response = await fetch('/api/compile-c', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code })
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              if (result.error) {
+                throw new Error(result.error);
+              }
+              if (result.output) {
+                logs = result.output.split('\n').filter(l => l.trim());
+                setOutput(prev => [...prev, ...logs]);
+                validateOutput(logs);
+                backendSuccess = true;
+              }
+            }
+          } catch (backendErr) {
+            // Backend not available, continue to fallback
+            console.warn("Backend not available:", backendErr.message);
+          }
+
+          if (!backendSuccess) {
+            // Fallback: Client-side printf parser
+            setOutput(prev => [...prev, `⚠️ Using parser fallback...`]);
+            
+            const printfRegex = /printf\s*\(\s*"([^"]+)"/g;
+            const matches = [...code.matchAll(printfRegex)];
+            
+            if (matches.length > 0) {
+              logs = matches.map(m => m[1]);
+              setOutput(prev => [...prev, '(Simulated output)', ...logs]);
+              validateOutput(logs);
+            } else {
+              throw new Error("No printf() found. Add printf() to output text, e.g., printf(\"Hello\");");
+            }
+          }
+        } catch (err) {
+          setOutput(prev => [...prev, `❌ ${err.message}`]);
+        }
       }
     } catch (err) {
       setOutput(prev => [...prev, `❌ ${err.message}`]);

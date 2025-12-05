@@ -6,7 +6,6 @@ export const SyllabusPage = ({ course, onBack, onSelectModule, completedModules 
   const completedCount = completedSet.size;
   const totalModules = course.modules.length;
   const percentage = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0;
-  let isNextModuleFound = false;
 
   return (
     <div className="max-w-4xl mx-auto p-6 animate-in fade-in slide-in-from-right-8 duration-300">
@@ -33,15 +32,13 @@ export const SyllabusPage = ({ course, onBack, onSelectModule, completedModules 
       </div>
       <div className="space-y-4">
         {course.modules.map((module, idx, arr) => {
+          // A module is unlocked if it's the first one or if the previous one is complete.
+          const isUnlocked = idx === 0 || completedSet.has(arr[idx - 1].id);
           const isCompleted = completedSet.has(module.id);
-          const isLocked = !isCompleted && isNextModuleFound;
-          let isCurrent = false;
+          const isLocked = !isUnlocked;
 
-          if (!isCompleted && !isNextModuleFound) {
-            isCurrent = true;
-            isNextModuleFound = true;
-          }
-
+          // The current module is the first one that is unlocked but not yet completed.
+          const isCurrent = isUnlocked && !isCompleted;
           const statusRing = isLocked ? 'border-gray-700' : isCompleted ? 'border-emerald-700' : 'border-purple-700';
           const statusText = isLocked ? 'text-gray-600' : isCompleted ? 'text-gray-400' : 'text-white';
           const nodeBg = isLocked ? 'bg-gray-900/50' : isCompleted ? 'bg-emerald-900/30' : 'bg-purple-900/30';

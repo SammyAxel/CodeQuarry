@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Zap, Map as MapIcon, Pickaxe, LogOut
-} from 'lucide-react';
-
-import { COURSES } from './data/courses';
+import {
+  Gem, Map as MapIcon, Pickaxe, LogOut
+} from 'lucide-react';import { COURSES } from './data/courses';
 import { VideoEssay } from './components/VideoEssay';
 import { ArticleEssay } from './components/ArticleEssay';
 import { PracticeMode } from './components/practice';
@@ -55,8 +53,11 @@ export default function App() {
   }, [users]);
 
   // Derive completed modules for the current user
-  const completedModules = new Set(users[currentUser]?.completedModules || []);
-
+  const userProgress = users[currentUser]?.progress || {};
+  const completedModules = new Set(
+    Object.keys(userProgress).filter(moduleId => userProgress[moduleId].completed)
+  );
+  
   // ... existing navigation logic (navigateToSyllabus, navigateToLearning, etc) ...
   const navigateToSyllabus = (course) => {
     setActiveCourse(course);
@@ -92,22 +93,31 @@ export default function App() {
     else if (view === 'syllabus') setView('home');
   };
 
-  const handleMarkComplete = () => {
+  const handleMarkComplete = (codeToSave = null) => {
     if (!activeModule || !currentUser) return;
 
     setUsers(prevUsers => {
-      const userProgress = new Set(prevUsers[currentUser]?.completedModules || []);
-      userProgress.add(activeModule.id);
+      const currentUserProgress = prevUsers[currentUser]?.progress || {};
+      
+      const newModuleProgress = {
+        ...currentUserProgress[activeModule.id],
+        completed: true,
+      };
+
+      if (codeToSave) {
+        newModuleProgress.savedCode = codeToSave;
+      }
+
       return {
         ...prevUsers,
-        [currentUser]: { ...prevUsers[currentUser], completedModules: Array.from(userProgress) }
+        [currentUser]: { ...prevUsers[currentUser], progress: { ...currentUserProgress, [activeModule.id]: newModuleProgress } },
       };
     });
   };
 
   const handleLogin = (username) => {
     if (!users[username]) {
-      setUsers(prev => ({ ...prev, [username]: { completedModules: [] } }));
+      setUsers(prev => ({ ...prev, [username]: { progress: {} } }));
     }
     setCurrentUser(username);
     localStorage.setItem('codeQuarryLastUser', username);
@@ -134,7 +144,7 @@ export default function App() {
 
       <div className="relative z-10">
       <nav className="h-16 border-b border-gray-800 bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-40 px-6 flex items-center justify-between">
-         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setView('home')}><Zap className="w-6 h-6 text-purple-500 fill-current" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
+         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setView('home')}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
          <div className="flex items-center gap-8">
            {view === 'learning' && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> Map</button>}
            <div className="flex items-center gap-4">
@@ -178,7 +188,9 @@ export default function App() {
                 module: activeModule,
                 navProps: navProps,
                 onOpenMap: () => setIsMapOpen(true),
-                markComplete: handleMarkComplete,
+                onMarkComplete: handleMarkComplete,
+                isCompleted: completedModules.has(activeModule.id),
+                savedCode: userProgress[activeModule.id]?.savedCode,
               };
 
               if (type === 'video') return <VideoEssay {...commonProps} />;

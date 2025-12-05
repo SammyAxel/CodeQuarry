@@ -12,8 +12,11 @@ CodeQuarry is a web-based application designed to make learning to code an engag
 
 ### Features
 
-*   **Interactive Code Editor**: A custom-built, syntax-highlighted code editor for a seamless coding experience.
-*   **Live Code Execution**: Run Python, JavaScript, and C code directly in the browser, powered by Pyodide and JSCPP.
+*   **Interactive Code Editor**: A custom-built, syntax-highlighted code editor with Tab indentation, auto-pairing, and smart Enter handling.
+*   **Live Code Execution**: Run Python, JavaScript, and C code directly in the browser.
+    - **Python**: Powered by Pyodide (v0.25.0)
+    - **JavaScript**: Native browser execution
+    - **C**: Real compilation via Piston API (gcc backend)
 *   **Gamified Learning Path**: A structured syllabus with locked/unlocked modules to guide users through courses.
 *   **Persistent User Progress**: Client-side progress tracking using `localStorage` to save completed lessons for each user.
 *   **Thematic UI**: A unique "CodeQuarry" theme with custom icons, glowing effects, and mining-related decorations.
@@ -23,14 +26,23 @@ CodeQuarry is a web-based application designed to make learning to code an engag
 
 ### Built With
 
-This project is built with a modern frontend stack:
+This project is built with a modern frontend and backend stack:
 
+**Frontend:**
 *   **React**: For building the user interface.
 *   **Vite**: As the build tool for a fast development experience.
 *   **Tailwind CSS**: For utility-first styling.
 *   **highlight.js**: For robust and accurate syntax highlighting.
+
+**Backend:**
+*   **Node.js + Express**: Backend server for code compilation
+*   **Piston API**: Free, reliable C compilation (gcc backend)
 *   **Pyodide**: To run Python code in the browser.
-*   **JSCPP**: To run C code in the browser.
+
+**Execution Engines:**
+*   **Python**: Pyodide (v0.25.0) - runs in browser
+*   **JavaScript**: Native browser evaluation
+*   **C**: Piston API + gcc compiler (server-side)
 
 ## Getting Started
 
@@ -50,10 +62,23 @@ To get a local copy up and running, follow these simple steps.
     ```sh
     npm install
     ```
-3.  Run the development server
+3.  Start the backend server (Terminal 1)
+    ```sh
+    node server.js
+    ```
+    The backend will run on `http://localhost:5000`
+
+4.  Start the development server (Terminal 2)
     ```sh
     npm run dev
     ```
+    The application will be available at `http://localhost:4000`
 
-The application will be available at `http://localhost:5173` (or another port if 5173 is in use).
+### Running Both Servers Simultaneously
+
+You can run both servers in one command:
+```sh
+npm run dev:all
+```
+This uses `concurrently` to run both servers in parallel.
 

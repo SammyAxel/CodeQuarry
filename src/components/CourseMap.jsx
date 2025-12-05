@@ -81,18 +81,19 @@ export const CourseMap = ({ course, completedModules, currentModuleId, onSelectM
 
         {/* Map Content */}
         <div className="flex-1 p-8 overflow-y-auto space-y-12 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-800 [&::-webkit-scrollbar-thumb]:rounded-full">
-          {course.modules.map(module => {
-            let status = 'locked';
-            if (unlocked) {
-              status = completedSet.has(module.id) ? 'completed' : 'unlocked';
-              if (module.id === currentModuleId) {
-                status = 'current';
-              }
-            }
+          {course.modules.map((module, index) => {
+            const isCompleted = completedSet.has(module.id);
+            
+            // The first module is always unlocked. Subsequent modules are unlocked if the previous one is complete.
+            const isUnlocked = index === 0 || completedSet.has(course.modules[index - 1].id);
+            const isCurrent = module.id === currentModuleId;
 
-            // The next module is unlocked only if the current one is complete
-            if (status !== 'completed') {
-              unlocked = false;
+            let status = 'locked';
+            if (isUnlocked) {
+              status = isCompleted ? 'completed' : 'unlocked';
+            }
+            if (isCurrent) {
+              status = 'current';
             }
 
             return <Node key={module.id} module={module} status={status} onSelect={onSelectModule} />;

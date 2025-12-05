@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircle } from 'lucide-react'; // <--- Added icon
+import { PlayCircle, CheckCircle2 } from 'lucide-react'; // <--- Added icons
 
 import NavigationControls from './NavControl.jsx'; // <--- Import the component!
 
@@ -7,7 +7,7 @@ import NavigationControls from './NavControl.jsx'; // <--- Import the component!
    COMPONENT: VIDEO ESSAY
    (Handles the watch-and-learn content)
    ======================================================================== */
-export const VideoEssay = ({ module, navProps }) => {
+export const VideoEssay = ({ module, navProps, onMarkComplete, isCompleted }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-[#050505] overflow-y-auto">
       {/* Header */}
@@ -21,7 +21,12 @@ export const VideoEssay = ({ module, navProps }) => {
             <p className="text-xs text-gray-500">{module.title}</p>
           </div>
         </div>
-        <NavigationControls {...navProps} dark />
+        <div className="flex items-center gap-4">
+          {isCompleted && (
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/50 px-3 py-1.5 rounded-full"><CheckCircle2 className="w-4 h-4" /> Completed</div>
+          )}
+          <NavigationControls {...navProps} dark />
+        </div>
       </div>
 
       {/* Content */}
@@ -44,7 +49,10 @@ export const VideoEssay = ({ module, navProps }) => {
            </p>
            
            <div className="mt-8 flex gap-4">
-             <button onClick={navProps.onNext} className="px-6 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
+             <button onClick={() => {
+                if (!isCompleted) onMarkComplete();
+                navProps.onNext();
+             }} className="px-6 py-3 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors">
                Mark as Watched
              </button>
            </div>
