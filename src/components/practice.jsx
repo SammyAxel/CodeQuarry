@@ -18,6 +18,7 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
   const [activeTab, setActiveTab] = useState('theory');
   const [completedSteps, setCompletedSteps] = useState(new Set());
   const [revealedHints, setRevealedHints] = useState(0);
+  const [hasUserModifiedCode, setHasUserModifiedCode] = useState(false);
 
   const { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines } = useCodeEngine(module);
 
@@ -30,49 +31,88 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
 
   const steps = parseSteps(module.instruction);
 
-  // Update steps whenever code changes (if syntax requirements exist)
+  // Track when user modifies the code
+  const handleCodeChange = (newCode) => {
+    setCode(newCode);
+    if (!hasUserModifiedCode) {
+      setHasUserModifiedCode(true);
+    }
+  };
+
+  // Update steps whenever code changes
+  // Only show errors AFTER user has modified the code
   useEffect(() => {
     if (steps.length === 0) return;
     
+    // Don't check until user has made changes
+    if (!hasUserModifiedCode) return;
+    
     setCompletedSteps(prev => {
       const updated = new Set(prev);
-      let hasError = false;
 
-      // Check per-step syntax if available, otherwise use overall syntax
-      if (module.stepSyntax && module.stepSyntax.length > 0) {
-        module.stepSyntax.forEach((stepRegex, idx) => {
-          if (stepRegex.test(code)) {
+      // NEW: Check step requirements (simple string contains)
+      if (module.stepRequirements && module.stepRequirements.length > 0) {
+        module.stepRequirements.forEach((requirements, idx) => {
+          if (!requirements || requirements.length === 0) {
+            // No requirements for this step - don't auto-complete
+            return;
+          }
+          // Check if ALL requirements for this step are met
+          const allMet = requirements.every(req => 
+            req && code.includes(req.trim())
+          );
+          if (allMet) {
             updated.add(idx);
           } else {
             updated.delete(idx);
-            if (code.trim().length > 0 && idx === 0) {
-              hasError = true;
-            }
           }
         });
-      } else if (module.requiredSyntax) {
-        // Fallback to overall syntax check
-        const isValid = module.requiredSyntax.test(code);
-        if (isValid) {
-          updated.add(0);
+        return updated;
+      }
+      
+      // NEW: Check overall required code snippets
+      if (module.requiredCode && module.requiredCode.length > 0) {
+        const allMet = module.requiredCode.every(req => 
+          code.includes(req.trim())
+        );
+        if (allMet) {
+          // Mark all steps as complete when all required code is present
+          steps.forEach((_, idx) => updated.add(idx));
         } else {
-          updated.delete(0);
-          if (code.trim().length > 0) {
-            hasError = true;
-          }
+          updated.clear();
         }
+        return updated;
       }
 
-      // Set syntax error only for first step
-      if (hasError) {
-        setSyntaxError("Check your syntax! Are you following the instructions?");
-      } else if (code.trim().length > 0) {
-        setSyntaxError(null);
+      // LEGACY: Check per-step regex syntax if available
+      if (module.stepSyntax && module.stepSyntax.length > 0) {
+        module.stepSyntax.forEach((stepRegex, idx) => {
+          if (stepRegex && stepRegex.test(code)) {
+            updated.add(idx);
+          } else {
+            updated.delete(idx);
+          }
+        });
+        return updated;
+      }
+      
+      // LEGACY: Check overall regex syntax
+      if (module.requiredSyntax) {
+        const isValid = module.requiredSyntax.test(code);
+        if (isValid) {
+          steps.forEach((_, idx) => updated.add(idx));
+        } else {
+          updated.clear();
+        }
+        return updated;
       }
 
       return updated;
     });
-  }, [code, module.requiredSyntax, steps.length]);
+    
+    // Clear syntax error when using new format (no regex errors)
+    setSyntaxError(null);
+  }, [code, module.requiredCode, module.stepRequirements, module.requiredSyntax, module.stepSyntax, steps.length, hasUserModifiedCode]);
 
   // Sync state on module change
   useEffect(() => {
@@ -82,17 +122,21 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
     setSyntaxError(null);
     setCompletedSteps(new Set());
     setRevealedHints(0);
+    setHasUserModifiedCode(false);
   }, [module.id, setOutput]);
   
   const handleRunCode = async () => {
     const newCompletedSteps = new Set(completedSteps);
     let hasSyntaxError = false;
 
-    // Check syntax
-    if (module.stepSyntax && module.stepSyntax.length > 0) {
-      // Check per-step syntax
-      module.stepSyntax.forEach((stepRegex, idx) => {
-        if (stepRegex.test(code)) {
+    // NEW: Check step requirements (simple string contains)
+    if (module.stepRequirements && module.stepRequirements.length > 0) {
+      module.stepRequirements.forEach((requirements, idx) => {
+        if (!requirements || requirements.length === 0) return;
+        const allMet = requirements.every(req => 
+          req && code.includes(req.trim())
+        );
+        if (allMet) {
           newCompletedSteps.add(idx);
         } else {
           newCompletedSteps.delete(idx);
@@ -104,8 +148,39 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
       } else {
         setSyntaxError(null);
       }
-    } else if (module.requiredSyntax) {
-      // Fallback to overall syntax
+    } 
+    // NEW: Check overall required code snippets
+    else if (module.requiredCode && module.requiredCode.length > 0) {
+      const allMet = module.requiredCode.every(req => 
+        code.includes(req.trim())
+      );
+      if (allMet) {
+        setSyntaxError(null);
+        steps.forEach((_, idx) => newCompletedSteps.add(idx));
+      } else {
+        setSyntaxError("Check your syntax! Are you following the instructions?");
+        hasSyntaxError = true;
+        newCompletedSteps.clear();
+      }
+    }
+    // LEGACY: Check per-step regex syntax
+    else if (module.stepSyntax && module.stepSyntax.length > 0) {
+      module.stepSyntax.forEach((stepRegex, idx) => {
+        if (stepRegex && stepRegex.test(code)) {
+          newCompletedSteps.add(idx);
+        } else {
+          newCompletedSteps.delete(idx);
+          if (idx === 0) hasSyntaxError = true;
+        }
+      });
+      if (hasSyntaxError) {
+        setSyntaxError("Check your syntax! Are you following the instructions?");
+      } else {
+        setSyntaxError(null);
+      }
+    } 
+    // LEGACY: Check overall regex syntax
+    else if (module.requiredSyntax) {
       if (module.requiredSyntax.test(code)) {
         setSyntaxError(null);
         if (steps.length > 0) {
@@ -233,7 +308,7 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
         <div className="flex items-center gap-3">
            {isEngineLoading && <span className="text-xs text-yellow-500 flex gap-2"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</span>}
            {engineError && <button onClick={initializeEngines} className="text-red-400 hover:text-red-300 p-2"><RefreshCw className="w-4 h-4" /></button>}
-           <button onClick={() => setCode(module.initialCode)} className="p-2 text-gray-400 hover:text-white"><RotateCcw className="w-4 h-4" /></button>
+           <button onClick={() => { setCode(module.initialCode); setHasUserModifiedCode(false); setSyntaxError(null); setCompletedSteps(new Set()); }} className="p-2 text-gray-400 hover:text-white"><RotateCcw className="w-4 h-4" /></button>
            <button 
              onClick={handleRunCode} 
              disabled={isEngineLoading && (module.language === 'python' || module.language === 'c')}
@@ -398,7 +473,7 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
          
          {/* Code Editor Area */}
          <div className="flex-1 bg-[#0d1117] h-full border-r border-gray-800 flex flex-col">
-             <CodeEditor code={code} setCode={setCode} language={module.language} />
+             <CodeEditor code={code} setCode={handleCodeChange} language={module.language} />
          </div> 
 
          {/* Terminal Output */}

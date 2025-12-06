@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
-import { ChevronLeft, Plus, X, Copy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, Plus, X, Copy, AlertCircle, Server, ServerOff, Save, Upload } from 'lucide-react';
 import { ModuleFormEditor } from './ModuleFormEditor';
+import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, sanitizeInput } from '../utils/securityUtils';
 
 const ICONS = ['📚', '🐍', '🟨', '⚙️', '🎮', '🚀', '💻', '🔧'];
 
-export const CourseEditor = ({ course, onSave, onCancel }) => {
+export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, isPublishedEdit = false }) => {
   const [data, setData] = useState(course);
   const [editingModule, setEditingModule] = useState(null);
   const [editingModuleIndex, setEditingModuleIndex] = useState(null);
   const [customIconPreview, setCustomIconPreview] = useState(course.customIconUrl || null);
+  const [csrfToken, setCSRFToken] = useState('');
+
+  // Generate CSRF token on component mount
+  useEffect(() => {
+    const token = generateCSRFToken('course-editor');
+    setCSRFToken(token);
+  }, []);
 
   const handleAddModule = () => {
     setEditingModule({
@@ -54,6 +62,32 @@ export const CourseEditor = ({ course, onSave, onCancel }) => {
     setData({ ...data, modules: [...data.modules, module] });
   };
 
+  // Validate CSRF token before saving
+  const handleSaveCourse = () => {
+    // Verify CSRF token
+    if (!verifyCSRFToken('course-editor', csrfToken)) {
+      logSecurityEvent('course_save_csrf_failed', { 
+        courseId: course.id,
+        timestamp: new Date().toISOString()
+      });
+      alert('Security error: Invalid form token. Please refresh and try again.');
+      return;
+    }
+
+    // Save course
+    logSecurityEvent('course_save_success', { 
+      courseId: course.id,
+      modules: data.modules.length,
+      timestamp: new Date().toISOString()
+    });
+    
+    onSave(data);
+    
+    // Generate new token for next operation
+    const token = generateCSRFToken('course-editor');
+    setCSRFToken(token);
+  };
+
   if (editingModule) {
     return (
       <ModuleFormEditor
@@ -91,7 +125,7 @@ export const CourseEditor = ({ course, onSave, onCancel }) => {
               <input
                 type="text"
                 value={data.title}
-                onChange={(e) => setData({ ...data, title: e.target.value })}
+                onChange={(e) => setData({ ...data, title: sanitizeInput(e.target.value, 200) })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               />
             </div>
@@ -100,7 +134,7 @@ export const CourseEditor = ({ course, onSave, onCancel }) => {
               <label className="text-xs font-bold text-gray-400 uppercase">Description</label>
               <textarea
                 value={data.description}
-                onChange={(e) => setData({ ...data, description: e.target.value })}
+                onChange={(e) => setData({ ...data, description: sanitizeInput(e.target.value, 1000) })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1 h-24 resize-none"
               />
             </div>
@@ -178,13 +212,44 @@ export const CourseEditor = ({ course, onSave, onCancel }) => {
               </div>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-4 space-y-2">
+              {/* Server status indicator */}
+              {isPublishedEdit && (
+                <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded ${serverOnline ? 'bg-green-900/30 text-green-400' : 'bg-yellow-900/30 text-yellow-400'}`}>
+                  {serverOnline ? <Server className="w-3 h-3" /> : <ServerOff className="w-3 h-3" />}
+                  {serverOnline ? 'Server online - can save to file' : 'Server offline - saves to browser only'}
+                </div>
+              )}
+              
+              {/* Save to localStorage (default) */}
               <button
-                onClick={() => onSave(data)}
-                className="w-full px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-colors"
+                onClick={handleSaveCourse}
+                className="w-full px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
               >
-                Save Course
+                <Save className="w-4 h-4" />
+                {isPublishedEdit ? 'Save to Browser' : 'Save Course'}
               </button>
+              
+              {/* Save to file (if server online and editing published course) */}
+              {isPublishedEdit && serverOnline && (
+                <button
+                  onClick={() => {
+                    if (!verifyCSRFToken('course-editor', csrfToken)) {
+                      alert('Security error: Invalid form token.');
+                      return;
+                    }
+                    onSave(data, true); // true = save to file
+                    const token = generateCSRFToken('course-editor');
+                    setCSRFToken(token);
+                  }}
+                  className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Save to File
+                </button>
+              )}
+              
+              <input type="hidden" value={csrfToken} />
             </div>
           </div>
         </div>

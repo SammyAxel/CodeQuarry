@@ -24,6 +24,66 @@ import { useApp } from './context/AppContext';
 export default function App() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminRole, setAdminRole] = useState(null); // 'admin' or 'mod'
+  const [publishedCourseEdits, setPublishedCourseEdits] = useState({});
+  const [customCourses, setCustomCourses] = useState([]); // Drafts that have been published
+  
+  // Load published course edits and custom courses from localStorage on mount
+  useEffect(() => {
+    const savedEdits = localStorage.getItem('publishedCourseEdits');
+    if (savedEdits) {
+      try {
+        setPublishedCourseEdits(JSON.parse(savedEdits));
+      } catch (e) {
+        console.error('Failed to load published course edits:', e);
+      }
+    }
+    
+    // Load custom published courses (drafts that were published)
+    const savedCustomCourses = localStorage.getItem('customPublishedCourses');
+    if (savedCustomCourses) {
+      try {
+        setCustomCourses(JSON.parse(savedCustomCourses));
+      } catch (e) {
+        console.error('Failed to load custom courses:', e);
+      }
+    }
+  }, []);
+
+  // Get merged courses (original + local edits + custom published courses)
+  const getMergedCourses = () => {
+    const editedOriginals = COURSES.map(course => {
+      if (publishedCourseEdits[course.id]) {
+        return { ...course, ...publishedCourseEdits[course.id] };
+      }
+      return course;
+    });
+    // Add custom courses that aren't already in the list
+    const customFiltered = customCourses.filter(
+      custom => !editedOriginals.some(orig => orig.id === custom.id)
+    );
+    return [...editedOriginals, ...customFiltered];
+  };
+
+  // Handler for when admin updates published courses
+  const handleUpdatePublishedCourses = (edits) => {
+    setPublishedCourseEdits(edits);
+  };
+  
+  // Handler for publishing a draft course to live
+  const handlePublishDraft = (draftCourse) => {
+    // Add to custom courses
+    const updatedCustomCourses = [...customCourses.filter(c => c.id !== draftCourse.id), draftCourse];
+    setCustomCourses(updatedCustomCourses);
+    localStorage.setItem('customPublishedCourses', JSON.stringify(updatedCustomCourses));
+    return true;
+  };
+  
+  // Handler for unpublishing a custom course
+  const handleUnpublishCourse = (courseId) => {
+    const updatedCustomCourses = customCourses.filter(c => c.id !== courseId);
+    setCustomCourses(updatedCustomCourses);
+    localStorage.setItem('customPublishedCourses', JSON.stringify(updatedCustomCourses));
+  };
   
   // Get context values
   const { 
@@ -73,7 +133,13 @@ export default function App() {
             Exit Admin
           </button>
         </div>
-        <AdminDashboard adminRole={adminRole} />
+        <AdminDashboard 
+          adminRole={adminRole} 
+          onUpdatePublishedCourses={handleUpdatePublishedCourses}
+          onPublishDraft={handlePublishDraft}
+          onUnpublishCourse={handleUnpublishCourse}
+          customCourses={customCourses}
+        />
       </div>
     );
   }
@@ -141,7 +207,7 @@ export default function App() {
       </nav>
       
       <main>
-        {view === VIEWS.HOME && <HomePage courses={COURSES} onSelectCourse={navigateToSyllabus} />}
+        {view === VIEWS.HOME && <HomePage courses={getMergedCourses()} onSelectCourse={navigateToSyllabus} />}
         {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => window.location.href = '/'} onSelectModule={navigateToLearning} completedModules={completedModules} />}
         
         {view === VIEWS.LEARNING && (

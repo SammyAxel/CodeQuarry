@@ -1,16 +1,17 @@
 /**
- * User Context
- * Manages user authentication, profile, and progress tracking
- * Uses localStorage for persistence
+ * User Context with Session Management
+ * Manages user authentication, profile, progress tracking, and session timeouts
+ * Uses localStorage for persistence and sessionStorage for session tracking
  */
 
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
 import { STORAGE_KEYS } from '../constants/appConfig';
+import { logSecurityEvent } from '../utils/securityUtils';
 
 const UserContext = createContext();
 
 /**
- * UserProvider component - wraps app and provides user context
+ * UserProvider component - wraps app and provides user context with session management
  * @param {Object} props
  * @param {React.ReactNode} props.children - Child components
  */
@@ -18,6 +19,15 @@ export const UserProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRole, setAdminRole] = useState(null);
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+
+  // Get session timeout from environment (in minutes)
+  const SESSION_TIMEOUT_MINUTES = parseInt(import.meta.env.VITE_SESSION_TIMEOUT) || 30;
+  const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
+  const WARNING_TIME_MS = 5 * 60 * 1000; // 5 minutes before timeout
 
   // Load users from localStorage on mount
   useEffect(() => {
@@ -32,6 +42,7 @@ export const UserProvider = ({ children }) => {
         // Restore last logged-in user
         if (lastUser && parsedUsers[lastUser]) {
           setCurrentUser(lastUser);
+          setLastActivityTime(Date.now());
         }
       }
     } catch (error) {
@@ -64,16 +75,116 @@ export const UserProvider = ({ children }) => {
       }));
     }
     setCurrentUser(username);
+    setIsAdmin(false);
+    setAdminRole(null);
+    setLastActivityTime(Date.now());
     localStorage.setItem(STORAGE_KEYS.LAST_USER, username);
+    
+    logSecurityEvent('user_login', {
+      username,
+      timestamp: new Date().toISOString()
+    });
   }, [users]);
+
+  /**
+   * Handle admin login with role
+   */
+  const adminLogin = useCallback((role) => {
+    const adminUser = `admin-${role}`;
+    setCurrentUser(adminUser);
+    setIsAdmin(true);
+    setAdminRole(role);
+    setLastActivityTime(Date.now());
+    localStorage.setItem(STORAGE_KEYS.LAST_USER, adminUser);
+    
+    logSecurityEvent('admin_session_started', {
+      role,
+      timestamp: new Date().toISOString()
+    });
+  }, []);
 
   /**
    * Logout current user
    */
-  const logout = useCallback(() => {
+  const logout = useCallback((reason = 'user_initiated') => {
+    const endTime = Date.now();
+    
+    logSecurityEvent('user_logout', {
+      user: currentUser,
+      isAdmin,
+      adminRole,
+      reason,
+      sessionDurationMs: endTime - lastActivityTime,
+      timestamp: new Date().toISOString()
+    });
+    
     setCurrentUser(null);
+    setIsAdmin(false);
+    setAdminRole(null);
+    setShowTimeoutWarning(false);
     localStorage.removeItem(STORAGE_KEYS.LAST_USER);
+  }, [currentUser, isAdmin, adminRole, lastActivityTime]);
+
+  /**
+   * Track user activity to reset inactivity timer
+   */
+  const updateActivity = useCallback(() => {
+    setLastActivityTime(Date.now());
+    setShowTimeoutWarning(false);
   }, []);
+
+  /**
+   * Monitor session timeout
+   */
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const checkTimeout = setInterval(() => {
+      const now = Date.now();
+      const sessionDuration = now - lastActivityTime;
+
+      // Show warning 5 minutes before timeout
+      if (sessionDuration >= SESSION_TIMEOUT_MS - WARNING_TIME_MS && !showTimeoutWarning) {
+        setShowTimeoutWarning(true);
+        logSecurityEvent('session_warning_shown', {
+          user: currentUser,
+          minutesRemaining: 5,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Auto-logout on timeout
+      if (sessionDuration >= SESSION_TIMEOUT_MS) {
+        clearInterval(checkTimeout);
+        logout('session_timeout');
+      }
+    }, 1000);
+
+    return () => clearInterval(checkTimeout);
+  }, [currentUser, lastActivityTime, SESSION_TIMEOUT_MS, showTimeoutWarning, logout]);
+
+  /**
+   * Track user activity on window events
+   */
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    
+    const handleActivity = () => {
+      updateActivity();
+    };
+
+    activityEvents.forEach(event => {
+      document.addEventListener(event, handleActivity);
+    });
+
+    return () => {
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [currentUser, updateActivity]);
 
   /**
    * Mark a module as complete
@@ -152,16 +263,44 @@ export const UserProvider = ({ children }) => {
     );
   }, [getUserProgress]);
 
+  /**
+   * Get remaining session time in seconds
+   */
+  const getRemainingSessionTime = useCallback(() => {
+    if (!currentUser) return 0;
+    const sessionDuration = Date.now() - lastActivityTime;
+    const remaining = SESSION_TIMEOUT_MS - sessionDuration;
+    return Math.max(0, Math.ceil(remaining / 1000));
+  }, [currentUser, lastActivityTime, SESSION_TIMEOUT_MS]);
+
+  /**
+   * Extend session (called when user clicks "Continue" on warning)
+   */
+  const extendSession = useCallback(() => {
+    updateActivity();
+    logSecurityEvent('session_extended', {
+      user: currentUser,
+      timestamp: new Date().toISOString()
+    });
+  }, [currentUser, updateActivity]);
+
   const value = {
     currentUser,
     users,
     isLoading,
+    isAdmin,
+    adminRole,
+    showTimeoutWarning,
+    sessionTimeoutMinutes: SESSION_TIMEOUT_MINUTES,
     login,
+    adminLogin,
     logout,
     markModuleComplete,
     saveModuleCode,
     getUserProgress,
     getCompletedModules,
+    getRemainingSessionTime,
+    extendSession,
   };
 
   return (
@@ -172,8 +311,7 @@ export const UserProvider = ({ children }) => {
 };
 
 /**
- * Hook to use User Context
- * @returns {Object} User context value
+ * Hook to use UserContext
  */
 export const useUser = () => {
   const context = useContext(UserContext);

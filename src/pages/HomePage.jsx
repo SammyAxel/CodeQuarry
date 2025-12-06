@@ -1,5 +1,6 @@
 import React, { memo, useState, useMemo } from 'react';
-import { ChevronRight, Gem, Pickaxe, Coins, Search, X } from 'lucide-react';
+import { ChevronRight, Gem, Pickaxe, Coins, Search, X, AlertCircle } from 'lucide-react';
+import { sanitizeInput } from '../utils/securityUtils';
 
 /**
  * Home page showing available courses
@@ -18,7 +19,10 @@ const HomePage = ({ courses, onSelectCourse }) => {
   const filteredCourses = useMemo(() => {
     if (!searchQuery.trim()) return courses;
     
-    const query = searchQuery.toLowerCase();
+    // Sanitize search input to prevent XSS
+    const sanitized = sanitizeInput(searchQuery, 100);
+    const query = sanitized.toLowerCase();
+    
     return courses.filter(course => 
       course.title.toLowerCase().includes(query) ||
       course.description.toLowerCase().includes(query) ||
@@ -61,7 +65,11 @@ const HomePage = ({ courses, onSelectCourse }) => {
             type="text"
             placeholder="Search courses by title, topic, or level..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              // Sanitize input to prevent XSS attacks
+              const sanitized = sanitizeInput(e.target.value, 100);
+              setSearchQuery(sanitized);
+            }}
             className="w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
           />
           {searchQuery && (

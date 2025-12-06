@@ -191,7 +191,7 @@ result = (2 + 3) * 4   # This is 20
 \`\`\`
 `,
       instruction: 'Step 1: Create a variable `side` and assign it the value 5.\nStep 2: Calculate the area using the exponent operator (`**`).\nStep 3: Print the result of `side ** 2`.',
-      initialCode: 'side = 5\n# Calculate area\n',
+      initialCode: '# Calculate the area of square with side = 5\n',
       language: 'python',
       expectedOutput: '25',
       requiredSyntax: /side\s*\*\*\s*2/,

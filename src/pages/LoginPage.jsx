@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Gem, LogIn, Pickaxe, Lock, X } from 'lucide-react';
+import { verifyAdminPassword, verifyModPassword, createSessionToken, logSecurityEvent } from '../utils/securityUtils';
 
 export const LoginPage = ({ onLogin, onAdminLogin }) => {
   const [username, setUsername] = useState('');
@@ -18,15 +19,27 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
     e.preventDefault();
     let role = null;
     
-    if (adminPassword === 'GemMiner') {
+    if (verifyAdminPassword(adminPassword)) {
       role = 'admin';
-    } else if (adminPassword === 'GemGoblin') {
+    } else if (verifyModPassword(adminPassword)) {
       role = 'mod';
     } else {
+      logSecurityEvent('admin_login_failed', { 
+        role: 'unknown',
+        timestamp: new Date().toISOString()
+      });
       setAdminError('Invalid password');
       setAdminPassword('');
       return;
     }
+    
+    // Create session token
+    const token = createSessionToken(role);
+    
+    logSecurityEvent(`${role}_login_success`, { 
+      role,
+      timestamp: new Date().toISOString()
+    });
     
     setShowAdminModal(false);
     setAdminPassword('');

@@ -1,30 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen } from 'lucide-react';
+import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen, AlertCircle, Shield, BookOpen, Layers, Server, ServerOff } from 'lucide-react';
 import { CourseEditor } from './ModuleEditor';
 import { CoursePreview } from './CoursePreview';
+import { SecurityDashboard } from './SecurityDashboard';
+import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
+import { publishCourse, saveCourse, checkServerHealth, setAdminAuth } from '../utils/courseApi';
+import { COURSES } from '../data/courses';
 
-export const AdminDashboard = ({ adminRole = 'admin' }) => {
-  const [view, setView] = useState('list'); // list, editor, preview, review
+export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
+  const [view, setView] = useState('list'); // list, editor, preview, review, security
+  const [activeTab, setActiveTab] = useState('published'); // 'drafts' or 'published'
   const [drafts, setDrafts] = useState([]);
+  const [publishedEdits, setPublishedEdits] = useState({}); // Stores local edits to published courses
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
+  const [serverOnline, setServerOnline] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [editingPublishedId, setEditingPublishedId] = useState(null); // Track if editing a published course
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   
   // Check if user is admin (can publish/delete/edit all)
   const isAdmin = adminRole === 'admin';
   // Mods can create and edit but not publish
 
-  // Load drafts from localStorage
+  // Load drafts from localStorage and check server health
   useEffect(() => {
     const savedDrafts = localStorage.getItem('courseDrafts');
     if (savedDrafts) {
       setDrafts(JSON.parse(savedDrafts));
     }
+    
+    // Load published course edits from localStorage
+    const savedPublishedEdits = localStorage.getItem('publishedCourseEdits');
+    if (savedPublishedEdits) {
+      setPublishedEdits(JSON.parse(savedPublishedEdits));
+    }
+    
+    // Generate CSRF token for delete operations
+    generateCSRFToken('admin-dashboard-delete');
+    
+    // Check if backend server is online
+    checkServerHealth().then(online => {
+      setServerOnline(online);
+      if (online) {
+        // Set admin auth for API calls
+        setAdminAuth('GemMiner2025!');
+      }
+    });
   }, []);
 
   // Save drafts to localStorage
   const saveDrafts = (updatedDrafts) => {
     setDrafts(updatedDrafts);
     localStorage.setItem('courseDrafts', JSON.stringify(updatedDrafts));
+  };
+
+  // Save published course edits to localStorage
+  const savePublishedEdits = (updatedEdits) => {
+    setPublishedEdits(updatedEdits);
+    localStorage.setItem('publishedCourseEdits', JSON.stringify(updatedEdits));
+    // Notify parent component about the update
+    if (onUpdatePublishedCourses) {
+      onUpdatePublishedCourses(updatedEdits);
+    }
+  };
+
+  // Get merged published courses (original + local edits)
+  const getMergedPublishedCourses = () => {
+    return COURSES.map(course => {
+      if (publishedEdits[course.id]) {
+        return { ...course, ...publishedEdits[course.id], _hasLocalEdits: true };
+      }
+      return { ...course, _hasLocalEdits: false };
+    });
   };
 
   // Create new course
@@ -43,26 +91,99 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
   };
 
   // Save course
-  const handleSaveCourse = (course) => {
-    const existingIndex = drafts.findIndex(d => d.id === course.id);
-    let updated;
-    
-    if (existingIndex >= 0) {
-      updated = [...drafts];
-      updated[existingIndex] = { ...course, updatedAt: new Date().toISOString() };
+  const handleSaveCourse = async (course, saveToFile = false) => {
+    // Check if this is a published course edit
+    if (editingPublishedId) {
+      // If saveToFile is true and server is online, save directly to file
+      if (saveToFile && serverOnline) {
+        try {
+          const courseToSave = {
+            ...course,
+            id: editingPublishedId
+          };
+          await saveCourse(editingPublishedId, courseToSave);
+          
+          // Clear any localStorage edits for this course since it's now in file
+          const updatedEdits = { ...publishedEdits };
+          delete updatedEdits[editingPublishedId];
+          savePublishedEdits(updatedEdits);
+          
+          alert('✅ Course saved to file!\n\n⚠️ Restart the dev server to see changes.');
+          setEditingPublishedId(null);
+          setView('list');
+          setEditingCourse(null);
+          return;
+        } catch (error) {
+          console.error('Save to file error:', error);
+          alert('❌ Failed to save to file: ' + error.message + '\n\nFalling back to localStorage.');
+        }
+      }
+      
+      // Save as an override to localStorage (fallback or default)
+      const updatedEdits = {
+        ...publishedEdits,
+        [editingPublishedId]: {
+          ...course,
+          id: editingPublishedId, // Keep original ID
+          updatedAt: new Date().toISOString()
+        }
+      };
+      savePublishedEdits(updatedEdits);
+      setEditingPublishedId(null);
+      logSecurityEvent('published_course_edited', {
+        courseId: editingPublishedId,
+        modules: course.modules?.length
+      });
     } else {
-      updated = [...drafts, { ...course, createdAt: new Date().toISOString() }];
+      // Save as a draft
+      const existingIndex = drafts.findIndex(d => d.id === course.id);
+      let updated;
+      
+      if (existingIndex >= 0) {
+        updated = [...drafts];
+        updated[existingIndex] = { ...course, updatedAt: new Date().toISOString() };
+      } else {
+        updated = [...drafts, { ...course, createdAt: new Date().toISOString() }];
+      }
+      
+      saveDrafts(updated);
     }
     
-    saveDrafts(updated);
     setView('list');
     setEditingCourse(null);
   };
 
-  // Delete draft
-  const handleDeleteDraft = (id) => {
+  // Revert published course to original
+  const handleRevertPublished = (courseId) => {
+    const updatedEdits = { ...publishedEdits };
+    delete updatedEdits[courseId];
+    savePublishedEdits(updatedEdits);
+    logSecurityEvent('published_course_reverted', { courseId });
+  };
+
+  // Delete draft with CSRF verification
+  const handleDeleteDraft = (id, csrfToken) => {
+    // Verify CSRF token
+    if (!verifyCSRFToken('admin-dashboard-delete', csrfToken)) {
+      logSecurityEvent('delete_draft_csrf_failed', { 
+        draftId: id,
+        timestamp: new Date().toISOString()
+      });
+      alert('Security error: Invalid form token. Please refresh and try again.');
+      return;
+    }
+
+    logSecurityEvent('draft_deleted', { 
+      draftId: id,
+      timestamp: new Date().toISOString()
+    });
+    
     const updated = drafts.filter(d => d.id !== id);
     saveDrafts(updated);
+    setDeleteConfirmation(null);
+    
+    // Regenerate token for next delete
+    generateCSRFToken('admin-dashboard-delete');
   };
 
   // Export for review
@@ -76,7 +197,7 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
     a.click();
   };
 
-  // Import course JSON
+  // Import course JSON with sanitization
   const handleImportCourse = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -84,10 +205,36 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
       reader.onload = (event) => {
         try {
           const imported = JSON.parse(event.target?.result);
-          const updated = [...drafts, { ...imported, id: `course-${Date.now()}` }];
+          
+          // Sanitize imported data
+          const sanitized = {
+            ...imported,
+            id: `course-${Date.now()}`,
+            title: sanitizeInput(imported.title || 'Untitled Course', 200),
+            description: sanitizeInput(imported.description || '', 1000),
+            modules: (imported.modules || []).map(mod => ({
+              ...mod,
+              title: sanitizeInput(mod.title || 'Untitled Module', 200),
+              instruction: sanitizeInput(mod.instruction || '', 5000),
+              theory: sanitizeInput(mod.theory || '', 5000),
+              initialCode: sanitizeInput(mod.initialCode || '', 5000),
+              expectedOutput: sanitizeInput(mod.expectedOutput || '', 5000),
+              solution: sanitizeInput(mod.solution || '', 5000),
+              hints: (mod.hints || []).map(h => sanitizeInput(h, 1000))
+            }))
+          };
+          
+          const updated = [...drafts, sanitized];
           saveDrafts(updated);
+          logSecurityEvent('course_imported', { 
+            courseId: sanitized.id,
+            modules: sanitized.modules.length
+          });
         } catch (err) {
-          alert('Failed to import: Invalid JSON');
+          logSecurityEvent('course_import_failed', { 
+            error: err.message
+          });
+          alert('Failed to import: Invalid JSON or corrupted file');
         }
       };
       reader.readAsText(file);
@@ -102,7 +249,10 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
         onCancel={() => {
           setView('list');
           setEditingCourse(null);
+          setEditingPublishedId(null);
         }}
+        serverOnline={serverOnline}
+        isPublishedEdit={!!editingPublishedId}
       />
     );
   }
@@ -112,17 +262,60 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
       <CoursePreview
         course={selectedCourse}
         adminRole={adminRole}
+        serverOnline={serverOnline}
+        isPublishing={isPublishing}
         onBack={() => {
           setView('list');
           setSelectedCourse(null);
         }}
         onExport={() => handleExportCourse(selectedCourse)}
-        onPublish={() => {
-          // TODO: Copy to src/data
-          alert('Course published! (Admin only - implement in App.jsx)');
-          setView('list');
+        onPublish={async () => {
+          if (!isAdmin) {
+            alert('Only admins can publish courses.');
+            return;
+          }
+          
+          if (!serverOnline) {
+            alert('⚠️ Backend server is offline.\n\nStart the server with: npm run server\n\nCourse will be saved to localStorage as fallback.');
+            // Fallback to localStorage
+            if (onPublishDraft) {
+              onPublishDraft(selectedCourse);
+              const updatedDrafts = drafts.filter(d => d.id !== selectedCourse.id);
+              saveDrafts(updatedDrafts);
+              alert('✅ Course saved to localStorage (offline mode).\nRestart with server to save to file.');
+              setView('list');
+              setSelectedCourse(null);
+            }
+            return;
+          }
+          
+          // Publish to actual file via backend
+          setIsPublishing(true);
+          try {
+            await publishCourse(selectedCourse);
+            
+            // Remove from drafts after publishing
+            const updatedDrafts = drafts.filter(d => d.id !== selectedCourse.id);
+            saveDrafts(updatedDrafts);
+            
+            alert('✅ Course published successfully!\n\nThe file has been created at:\nsrc/data/' + selectedCourse.id + '.jsx\n\n⚠️ You need to restart the dev server (npm run dev) to see the changes.');
+            setView('list');
+            setSelectedCourse(null);
+          } catch (error) {
+            console.error('Publish error:', error);
+            alert('❌ Failed to publish: ' + error.message);
+          } finally {
+            setIsPublishing(false);
+          }
         }}
       />
+    );
+  }
+
+  // Security Dashboard view (admin only)
+  if (view === 'security' && isAdmin) {
+    return (
+      <SecurityDashboard onClose={() => setView('list')} />
     );
   }
 
@@ -138,32 +331,192 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
             <h1 className="text-3xl font-black">Course Manager</h1>
           </div>
           <div className="flex gap-3">
-            <label className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg cursor-pointer transition-colors">
-              <Upload className="w-4 h-4" />
-              Import JSON
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportCourse}
-                className="hidden"
-              />
-            </label>
-            <button
-              onClick={handleCreateCourse}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              New Course
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setView('security')}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600/20 text-red-300 hover:bg-red-600/30 rounded-lg font-bold transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                Security
+              </button>
+            )}
+            {activeTab === 'drafts' && (
+              <>
+                <label className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg cursor-pointer transition-colors">
+                  <Upload className="w-4 h-4" />
+                  Import JSON
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportCourse}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  onClick={handleCreateCourse}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Course
+                </button>
+              </>
+            )}
           </div>
         </div>
-        <p className="text-gray-400">
-          Manage course drafts. Edit, preview, and export for admin review.
+        <p className="text-gray-400 mb-6">
+          {activeTab === 'published' 
+            ? 'Edit existing courses. Changes are saved locally and applied immediately.'
+            : 'Manage course drafts. Edit, preview, and export for admin review.'}
         </p>
+
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-gray-800 pb-0">
+          <button
+            onClick={() => setActiveTab('published')}
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-colors border-b-2 -mb-px ${
+              activeTab === 'published'
+                ? 'text-purple-400 border-purple-500 bg-purple-600/10'
+                : 'text-gray-400 border-transparent hover:text-white hover:bg-gray-800/50'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Published Courses ({COURSES.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('drafts')}
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-colors border-b-2 -mb-px ${
+              activeTab === 'drafts'
+                ? 'text-purple-400 border-purple-500 bg-purple-600/10'
+                : 'text-gray-400 border-transparent hover:text-white hover:bg-gray-800/50'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            Drafts ({drafts.length})
+          </button>
+        </div>
       </div>
 
-      {/* Drafts List */}
-      <div className="grid gap-4">
+      {/* Published Courses Tab */}
+      {activeTab === 'published' && (
+        <div className="grid gap-4">
+          {getMergedPublishedCourses().map(course => (
+            <div
+              key={course.id}
+              className={`bg-gray-900/50 border rounded-lg p-6 transition-all ${
+                course._hasLocalEdits 
+                  ? 'border-yellow-600/50 hover:border-yellow-500/70' 
+                  : 'border-gray-800 hover:border-purple-600/50'
+              }`}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-xl font-bold">{course.title}</h3>
+                    {course._hasLocalEdits && (
+                      <span className="text-xs px-2 py-0.5 bg-yellow-600/20 text-yellow-300 rounded font-bold">
+                        Modified
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-sm">{course.description || 'No description'}</p>
+                  <div className="flex gap-3 mt-2 flex-wrap">
+                    <span className={`text-xs px-2 py-1 rounded font-bold ${
+                      course.level === 'Copper' ? 'bg-orange-600/20 text-orange-300' :
+                      course.level === 'Silver' ? 'bg-slate-600/20 text-slate-300' :
+                      course.level === 'Gold' ? 'bg-yellow-600/20 text-yellow-300' :
+                      'bg-purple-600/20 text-purple-300'
+                    }`}>
+                      {course.level === 'Copper' ? '🥉' : course.level === 'Silver' ? '⚪' : course.level === 'Gold' ? '🟡' : '💎'} {course.level}
+                    </span>
+                    <span className="text-xs px-2 py-1 bg-purple-600/20 text-purple-300 rounded">
+                      {course.modules?.length || 0} modules
+                    </span>
+                    {course._hasLocalEdits && course.updatedAt && (
+                      <span className="text-xs text-yellow-400">
+                        Edited {new Date(course.updatedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-2xl">{typeof course.icon === 'string' ? course.icon : '📚'}</div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    // Get the merged course with any local edits
+                    const mergedCourse = publishedEdits[course.id] 
+                      ? { ...course, ...publishedEdits[course.id] }
+                      : course;
+                    // Convert icon to string for editor
+                    setEditingCourse({
+                      ...mergedCourse,
+                      icon: typeof mergedCourse.icon === 'string' ? mergedCourse.icon : '📚'
+                    });
+                    setEditingPublishedId(course.id);
+                    setView('editor');
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-yellow-600/20 text-yellow-300 hover:bg-yellow-600/30 rounded text-sm font-bold transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit Course
+                </button>
+                <button
+                  onClick={() => {
+                    const mergedCourse = publishedEdits[course.id] 
+                      ? { ...course, ...publishedEdits[course.id] }
+                      : course;
+                    setSelectedCourse(mergedCourse);
+                    setView('preview');
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 rounded text-sm font-bold transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  Preview
+                </button>
+                <button
+                  onClick={() => {
+                    const mergedCourse = publishedEdits[course.id] 
+                      ? { ...course, ...publishedEdits[course.id] }
+                      : course;
+                    handleExportCourse(mergedCourse);
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-green-600/20 text-green-300 hover:bg-green-600/30 rounded text-sm font-bold transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </button>
+                {course._hasLocalEdits && isAdmin && (
+                  <button
+                    onClick={() => handleRevertPublished(course.id)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-600/20 text-gray-300 hover:bg-gray-600/30 rounded text-sm font-bold transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Revert Changes
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Info Box for Published */}
+          <div className="mt-4 p-4 bg-blue-600/10 border border-blue-600/30 rounded-lg">
+            <h4 className="font-bold text-blue-300 mb-2">📘 Editing Published Courses</h4>
+            <ul className="text-sm text-gray-300 space-y-1">
+              <li>✓ Changes are saved to your browser's local storage</li>
+              <li>✓ Edits are applied immediately to the app</li>
+              <li>✓ Yellow "Modified" badge shows edited courses</li>
+              <li>✓ Use "Revert Changes" to restore the original version</li>
+              <li>✓ Export to JSON to save your changes permanently</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Drafts Tab */}
+      {activeTab === 'drafts' && (
+        <div className="grid gap-4">
         {drafts.length === 0 ? (
           <div className="text-center py-12 bg-gray-900/50 rounded-lg border border-gray-800">
             <FolderOpen className="w-12 h-12 text-gray-600 mx-auto mb-3" />
@@ -230,7 +583,10 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
                 </button>
                 {isAdmin && (
                   <button
-                    onClick={() => handleDeleteDraft(course.id)}
+                    onClick={() => {
+                      const token = generateCSRFToken('admin-dashboard-delete');
+                      setDeleteConfirmation({ id: course.id, title: course.title, csrfToken: token });
+                    }}
                     className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 text-red-300 hover:bg-red-600/30 rounded text-sm font-bold transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -241,18 +597,56 @@ export const AdminDashboard = ({ adminRole = 'admin' }) => {
             </div>
           ))
         )}
-      </div>
 
-      {/* Info Box */}
-      <div className="mt-8 p-4 bg-purple-600/10 border border-purple-600/30 rounded-lg">
-        <h4 className="font-bold text-purple-300 mb-2">How it works:</h4>
-        <ul className="text-sm text-gray-300 space-y-1">
-          <li>✓ Create new courses with the form builder</li>
-          <li>✓ Edit and preview as you build</li>
-          <li>✓ Export as JSON for version control</li>
-          <li>✓ Admin (you) reviews and publishes to src/data/</li>
-        </ul>
-      </div>
+        {/* Info Box for Drafts */}
+        <div className="mt-4 p-4 bg-purple-600/10 border border-purple-600/30 rounded-lg">
+          <h4 className="font-bold text-purple-300 mb-2">How it works:</h4>
+          <ul className="text-sm text-gray-300 space-y-1">
+            <li>✓ Create new courses with the form builder</li>
+            <li>✓ Edit and preview as you build</li>
+            <li>✓ Export as JSON for version control</li>
+            <li>✓ Admin (you) reviews and publishes to src/data/</li>
+          </ul>
+        </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0d1117] border border-red-600/50 rounded-lg p-6 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-600/20 rounded-lg">
+                <AlertCircle className="w-6 h-6 text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Delete Course?</h2>
+            </div>
+
+            <p className="text-gray-300 mb-2">
+              Are you sure you want to delete <span className="font-bold">"{deleteConfirmation.title}"</span>?
+            </p>
+            <p className="text-sm text-gray-400 mb-6">
+              This action cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmation(null)}
+                className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteDraft(deleteConfirmation.id, deleteConfirmation.csrfToken)}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

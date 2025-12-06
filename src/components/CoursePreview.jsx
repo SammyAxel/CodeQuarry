@@ -1,8 +1,124 @@
-import React from 'react';
-import { ChevronLeft, Download, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronLeft, Download, Check, Play, X, Server, ServerOff, Loader } from 'lucide-react';
+import { PracticeMode } from './practice';
+import { ArticleEssay } from './ArticleEssay';
+import { VideoEssay } from './VideoEssay';
 
-export const CoursePreview = ({ course, adminRole = 'mod', onBack, onExport, onPublish }) => {
+export const CoursePreview = ({ course, adminRole = 'mod', serverOnline = false, isPublishing = false, onBack, onExport, onPublish }) => {
   const isAdmin = adminRole === 'admin';
+  const [testingModule, setTestingModule] = useState(null);
+  const [testingModuleIndex, setTestingModuleIndex] = useState(null);
+  
+  // Handle navigation within the test module
+  const handleTestNavigation = (direction) => {
+    if (!course.modules) return;
+    
+    let newIndex;
+    if (direction === 'next' && testingModuleIndex < course.modules.length - 1) {
+      newIndex = testingModuleIndex + 1;
+    } else if (direction === 'prev' && testingModuleIndex > 0) {
+      newIndex = testingModuleIndex - 1;
+    } else {
+      return;
+    }
+    
+    setTestingModuleIndex(newIndex);
+    setTestingModule(course.modules[newIndex]);
+  };
+  
+  // If testing a module, render the module tester
+  if (testingModule) {
+    return (
+      <div className="fixed inset-0 bg-[#0d1117] z-50 overflow-auto">
+        {/* Test Mode Header */}
+        <div className="fixed top-0 left-0 right-0 h-12 bg-gradient-to-r from-purple-900/90 to-amber-900/50 border-b border-purple-500/30 flex items-center justify-between px-4 z-50">
+          <div className="flex items-center gap-3">
+            <span className="text-purple-400 font-bold text-sm">🧪 TEST MODE</span>
+            <span className="text-white font-bold">{testingModule.title}</span>
+            <span className="text-gray-400 text-sm">({testingModuleIndex + 1} of {course.modules?.length})</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleTestNavigation('prev')}
+              disabled={testingModuleIndex === 0}
+              className="px-3 py-1 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-bold transition-colors"
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={() => handleTestNavigation('next')}
+              disabled={testingModuleIndex >= (course.modules?.length || 1) - 1}
+              className="px-3 py-1 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-bold transition-colors"
+            >
+              Next →
+            </button>
+            <button
+              onClick={() => {
+                setTestingModule(null);
+                setTestingModuleIndex(null);
+              }}
+              className="flex items-center gap-1 px-3 py-1 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded text-sm font-bold transition-colors ml-2"
+            >
+              <X className="w-4 h-4" />
+              Exit Test
+            </button>
+          </div>
+        </div>
+        
+        {/* Module Content */}
+        <div className="pt-12">
+          {testingModule.type === 'practice' && (
+            <PracticeMode
+              module={testingModule}
+              course={course}
+              onComplete={() => handleTestNavigation('next')}
+              onExit={() => {
+                setTestingModule(null);
+                setTestingModuleIndex(null);
+              }}
+              navProps={{
+                currentIndex: testingModuleIndex,
+                totalModules: course.modules?.length || 0,
+                hasPrev: testingModuleIndex > 0,
+                hasNext: testingModuleIndex < (course.modules?.length || 1) - 1,
+                onPrev: () => handleTestNavigation('prev'),
+                onNext: () => handleTestNavigation('next'),
+              }}
+            />
+          )}
+          {testingModule.type === 'article' && (
+            <ArticleEssay
+              module={testingModule}
+              onComplete={() => handleTestNavigation('next')}
+              navProps={{
+                currentIndex: testingModuleIndex,
+                totalModules: course.modules?.length || 0,
+                hasPrev: testingModuleIndex > 0,
+                hasNext: testingModuleIndex < (course.modules?.length || 1) - 1,
+                onPrev: () => handleTestNavigation('prev'),
+                onNext: () => handleTestNavigation('next'),
+              }}
+            />
+          )}
+          {testingModule.type === 'video' && (
+            <VideoEssay
+              module={testingModule}
+              onComplete={() => handleTestNavigation('next')}
+              navProps={{
+                currentIndex: testingModuleIndex,
+                totalModules: course.modules?.length || 0,
+                hasPrev: testingModuleIndex > 0,
+                hasNext: testingModuleIndex < (course.modules?.length || 1) - 1,
+                onPrev: () => handleTestNavigation('prev'),
+                onNext: () => handleTestNavigation('next'),
+              }}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-[#0d1117] text-white p-8">
       {/* Header */}
@@ -17,6 +133,12 @@ export const CoursePreview = ({ course, adminRole = 'mod', onBack, onExport, onP
           <h1 className="text-3xl font-black">Preview Course</h1>
         </div>
         <div className="flex gap-3">
+          {/* Server status indicator */}
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${serverOnline ? 'bg-green-900/30 text-green-400' : 'bg-yellow-900/30 text-yellow-400'}`}>
+            {serverOnline ? <Server className="w-4 h-4" /> : <ServerOff className="w-4 h-4" />}
+            {serverOnline ? 'Server Online' : 'Server Offline'}
+          </div>
+          
           <button
             onClick={onExport}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors"
@@ -27,10 +149,20 @@ export const CoursePreview = ({ course, adminRole = 'mod', onBack, onExport, onP
           {isAdmin && (
             <button
               onClick={onPublish}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-colors"
+              disabled={isPublishing}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-bold transition-colors"
             >
-              <Check className="w-4 h-4" />
-              Publish to Live
+              {isPublishing ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Publish to Live
+                </>
+              )}
             </button>
           )}
         </div>
@@ -92,6 +224,18 @@ export const CoursePreview = ({ course, adminRole = 'mod', onBack, onExport, onP
                       </p>
                     </div>
                     <div className="flex gap-2 items-center">
+                      {/* Test Module Button */}
+                      <button
+                        onClick={() => {
+                          setTestingModule(module);
+                          setTestingModuleIndex(idx);
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 bg-purple-600/20 text-purple-300 hover:bg-purple-600/40 rounded text-xs font-bold transition-colors"
+                      >
+                        <Play className="w-3 h-3" />
+                        Test
+                      </button>
+                      
                       {module.difficulty && (
                         <span className={`text-xs px-2 py-1 rounded font-bold ${
                           module.difficulty === 'easy' ? 'bg-green-900/30 text-green-400' :
