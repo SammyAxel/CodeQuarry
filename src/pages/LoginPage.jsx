@@ -1,14 +1,37 @@
 import React, { useState } from 'react';
-import { Gem, LogIn, Pickaxe } from 'lucide-react';
+import { Gem, LogIn, Pickaxe, Lock, X } from 'lucide-react';
 
-export const LoginPage = ({ onLogin }) => {
+export const LoginPage = ({ onLogin, onAdminLogin }) => {
   const [username, setUsername] = useState('');
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (username.trim()) {
       onLogin(username.trim());
     }
+  };
+
+  const handleAdminSubmit = (e) => {
+    e.preventDefault();
+    let role = null;
+    
+    if (adminPassword === 'GemMiner') {
+      role = 'admin';
+    } else if (adminPassword === 'GemGoblin') {
+      role = 'mod';
+    } else {
+      setAdminError('Invalid password');
+      setAdminPassword('');
+      return;
+    }
+    
+    setShowAdminModal(false);
+    setAdminPassword('');
+    setAdminError('');
+    onAdminLogin(role);
   };
 
   return (
@@ -62,9 +85,82 @@ export const LoginPage = ({ onLogin }) => {
             Start Mining
           </button>
         </form>
+
+        {/* Admin Login Button */}
+        <button
+          onClick={() => setShowAdminModal(true)}
+          className="mt-6 text-xs text-gray-600 hover:text-gray-400 transition-colors flex items-center justify-center gap-1 mx-auto"
+        >
+          <Lock className="w-3 h-3" /> Admin Portal
+        </button>
         
-        <p className="text-xs text-gray-600 mt-8 font-mono">Version 1.0 • Mining Since 2024</p>
+        <p className="text-xs text-gray-600 mt-8 font-mono">Version 1.0 • Mining Since 2025</p>
       </div>
+
+      {/* Admin Login Modal */}
+      {showAdminModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0d1117] border border-purple-500/50 rounded-xl p-8 max-w-sm w-full relative">
+            <button
+              onClick={() => {
+                setShowAdminModal(false);
+                setAdminPassword('');
+                setAdminError('');
+              }}
+              className="absolute top-4 right-4 p-1 hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Lock className="w-6 h-6 text-yellow-500" />
+              <h2 className="text-2xl font-black text-white">Admin Access</h2>
+            </div>
+
+            <p className="text-gray-400 text-sm mb-6">Enter the admin password to access the course management system.</p>
+
+            <form onSubmit={handleAdminSubmit} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => {
+                    setAdminPassword(e.target.value);
+                    setAdminError('');
+                  }}
+                  placeholder="Admin Password"
+                  autoFocus
+                  className="w-full px-4 py-2 bg-[#161b22] border border-gray-700 focus:border-yellow-500 rounded-lg text-white text-center focus:ring-2 focus:ring-yellow-500/50 outline-none transition-all"
+                />
+              </div>
+
+              {adminError && (
+                <p className="text-red-400 text-sm text-center">{adminError}</p>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdminModal(false);
+                    setAdminPassword('');
+                    setAdminError('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                >
+                  <Lock className="w-4 h-4" /> Access
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

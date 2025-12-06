@@ -1,5 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
+/**
+ * Dynamically loads a JavaScript library/script into the page
+ * Handles script loading with polling for initialization and timeout
+ * @param {string} src - URL of the script to load
+ * @param {string} globalCheck - Global variable name to check for successful load
+ * @returns {Promise} Resolves when library is ready, rejects on timeout/error
+ * @throws {Error} If script fails to load or initialization times out
+ */
 const loadScript = (src, globalCheck) => {
   return new Promise((resolve, reject) => {
     if (window[globalCheck]) {
@@ -52,6 +60,18 @@ const loadScript = (src, globalCheck) => {
   });
 };
 
+/**
+ * Hook for managing code execution engines (Python, JavaScript, C)
+ * Lazy-loads engines on demand for better performance
+ * Handles multiple execution environments with fallback support
+ * 
+ * @param {Object} module - Module data containing language, expectedOutput, etc.
+ * @returns {Object} { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines }
+ * 
+ * @example
+ * const { output, runCode, isEngineLoading } = useCodeEngine(module);
+ * const result = await runCode(userCode);
+ */
 export const useCodeEngine = (module) => {
   const [output, setOutput] = useState(['> Terminal ready...']);
   const [isEngineLoading, setIsEngineLoading] = useState(false);
@@ -94,7 +114,7 @@ export const useCodeEngine = (module) => {
     }
   }, [module.language]);
 
-  const runCode = async (code) => {
+  const runCode = async (code, shouldDisplayMessages = true) => {
     // Initialize engine only when user tries to run code
     if (!pyodideRef.current && module.language === 'python') {
       await initializeEngines();
@@ -109,14 +129,18 @@ export const useCodeEngine = (module) => {
     let logs = [];
     let success = false;
 
-    const validateOutput = (logs) => {
+    const validateOutput = (logs, shouldDisplayMessages = true) => {
       const cleanLogs = logs.join('').replace(/\s/g, '');
       const cleanExpected = module.expectedOutput.replace(/\s/g, '');
       if (cleanLogs.includes(cleanExpected)) {
         success = true;
-        setOutput(prev => [...prev, '✅ TEST PASSED.']);
+        if (shouldDisplayMessages) {
+          setOutput(prev => [...prev, '✅ TEST PASSED.']);
+        }
       } else {
-        setOutput(prev => [...prev, `❌ Expected "${module.expectedOutput}" but got something else.`]);
+        if (shouldDisplayMessages) {
+          setOutput(prev => [...prev, `❌ Expected "${module.expectedOutput}" but got something else.`]);
+        }
       }
     };
 
@@ -127,13 +151,13 @@ export const useCodeEngine = (module) => {
         // Display user's output first
         new Function(code)();
         if (logs.length > 0) setOutput(prev => [...prev, ...logs]);
-        validateOutput(logs);
+        validateOutput(logs, shouldDisplayMessages);
         console.log = originalLog;
       } else if (module.language === 'python' && pyodideRef.current) {
         pyodideRef.current.setStdout({ batched: (text) => logs.push(text) });
         await pyodideRef.current.runPythonAsync(code);
         if (logs.length > 0) setOutput(prev => [...prev, ...logs]);
-        validateOutput(logs);
+        validateOutput(logs, shouldDisplayMessages);
       } else if (module.language === 'c' && jscppRef.current) {
         try {
           // Validate C syntax client-side
@@ -159,7 +183,7 @@ export const useCodeEngine = (module) => {
               if (result.output) {
                 logs = result.output.split('\n').filter(l => l.trim());
                 setOutput(prev => [...prev, ...logs]);
-                validateOutput(logs);
+                validateOutput(logs, shouldDisplayMessages);
                 backendSuccess = true;
               }
             }
@@ -178,7 +202,7 @@ export const useCodeEngine = (module) => {
             if (matches.length > 0) {
               logs = matches.map(m => m[1]);
               setOutput(prev => [...prev, '(Simulated output)', ...logs]);
-              validateOutput(logs);
+              validateOutput(logs, shouldDisplayMessages);
             } else {
               throw new Error("No printf() found. Add printf() to output text, e.g., printf(\"Hello\");");
             }

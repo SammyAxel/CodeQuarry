@@ -1,7 +1,30 @@
-import React from 'react';
-import { ChevronRight, Gem, Pickaxe, Coins } from 'lucide-react';
+import React, { memo, useState, useMemo } from 'react';
+import { ChevronRight, Gem, Pickaxe, Coins, Search, X } from 'lucide-react';
 
-export const HomePage = ({ courses, onSelectCourse }) => {
+/**
+ * Home page showing available courses
+ * Displays course cards with module counts and levels
+ * 
+ * @component
+ * @param {Object} props
+ * @param {Array} props.courses - Array of course objects
+ * @param {function} props.onSelectCourse - Callback when a course is selected
+ * @returns {JSX.Element}
+ */
+const HomePage = ({ courses, onSelectCourse }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter courses based on search query
+  const filteredCourses = useMemo(() => {
+    if (!searchQuery.trim()) return courses;
+    
+    const query = searchQuery.toLowerCase();
+    return courses.filter(course => 
+      course.title.toLowerCase().includes(query) ||
+      course.description.toLowerCase().includes(query) ||
+      course.level.toLowerCase().includes(query)
+    );
+  }, [courses, searchQuery]);
   return (
     <div className="max-w-6xl mx-auto p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="mb-16 text-center pt-10 relative">
@@ -29,9 +52,47 @@ export const HomePage = ({ courses, onSelectCourse }) => {
         
         <p className="text-gray-400 text-sm font-mono mt-4">Mine for knowledge. Unearth your potential.</p>
       </header>
+
+      {/* Search Bar */}
+      <div className="mb-12 max-w-2xl mx-auto">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search courses by title, topic, or level..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="text-xs text-gray-500 mt-2">Found {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}</p>
+        )}
+      </div>
       
+      {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {courses.map((course, idx) => (
+        {filteredCourses.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Search className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg">No courses found matching "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white text-sm font-bold transition-colors"
+            >
+              Clear Search
+            </button>
+          </div>
+        ) : (
+          filteredCourses.map((course, idx) => (
           <div 
             key={course.id} 
             onClick={() => onSelectCourse(course)} 
@@ -67,8 +128,11 @@ export const HomePage = ({ courses, onSelectCourse }) => {
               <ChevronRight className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
 };
+
+export default memo(HomePage);

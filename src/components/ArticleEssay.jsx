@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { FileText, Clock, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
 
 import NavigationControls from './NavControl.jsx';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -14,6 +14,13 @@ export const ArticleEssay = ({ module, navProps, onMarkComplete, isCompleted }) 
       {/* Header */}
       <div className="h-16 border-b border-gray-800 flex items-center justify-between px-8 shrink-0 bg-[#0d1117]/95 backdrop-blur sticky top-0 z-30">
         <div className="flex items-center gap-3">
+          <button 
+            onClick={navProps.goBack} 
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+            title="Back to Syllabus"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
           <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
             <FileText className="w-5 h-5" />
           </div>

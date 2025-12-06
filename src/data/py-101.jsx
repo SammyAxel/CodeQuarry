@@ -6,7 +6,7 @@ export const pyCourse = {
   title: 'Python Snakes',
   description: 'From zero to hero. Master the language that powers AI, Data Science, and the Backend.',
   icon: <Terminal className="w-8 h-8 text-blue-400" />, 
-  level: 'Beginner',
+  level: 'Copper',
   modules: [
     {
         id: 'py-m0',
@@ -61,11 +61,17 @@ print("Age:", 25)               # Prints: Age: 25
 
 **Key Point:** Anything in quotes is treated as text, even if it looks like a number. \`print("007")\` prints text, while \`print(7)\` prints a number.
 `,
-      instruction: 'Write a program that prints "System Ready" to the console.',
+      instruction: 'Step 1: Use the `print()` function.\nStep 2: Pass the string "System Ready" as an argument.\nStep 3: Run your code.',
       initialCode: '# Send the signal\n',
       language: 'python',
       expectedOutput: 'System Ready',
-      requiredSyntax: /print\s*\(\s*['"]System Ready['"]\s*\)/
+      requiredSyntax: /print\s*\(\s*['"]System Ready['"]\s*\)/,
+      hints: [
+        'Start by typing the word "print" followed by an open parenthesis.',
+        'Inside the parentheses, type the string with quotes: "System Ready"',
+        'Don\'t forget to close the parenthesis! It should look like: print("System Ready")'
+      ],
+      solution: 'print("System Ready")'
     },
     {
       id: 'py-m3',
@@ -106,11 +112,22 @@ Python automatically figures out what type of data you're storing—you don't ha
 3. No spaces or special characters
 4. Cannot use Python keywords like \`if\`, \`def\`, \`print\`, etc.
 `,
-      instruction: 'Create a variable named \`agent_id\` and assign it the number 7. Then create a variable \`status\` and assign it "Active". Finally, print the \`status\`.',
+      instruction: 'Step 1: Create a variable named `agent_id` and assign it 7.\nStep 2: Create a variable named `status` and assign it "Active".\nStep 3: Print the `status` variable.',
       initialCode: '# Define your variables below\n',
       language: 'python',
       expectedOutput: 'Active',
-      requiredSyntax: /agent_id\s*=\s*7[\s\S]*status\s*=\s*['"]Active['"][\s\S]*print\s*\(\s*status\s*\)/
+      requiredSyntax: /agent_id\s*=\s*7[\s\S]*status\s*=\s*['"]Active['"][\s\S]*print\s*\(\s*status\s*\)/,
+      stepSyntax: [
+        /agent_id\s*=\s*7/,
+        /status\s*=\s*['"]Active['"]/,
+        /print\s*\(\s*status\s*\)/
+      ],
+      hints: [
+        'Start by creating the first variable: agent_id = 7',
+        'Now create the second variable: status = "Active" (remember the quotes!)',
+        'Finally, use print() to display the status variable: print(status)'
+      ],
+      solution: 'agent_id = 7\nstatus = "Active"\nprint(status)'
     },
     {
       id: 'py-m4',
@@ -173,11 +190,17 @@ result = 2 + 3 * 4     # This is 14, not 20
 result = (2 + 3) * 4   # This is 20
 \`\`\`
 `,
-      instruction: 'Calculate the area of a square with side length 5. Create a variable \`side = 5\`, then print \`side ** 2\` to see the result.',
+      instruction: 'Step 1: Create a variable `side` and assign it the value 5.\nStep 2: Calculate the area using the exponent operator (`**`).\nStep 3: Print the result of `side ** 2`.',
       initialCode: 'side = 5\n# Calculate area\n',
       language: 'python',
       expectedOutput: '25',
-      requiredSyntax: /side\s*\*\*\s*2/
+      requiredSyntax: /side\s*\*\*\s*2/,
+      hints: [
+        'You already have the variable `side = 5`. Now use the exponent operator: `**`',
+        'To calculate `side` squared, write: `side ** 2`',
+        'Finally, wrap it in a print() statement to display the result: `print(side ** 2)`'
+      ],
+      solution: 'side = 5\nprint(side ** 2)'
     },
     {
       id: 'py-m5',
@@ -244,11 +267,17 @@ if day == "Saturday" or day == "Sunday":
     print("It's the weekend!")
 \`\`\`
 `,
-      instruction: 'Write an if/else block. If \`battery\` is greater than 20, print "Green". Otherwise, print "Red".',
+      instruction: 'Step 1: Create an `if` statement that checks if `battery` is greater than 20.\nStep 2: If true, print "Green".\nStep 3: Use `else` to print "Red" if the condition is false.',
       initialCode: 'battery = 15\n\n# Write logic here\n',
       language: 'python',
       expectedOutput: 'Red',
-      requiredSyntax: /if\s+battery\s*>\s*20\s*:[\s\S]*print\s*\(\s*['"]Green['"]\s*\)[\s\S]*else\s*:[\s\S]*print\s*\(\s*['"]Red['"]\s*\)/
+      requiredSyntax: /if\s+battery\s*>\s*20\s*:[\s\S]*print\s*\(\s*['"]Green['"]\s*\)[\s\S]*else\s*:[\s\S]*print\s*\(\s*['"]Red['"]\s*\)/,
+      hints: [
+        'Start with: if battery > 20: (don\'t forget the colon and proper indentation)',
+        'Inside the if block, indent and add: print("Green")',
+        'After the if block, add: else: followed by indented print("Red")'
+      ],
+      solution: 'battery = 15\n\nif battery > 20:\n    print("Green")\nelse:\n    print("Red")'
     },
     {
       id: 'py-m6',
@@ -321,11 +350,17 @@ last_two = party[2:4]      # ["Rogue", "Archer"]
 all_but_last = party[:-1]  # ["Warrior", "Mage", "Rogue"]
 \`\`\`
 `,
-      instruction: 'Create a list called \`party\` with three names: "Warrior", "Mage", "Rogue". Then print the first member (index 0).',
+      instruction: 'Step 1: Create a list named `party` with three elements: "Warrior", "Mage", "Rogue".\nStep 2: Access the first member using index 0.\nStep 3: Print the first party member.',
       initialCode: '# Assemble your party\n',
       language: 'python',
       expectedOutput: 'Warrior',
-      requiredSyntax: /party\s*=\s*\[['"]Warrior['"],\s*['"]Mage['"],\s*['"]Rogue['"]\][\s\S]*print\s*\(\s*party\[0\]\s*\)/
+      requiredSyntax: /party\s*=\s*\[['"]Warrior['"],\s*['"]Mage['"],\s*['"]Rogue['"]\][\s\S]*print\s*\(\s*party\[0\]\s*\)/,
+      hints: [
+        'Create a list using square brackets: party = ["Warrior", "Mage", "Rogue"]',
+        'Remember: Python uses 0-based indexing, so the first element is at index 0',
+        'Access the first element with: party[0] and print it'
+      ],
+      solution: 'party = ["Warrior", "Mage", "Rogue"]\nprint(party[0])'
     },
     {
       id: 'py-m7',
@@ -416,11 +451,17 @@ for i in range(5):
     print(i)  # Prints 0, 1, 3, 4 (skips 2)
 \`\`\`
 `,
-      instruction: 'You have a list of \`enemies\`. Write a for loop that prints each enemy name.',
+      instruction: 'Step 1: Write a `for` loop that iterates through the `enemies` list.\nStep 2: For each enemy, print its name.\nStep 3: Run your code to verify all enemies are displayed.',
       initialCode: 'enemies = ["Goblin", "Orc", "Dragon"]\n\n# Write your loop\n',
       language: 'python',
       expectedOutput: 'GoblinOrcDragon',
-      requiredSyntax: /for\s+\w+\s+in\s+enemies\s*:[\s\S]*print\s*\(\s*\w+\s*\)/
+      requiredSyntax: /for\s+\w+\s+in\s+enemies\s*:[\s\S]*print\s*\(\s*\w+\s*\)/,
+      hints: [
+        'Use the for loop syntax: for enemy in enemies:',
+        'Inside the loop (with indentation), add: print(enemy)',
+        'That\'s it! The loop will print each enemy from the list'
+      ],
+      solution: 'enemies = ["Goblin", "Orc", "Dragon"]\n\nfor enemy in enemies:\n    print(enemy)'
     },
     {
       id: 'py-m8',
@@ -518,11 +559,17 @@ print(answer)   # Prints: 42
 print(secret)   # ERROR! secret doesn't exist outside the function
 \`\`\`
 `,
-      instruction: 'Define a function named \`heal\` that takes \`hp\` as an argument and prints "Restored". Then call the function with any number.',
+      instruction: 'Step 1: Define a function named `heal` with a parameter `hp`.\nStep 2: Inside the function, print "Restored".\nStep 3: Call the `heal()` function with any number as an argument.',
       initialCode: '# Define the spell\n',
       language: 'python',
       expectedOutput: 'Restored',
-      requiredSyntax: /def\s+heal\s*\(hp\)\s*:[\s\S]*print\s*\(\s*['"]Restored['"]\s*\)[\s\S]*heal\s*\(\d+\)/
+      requiredSyntax: /def\s+heal\s*\(hp\)\s*:[\s\S]*print\s*\(\s*['"]Restored['"]\s*\)[\s\S]*heal\s*\(\d+\)/,
+      hints: [
+        'Start with the function definition: def heal(hp):',
+        'Inside the function (indented), add: print("Restored")',
+        'After the function definition, call it: heal(100) or heal() with any number'
+      ],
+      solution: 'def heal(hp):\n    print("Restored")\n\nheal(100)'
     }
   ]
 };

@@ -1,10 +1,18 @@
 import hljs from 'highlight.js';
 
 /**
- * A robust syntax highlighter powered by the highlight.js library.
- * @param {string} code The raw code string.
- * @param {string} language The programming language (e.g., 'python', 'javascript').
- * @returns {string} An HTML string with syntax highlighting.
+ * Robust syntax highlighter powered by highlight.js library
+ * Provides HTML-formatted code with syntax highlighting
+ * 
+ * @param {string} code - The raw code string to highlight
+ * @param {string} language - Programming language (e.g., 'python', 'javascript', 'c')
+ * @returns {string} HTML string with syntax highlighting classes applied
+ * 
+ * @example
+ * const highlighted = highlightSyntax('console.log("hello")', 'javascript');
+ * // Returns: <span class="hljs-string">"hello"</span>...
+ * 
+ * @throws Silently returns escaped text on error (no exception thrown)
  */
 export const highlightSyntax = (code, language) => {
   try {

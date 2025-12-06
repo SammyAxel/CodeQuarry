@@ -6,7 +6,7 @@ export const jsCourse = {
   title: 'JavaScript for Newbs',
   description: 'The backbone of the web. Make websites come alive with JS.',
   icon: <Code2 className="w-8 h-8 text-yellow-400" />,
-  level: 'Beginner',
+  level: 'Copper',
   modules: [
     {
       id: 'js-m0',
@@ -29,11 +29,17 @@ console.log("Your message here");
 
 Strings must be wrapped in quotes (single or double). Numbers and variables do not need quotes.
 `,
-      instruction: 'Use `console.log()` to print the string "Hello World" to the terminal.',
+      instruction: 'Step 1: Use `console.log()` function.\nStep 2: Pass the string "Hello World" as an argument.\nStep 3: Run your code.',
       initialCode: '// Your journey begins here\n',
       language: 'javascript',
       expectedOutput: 'Hello World',
-      requiredSyntax: /console\.log\s*\(/
+      requiredSyntax: /console\.log\s*\(/,
+      hints: [
+        'Type the function name: console.log',
+        'Add parentheses and the string: console.log("Hello World")',
+        'Run it to see the output in the terminal'
+      ],
+      solution: 'console.log("Hello World");'
     },
     {
       id: 'js-m2',
@@ -51,7 +57,7 @@ let score = 0;
 
 \`const\` prevents reassignment; \`let\` allows it. Choosing the right one helps prevent bugs.
 `,
-      instruction: 'Read the article and then create a `const` named `vibe` with value "immaculate" and log it to the console in the practice module that follows.'
+      instruction: 'Step 1: Create a `const` variable named `vibe`.\nStep 2: Assign it the value "immaculate".\nStep 3: Log it to the console using `console.log()`.'
     },
     {
       id: 'js-m3',
@@ -64,11 +70,17 @@ JavaScript has numbers, strings, booleans, null, undefined, objects, and arrays.
 console.log(10 * 10); // 100
 \`\`\`
 `,
-      instruction: 'Log the result of `10 * 10` using `console.log()`.',
+      instruction: 'Step 1: Use `console.log()` to display the result.\nStep 2: Calculate `10 * 10` inside the parentheses.\nStep 3: Run your code to see the result.',
       initialCode: '// console.log( ... )',
       language: 'javascript',
       expectedOutput: '100',
-      requiredSyntax: /10\s*\*\s*10/
+      requiredSyntax: /10\s*\*\s*10/,
+      hints: [
+        'Use console.log() to display the result of the multiplication',
+        'Calculate 10 * 10 inside the parentheses: console.log(10 * 10)',
+        'Run the code to see 100 printed in the terminal'
+      ],
+      solution: 'console.log(10 * 10);'
     },
     {
       id: 'js-m4',
@@ -114,11 +126,17 @@ const party = ['Warrior', 'Mage', 'Rogue'];
 console.log(party[0]); // Warrior
 \`\`\`
 `,
-      instruction: 'Create an array `party` with `"Warrior"`, `"Mage"`, `"Rogue"` and log the first member.',
+      instruction: 'Step 1: Create an array named `party` with three elements.\nStep 2: Add "Warrior", "Mage", and "Rogue" to the array.\nStep 3: Log the first member (index 0) using `console.log(party[0])`.',
       initialCode: '// Assemble your party\n',
       language: 'javascript',
       expectedOutput: 'Warrior',
-      requiredSyntax: /\[\s*['\"]Warrior['\"],/
+      requiredSyntax: /\[\s*['\"]Warrior['\"],/,
+      hints: [
+        'Create the array: const party = ["Warrior", "Mage", "Rogue"]',
+        'Remember JavaScript uses 0-based indexing like Python',
+        'Log the first element: console.log(party[0])'
+      ],
+      solution: 'const party = ["Warrior", "Mage", "Rogue"];\nconsole.log(party[0]);'
     },
     {
       id: 'js-m7',
@@ -152,9 +170,15 @@ async function getData() {
       theory: `### Build a Tiny App
 Combine DOM, events, and functions to build a small interactive app (e.g., a todo list or counter). Keep it simple and focused.
 `,
-      instruction: 'Create a counter with a button that increases a number on the page when clicked. You can edit `index.html` for structure and add JS in the practice area.',
+      instruction: 'Step 1: Create a button in the HTML editor.\nStep 2: Create a variable to track the counter.\nStep 3: Add an event listener to increment and display the number.',
       initialCode: '// Hook up a button with an event listener\n',
-      language: 'javascript'
+      language: 'javascript',
+      hints: [
+        'Create a counter variable: let count = 0',
+        'Select the button: const button = document.querySelector("button")',
+        'Add an event listener: button.addEventListener("click", () => { count++; console.log(count); })'
+      ],
+      solution: 'let count = 0;\nconst button = document.querySelector("button");\nbutton.addEventListener("click", () => {\n  count++;\n  console.log(count);\n});'
     }
   ]
 };

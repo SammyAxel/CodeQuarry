@@ -1,0 +1,44 @@
+{
+  "id": "course-sample",
+  "title": "Sample Course",
+  "description": "Example course created with the admin panel",
+  "level": "Beginner",
+  "icon": "📚",
+  "modules": [
+    {
+      "id": "mod-sample-1",
+      "title": "Hello World",
+      "type": "practice",
+      "theory": "### What is Output?\nOutput is how your program communicates with the user.\n\n```python\nprint('Hello World')\n```",
+      "instruction": "Step 1: Use the print() function.\nStep 2: Pass 'Hello World' as an argument.\nStep 3: Run your code.",
+      "initialCode": "# Your code here\n",
+      "language": "python",
+      "expectedOutput": "Hello World",
+      "requiredSyntax": "/print\\s*\\(.*Hello.*World.*\\)/",
+      "hints": [
+        "Start with the function name: print",
+        "Add parentheses with the string inside",
+        "Don't forget the quotes!"
+      ],
+      "solution": "print('Hello World')"
+    },
+    {
+      "id": "mod-sample-2",
+      "title": "Variables",
+      "type": "article",
+      "content": "<h2>What are Variables?</h2><p>Variables store data that your program uses.</p><pre><code>name = 'Alice'\nage = 25</code></pre>",
+      "readTime": "3 min"
+    },
+    {
+      "id": "mod-sample-3",
+      "title": "Intro Video",
+      "type": "video",
+      "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      "duration": "5:00",
+      "description": "Watch this introduction before moving on"
+    }
+  ],
+  "createdAt": "2024-12-06T12:00:00Z",
+  "updatedAt": "2024-12-06T12:00:00Z",
+  "status": "draft"
+}

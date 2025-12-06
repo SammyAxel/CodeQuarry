@@ -1,142 +1,128 @@
 import React, { useState, useEffect } from 'react';
 import {
   Gem, Map as MapIcon, Pickaxe, LogOut
-} from 'lucide-react';import { COURSES } from './data/courses';
+} from 'lucide-react';
+
+import { COURSES } from './data/courses';
+import { VIEWS, STORAGE_KEYS } from './constants/appConfig';
 import { VideoEssay } from './components/VideoEssay';
 import { ArticleEssay } from './components/ArticleEssay';
 import { PracticeMode } from './components/practice';
 import { CourseMap } from './components/CourseMap';
-import { HomePage } from './pages/HomePage';
+import { AdminDashboard } from './components/AdminDashboard';
+import HomePage from './pages/HomePage';
 import { SyllabusPage } from './pages/SyllabusPage';
 import { LoginPage } from './pages/LoginPage';
+import { useUser } from './context/UserContext';
+import { useApp } from './context/AppContext';
 
-/* ========================================================================
-   MAIN COMPONENT: APP ROUTER
-   (Clean, focused on state routing)
-   ======================================================================== */
+/**
+ * Main Application Component
+ * Routes between different views (home, syllabus, learning)
+ * Uses Context API for state management
+ */
 export default function App() {
-  const [view, setView] = useState('home'); 
-  const [activeCourse, setActiveCourse] = useState(null);
-  const [activeModule, setActiveModule] = useState(null);
-  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [adminRole, setAdminRole] = useState(null); // 'admin' or 'mod'
   
-  // --- User Authentication and Progress State ---
-  const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState({});
+  // Get context values
+  const { 
+    currentUser, 
+    isLoading, 
+    login, 
+    logout, 
+    markModuleComplete,
+    getCompletedModules,
+    getUserProgress 
+  } = useUser();
 
-  // Load all users and the last logged-in user from localStorage on initial load
-  useEffect(() => {
-    try {
-      const savedUsers = localStorage.getItem('codeQuarryUsers');
-      const lastUser = localStorage.getItem('codeQuarryLastUser');
-      if (savedUsers) {
-        setUsers(JSON.parse(savedUsers));
-      }
-      if (lastUser && savedUsers && JSON.parse(savedUsers)[lastUser]) {
-        setCurrentUser(lastUser);
-      }
-    } catch (error) {
-      console.error("Failed to load user data from localStorage", error);
-    }
-  }, []);
-
-  // Save all user data to localStorage whenever the 'users' object changes
-  useEffect(() => {
-    try {
-      // Avoid saving an empty object on initial load before users are populated
-      if (Object.keys(users).length > 0) {
-        localStorage.setItem('codeQuarryUsers', JSON.stringify(users));
-      }
-    } catch (error) {
-      console.error("Failed to save user data to localStorage", error);
-    }
-  }, [users]);
+  const {
+    view,
+    activeCourse,
+    activeModule,
+    isMapOpen,
+    navigateHome,
+    navigateToSyllabus,
+    navigateToLearning,
+    goToNextLesson,
+    goToPreviousLesson,
+    setIsMapOpen,
+  } = useApp();
 
   // Derive completed modules for the current user
-  const userProgress = users[currentUser]?.progress || {};
-  const completedModules = new Set(
-    Object.keys(userProgress).filter(moduleId => userProgress[moduleId].completed)
-  );
+  const completedModules = getCompletedModules();
+  const userProgress = getUserProgress();
   
-  // ... existing navigation logic (navigateToSyllabus, navigateToLearning, etc) ...
-  const navigateToSyllabus = (course) => {
-    setActiveCourse(course);
-    setView('syllabus');
-  };
-
-  const navigateToLearning = (module) => {
-    setActiveModule(module);
-    setIsMapOpen(false);
-    setView('learning');
-  };
-
+  // If in admin mode, show admin dashboard
+  if (isAdminMode) {
+    return (
+      <div className="min-h-screen bg-[#0d1117] text-white">
+        <div className="flex items-center justify-between h-16 border-b border-gray-800 px-6 bg-gradient-to-r from-amber-950/50 to-yellow-950/30">
+          <div className="flex items-center gap-2 font-black text-xl">
+            <Gem className="w-6 h-6 text-yellow-500" />
+            {adminRole === 'admin' ? '👑 Admin Panel' : '🧌 Mod Panel'}
+          </div>
+          <button
+            onClick={() => {
+              setIsAdminMode(false);
+              setAdminRole(null);
+            }}
+            className="px-4 py-2 bg-gray-800 hover:bg-red-900/50 rounded-lg font-bold transition-colors flex items-center gap-2 text-red-400 hover:text-red-300"
+          >
+            <LogOut className="w-4 h-4" />
+            Exit Admin
+          </button>
+        </div>
+        <AdminDashboard adminRole={adminRole} />
+      </div>
+    );
+  }
+  
+  // Navigation handlers
   const handleNextLesson = () => {
     if (!activeCourse || !activeModule) return;
-    const currentIndex = activeCourse.modules.findIndex(m => m.id === activeModule.id);
-    if (currentIndex !== -1 && currentIndex < activeCourse.modules.length - 1) {
-      navigateToLearning(activeCourse.modules[currentIndex + 1]);
-    } else {
-      setView('syllabus');
-    }
+    goToNextLesson(activeCourse.modules);
   };
 
   const handlePrevLesson = () => {
     if (!activeCourse || !activeModule) return;
-    const currentIndex = activeCourse.modules.findIndex(m => m.id === activeModule.id);
-    if (currentIndex > 0) {
-      navigateToLearning(activeCourse.modules[currentIndex - 1]);
-    }
-  };
-
-  const goBack = () => {
-    if (view === 'learning') setView('syllabus');
-    else if (view === 'syllabus') setView('home');
+    goToPreviousLesson(activeCourse.modules);
   };
 
   const handleMarkComplete = (codeToSave = null) => {
     if (!activeModule || !currentUser) return;
-
-    setUsers(prevUsers => {
-      const currentUserProgress = prevUsers[currentUser]?.progress || {};
-      
-      const newModuleProgress = {
-        ...currentUserProgress[activeModule.id],
-        completed: true,
-      };
-
-      if (codeToSave) {
-        newModuleProgress.savedCode = codeToSave;
-      }
-
-      return {
-        ...prevUsers,
-        [currentUser]: { ...prevUsers[currentUser], progress: { ...currentUserProgress, [activeModule.id]: newModuleProgress } },
-      };
-    });
+    markModuleComplete(activeModule.id, codeToSave);
   };
 
   const handleLogin = (username) => {
-    if (!users[username]) {
-      setUsers(prev => ({ ...prev, [username]: { progress: {} } }));
-    }
-    setCurrentUser(username);
-    localStorage.setItem('codeQuarryLastUser', username);
+    login(username);
+  };
+
+  const handleAdminLogin = (role) => {
+    setAdminRole(role);
+    setIsAdminMode(true);
   };
 
   const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('codeQuarryLastUser');
-    setView('home'); // Reset view to home after logout
+    logout();
   };
 
   // If no user is logged in, show the login page.
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+        <div className="animate-pulse text-purple-400 text-2xl">Loading...</div>
+      </div>
+    );
+  }
+
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
+    return <LoginPage onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
   }
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-white font-sans selection:bg-purple-500/30 relative">
-      {/* NEW: Decorative background elements */}
+      {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-20%] left-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-3xl animate-pulse [animation-duration:8s]"></div>
         <div className="absolute bottom-[-20%] right-[-10%] w-96 h-96 bg-blue-900/20 rounded-full blur-3xl animate-pulse [animation-duration:10s]"></div>
@@ -144,9 +130,9 @@ export default function App() {
 
       <div className="relative z-10">
       <nav className="h-16 border-b border-gray-800 bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-40 px-6 flex items-center justify-between">
-         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setView('home')}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
+         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigateHome()}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
          <div className="flex items-center gap-8">
-           {view === 'learning' && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> Map</button>}
+           {view === VIEWS.LEARNING && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> Map</button>}
            <div className="flex items-center gap-4">
              <span className="text-sm font-bold text-gray-300">{currentUser}</span>
              <button onClick={handleLogout} className="p-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors" title="Logout"><LogOut className="w-4 h-4" /></button>
@@ -155,10 +141,10 @@ export default function App() {
       </nav>
       
       <main>
-        {view === 'home' && <HomePage courses={COURSES} onSelectCourse={navigateToSyllabus} />}
-        {view === 'syllabus' && <SyllabusPage course={activeCourse} onBack={goBack} onSelectModule={navigateToLearning} completedModules={completedModules} />}
+        {view === VIEWS.HOME && <HomePage courses={COURSES} onSelectCourse={navigateToSyllabus} />}
+        {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => window.location.href = '/'} onSelectModule={navigateToLearning} completedModules={completedModules} />}
         
-        {view === 'learning' && (
+        {view === VIEWS.LEARNING && (
           <div className="h-[calc(100vh-64px)] flex overflow-hidden relative">
             {isMapOpen && (
               <CourseMap

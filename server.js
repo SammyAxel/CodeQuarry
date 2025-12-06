@@ -1,18 +1,43 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
+const API_ENDPOINT = process.env.API_ENDPOINT || 'https://emkc.org/api/v2/piston/execute';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:4000';
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-app.use(cors());
+app.use(cors({
+  origin: CORS_ORIGIN,
+  credentials: true,
+}));
 app.use(express.json());
 
 /**
- * POST /api/compile-c
- * Compiles and runs C code using Piston API (free, unlimited)
+ * Health check endpoint for monitoring
+ * GET /api/health
+ * Returns server status and backend connectivity
  */
-app.post('/api/compile-c', async (req, res) => {
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: NODE_ENV,
+  });
+});
+
+/**
+ * POST /api/v1/compile-c
+ * Compiles and runs C code using Piston API (free, unlimited)
+ * @param {string} code - C source code to compile
+ * @returns {Object} { output: string } or error
+ */
+app.post('/api/v1/compile-c', async (req, res) => {
   let code = req.body.code;
 
   if (!code) {
@@ -28,11 +53,11 @@ app.post('/api/compile-c', async (req, res) => {
       .replace(/\\\\/g, '\\');
   }
 
-  console.log('Received code:', code);
+  console.log(`[${new Date().toISOString()}] Compiling C code...`);
 
   try {
     // Use Piston API - free, no auth needed, reliable
-    const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+    const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -54,7 +79,7 @@ app.post('/api/compile-c', async (req, res) => {
 
     const result = await response.json();
 
-    console.log('Piston response:', JSON.stringify(result, null, 2));
+    console.log(`[${new Date().toISOString()}] Compilation successful`);
 
     // Piston returns output in different format
     let output = '';
@@ -68,12 +93,21 @@ app.post('/api/compile-c', async (req, res) => {
 
     res.json({ output: output || '' });
   } catch (err) {
-    console.error('Compilation error:', err);
+    console.error(`[${new Date().toISOString()}] Compilation error:`, err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ C Compiler server running on http://localhost:${PORT}`);
+// Fallback for v0 (backward compatibility)
+app.post('/api/compile-c', (req, res) => {
+  console.warn('[DEPRECATED] Using /api/compile-c. Please use /api/v1/compile-c instead.');
+  // Forward to v1 endpoint
+  req.url = '/api/v1/compile-c';
+  app(req, res);
 });
 
+app.listen(PORT, () => {
+  console.log(`✅ CodeQuarry API server running on http://localhost:${PORT}`);
+  console.log(`📝 Environment: ${NODE_ENV}`);
+  console.log(`🔗 CORS Origin: ${CORS_ORIGIN}`);
+});

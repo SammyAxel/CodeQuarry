@@ -6,7 +6,7 @@ export const cCourse = {
   title: 'C Commandos',
   description: 'The grandfather of modern languages. Managing memory like a boss.',
   icon: <Cpu className="w-8 h-8 text-purple-400" />,
-  level: 'Beginner',
+  level: 'Silver',
   modules: [
     {
       id: 'c-m1',
@@ -23,11 +23,17 @@ int main() {
 }
 \`\`\`
 `,
-      instruction: 'Write a basic main function that prints "System Online".',
+      instruction: 'Step 1: Use the `printf()` function inside the main function.\\nStep 2: Pass the string "System Online" as an argument.\\nStep 3: Run your code.',
       initialCode: '#include <stdio.h>\n\nint main() {\n    // printf goes here\n    return 0;\n}',
       language: 'c',
       expectedOutput: 'System Online',
-      requiredSyntax: /printf/
+      requiredSyntax: /printf/,
+      hints: [
+        'Inside main, add: printf("System Online");',
+        'Remember to add a semicolon at the end of each statement',
+        'C is more strict than Python or JavaScript - pay attention to syntax!'
+      ],
+      solution: '#include <stdio.h>\n\nint main() {\n    printf("System Online");\n    return 0;\n}'
     }
   ]
 };

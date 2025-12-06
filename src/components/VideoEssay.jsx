@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircle, CheckCircle2 } from 'lucide-react'; // <--- Added icons
+import { PlayCircle, ChevronLeft, CheckCircle2 } from 'lucide-react'; // <--- Added icons
 
 import NavigationControls from './NavControl.jsx'; // <--- Import the component!
 
@@ -13,6 +13,13 @@ export const VideoEssay = ({ module, navProps, onMarkComplete, isCompleted }) =>
       {/* Header */}
       <div className="h-16 border-b border-gray-800 flex items-center justify-between px-8 shrink-0 bg-[#0a0a0a]">
         <div className="flex items-center gap-3">
+          <button 
+            onClick={navProps.goBack} 
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+            title="Back to Syllabus"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
           <div className="p-2 bg-red-500/10 rounded-lg text-red-500">
             <PlayCircle className="w-5 h-5" />
           </div>

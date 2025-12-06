@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'; 
 import { 
-  Trophy, ChevronRight, PanelLeftOpen, Code2, RotateCcw,
+  Trophy, ChevronRight, ChevronLeft, PanelLeftOpen, Code2, RotateCcw,
   Play, PanelLeftClose, BookOpen, FileCode, AlertCircle, Gem, CheckCircle2,
-  Terminal, Map as MapIcon, Trash2, Loader2, RefreshCw
+  Terminal, Map as MapIcon, Trash2, Loader2, RefreshCw, Lightbulb
 } from 'lucide-react'; 
 
 import NavigationControls from './NavControl'; 
@@ -15,8 +15,64 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [syntaxError, setSyntaxError] = useState(null);
+  const [activeTab, setActiveTab] = useState('theory');
+  const [completedSteps, setCompletedSteps] = useState(new Set());
+  const [revealedHints, setRevealedHints] = useState(0);
 
   const { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines } = useCodeEngine(module);
+
+  // Parse steps from instruction text
+  const parseSteps = (instruction) => {
+    if (!instruction) return [];
+    const stepMatches = instruction.match(/Step \d+:[^]*?(?=Step \d+:|$)/g);
+    return (stepMatches || []).map(step => step.replace('Step ', '').trim());
+  };
+
+  const steps = parseSteps(module.instruction);
+
+  // Update steps whenever code changes (if syntax requirements exist)
+  useEffect(() => {
+    if (steps.length === 0) return;
+    
+    setCompletedSteps(prev => {
+      const updated = new Set(prev);
+      let hasError = false;
+
+      // Check per-step syntax if available, otherwise use overall syntax
+      if (module.stepSyntax && module.stepSyntax.length > 0) {
+        module.stepSyntax.forEach((stepRegex, idx) => {
+          if (stepRegex.test(code)) {
+            updated.add(idx);
+          } else {
+            updated.delete(idx);
+            if (code.trim().length > 0 && idx === 0) {
+              hasError = true;
+            }
+          }
+        });
+      } else if (module.requiredSyntax) {
+        // Fallback to overall syntax check
+        const isValid = module.requiredSyntax.test(code);
+        if (isValid) {
+          updated.add(0);
+        } else {
+          updated.delete(0);
+          if (code.trim().length > 0) {
+            hasError = true;
+          }
+        }
+      }
+
+      // Set syntax error only for first step
+      if (hasError) {
+        setSyntaxError("Check your syntax! Are you following the instructions?");
+      } else if (code.trim().length > 0) {
+        setSyntaxError(null);
+      }
+
+      return updated;
+    });
+  }, [code, module.requiredSyntax, steps.length]);
 
   // Sync state on module change
   useEffect(() => {
@@ -24,25 +80,85 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
     setOutput(['> Terminal ready...']);
     setShowSuccessModal(false);
     setSyntaxError(null);
-  }, [module.id]);
+    setCompletedSteps(new Set());
+    setRevealedHints(0);
+  }, [module.id, setOutput]);
   
   const handleRunCode = async () => {
-    setSyntaxError(null);
+    const newCompletedSteps = new Set(completedSteps);
+    let hasSyntaxError = false;
 
-    // First, perform a simple client-side syntax check if required
-    if (module.requiredSyntax && !module.requiredSyntax.test(code)) {
-      setSyntaxError("Check your syntax! Are you following the instructions?");
+    // Check syntax
+    if (module.stepSyntax && module.stepSyntax.length > 0) {
+      // Check per-step syntax
+      module.stepSyntax.forEach((stepRegex, idx) => {
+        if (stepRegex.test(code)) {
+          newCompletedSteps.add(idx);
+        } else {
+          newCompletedSteps.delete(idx);
+          if (idx === 0) hasSyntaxError = true;
+        }
+      });
+      if (hasSyntaxError) {
+        setSyntaxError("Check your syntax! Are you following the instructions?");
+      } else {
+        setSyntaxError(null);
+      }
+    } else if (module.requiredSyntax) {
+      // Fallback to overall syntax
+      if (module.requiredSyntax.test(code)) {
+        setSyntaxError(null);
+        if (steps.length > 0) {
+          newCompletedSteps.add(0);
+        }
+      } else {
+        setSyntaxError("Check your syntax! Are you following the instructions?");
+        hasSyntaxError = true;
+        newCompletedSteps.delete(0);
+      }
     }
 
-    // Execute the code using the hook
-    const { success } = await runCode(code);
+    // Mark step 2 complete if code executes without errors
+    if (steps.length > 1 && !hasSyntaxError) {
+      newCompletedSteps.add(1);
+    }
 
-    if (success) {
+    // Execute the code - only show validation messages if syntax is correct
+    const { success } = await runCode(code, !hasSyntaxError);
+
+    // Mark step 3 complete if output matches
+    if (success && steps.length > 2) {
+      newCompletedSteps.add(2);
+    } else if (!success && steps.length > 2) {
+      newCompletedSteps.delete(2);
+    }
+
+    setCompletedSteps(newCompletedSteps);
+
+    // Only show success modal if ALL steps are complete
+    if (success && !hasSyntaxError) {
       setShowSuccessModal(true);
-      // No need to call markComplete here anymore, it's handled by the modal button
-      // to ensure state is updated before navigation.
     }
   }
+
+  // Keyboard shortcuts: Ctrl+Enter to run, Esc to go back
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+Enter or Cmd+Enter to run code
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleRunCode();
+      }
+      // Esc to go back
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        navProps.goBack?.();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRunCode, navProps]);
 
   const scrollStyle = "[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-800 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-700";
 
@@ -79,16 +195,35 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
        {/* Toolbar */}
        <div className="h-16 bg-[#0d1117]/80 backdrop-blur-sm border-b border-white/5 flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
+           <button 
+             onClick={navProps.goBack} 
+             className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+             title="Back to Syllabus (Esc)"
+           >
+             <ChevronLeft className="w-5 h-5" />
+           </button>
            <div className="w-8 h-8 rounded-lg bg-purple-900/50 flex items-center justify-center text-purple-300 ring-1 ring-inset ring-purple-500/20">
               <Gem className="w-4 h-4" />
            </div>
            <div>
              <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Editor</div>
              <div className="text-sm font-mono text-gray-300">main.{module.language === 'c' ? 'c' : module.language === 'python' ? 'py' : 'js'}</div>
+             {module.estimatedTime && (
+               <div className="text-xs text-gray-500 mt-1">⏱️ ~{module.estimatedTime} min</div>
+             )}
            </div>
         </div>
 
         <div className="flex items-center gap-4">
+          {module.difficulty && (
+            <div className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full ${
+              module.difficulty === 'easy' ? 'bg-green-900/50 text-green-400' :
+              module.difficulty === 'medium' ? 'bg-yellow-900/50 text-yellow-400' :
+              'bg-red-900/50 text-red-400'
+            }`}>
+              {module.difficulty === 'easy' ? '🟢' : module.difficulty === 'medium' ? '🟡' : '🔴'} {module.difficulty.charAt(0).toUpperCase() + module.difficulty.slice(1)}
+            </div>
+          )}
           {isCompleted && (
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/50 px-3 py-1.5 rounded-full"><CheckCircle2 className="w-4 h-4" /> Completed</div>
           )}
@@ -102,6 +237,7 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
            <button 
              onClick={handleRunCode} 
              disabled={isEngineLoading && (module.language === 'python' || module.language === 'c')}
+             title="Run Code (Ctrl+Enter)"
              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-green-900/20 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
            >
              <Play className="w-4 h-4 fill-current" /> Run Code
@@ -123,23 +259,140 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
          {/* Sidebar Instructions */}
          <div className={`${isSidebarOpen ? 'w-full lg:w-[400px] border-r' : 'w-0 border-r-0'} bg-[#010409] border-gray-800 flex flex-col transition-all duration-300 ease-out relative shrink-0 z-20 overflow-hidden`}>
-            
-            {/* Header for Buttons */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-800/50 bg-[#010409] shrink-0">
-                <div className="flex items-center gap-2 text-purple-400 font-bold uppercase text-xs tracking-widest"><BookOpen className="w-4 h-4" /> Field Guide</div>
-            </div> 
+
+            {/* Tabs */}
+            <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-800/50 shrink-0 bg-[#010409]">
+              <button
+                onClick={() => setActiveTab('theory')}
+                className={`p-2 rounded transition-colors ${activeTab === 'theory' ? 'bg-purple-600/40 text-purple-300' : 'text-gray-400 hover:text-white'}`}
+                title="Field Guide"
+              >
+                <BookOpen className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setActiveTab('tasks')}
+                className={`p-2 rounded transition-colors ${activeTab === 'tasks' ? 'bg-blue-600/40 text-blue-300' : 'text-gray-400 hover:text-white'}`}
+                title="Bounty"
+              >
+                <FileCode className="w-4 h-4" />
+              </button>
+            </div>
 
             {/* Instruction Content */}
-            <div className={`p-6 overflow-y-auto ${scrollStyle}`}>
-                {/* USE NEW RENDERER */}
-                <div className="mb-8">
-                   <MarkdownRenderer text={module.theory} />
-                </div>
+            <div className={`p-6 overflow-y-auto flex-1 ${scrollStyle}`}>
+                {/* Field Guide Tab */}
+                {activeTab === 'theory' && (
+                  <div className="mb-8">
+                    <h3 className="text-purple-400 font-bold uppercase text-xs tracking-widest mb-4 flex items-center gap-2"><BookOpen className="w-4 h-4" /> Field Guide</h3>
+                    <MarkdownRenderer text={module.theory} />
+                  </div>
+                )}
 
-                <div className="h-px bg-gray-800 w-full mb-8"></div>
-                <div className="flex items-center gap-2 text-blue-400 font-bold uppercase text-xs tracking-widest mb-3"><FileCode className="w-4 h-4" /> Bounty</div>
-                <p className="text-white text-lg font-medium leading-relaxed mb-4">{module.instruction}</p>
-                {syntaxError && <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl flex gap-3 animate-pulse"><AlertCircle className="w-5 h-5 text-red-400 shrink-0" /><p className="text-red-300 text-sm">{syntaxError}</p></div>}
+                {/* Bounty Tab */}
+                {activeTab === 'tasks' && (
+                  <>
+                    <div className="flex items-center gap-2 text-blue-400 font-bold uppercase text-xs tracking-widest mb-4"><FileCode className="w-4 h-4" /> Bounty</div>
+                    
+                    {/* Steps Display */}
+                    {steps.length > 0 ? (
+                      <div className="space-y-3">
+                        {steps.map((step, idx) => (
+                          <div 
+                            key={idx}
+                            className={`p-3 rounded-lg transition-all ${
+                              completedSteps.has(idx)
+                                ? 'bg-emerald-500/20 border border-emerald-500/50'
+                                : 'bg-gray-800/50 border border-gray-700/50'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${
+                                completedSteps.has(idx)
+                                  ? 'bg-emerald-500 text-white'
+                                  : 'bg-gray-600 text-gray-300'
+                              }`}>
+                                {completedSteps.has(idx) ? '✓' : idx + 1}
+                              </div>
+                              <p className={`text-sm leading-relaxed flex-1 ${
+                                completedSteps.has(idx)
+                                  ? 'text-emerald-300 line-through opacity-75'
+                                  : 'text-gray-300'
+                              }`}>
+                                {step.split(':').slice(1).join(':').trim()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-white text-sm font-medium leading-relaxed">{module.instruction}</p>
+                    )}
+
+                    {syntaxError && <div className="bg-red-500/10 border border-red-500/50 p-3 rounded-lg flex gap-3 animate-pulse mt-4"><AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" /><p className="text-red-300 text-xs">{syntaxError}</p></div>}
+
+                    {/* Hints Section */}
+                    {module.hints && module.hints.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-gray-700">
+                        <div className="flex items-center gap-2 text-yellow-400 font-bold uppercase text-xs tracking-widest mb-3">
+                          <Lightbulb className="w-4 h-4" /> Hints
+                        </div>
+                        <div className="space-y-2">
+                          {/* Hint Buttons */}
+                          <div className="flex flex-wrap gap-2">
+                            {module.hints.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setRevealedHints(idx + 1)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  revealedHints > idx
+                                    ? 'bg-yellow-500/30 border border-yellow-500/50 text-yellow-300'
+                                    : 'bg-gray-800 border border-gray-700 text-gray-400 hover:border-gray-600'
+                                }`}
+                              >
+                                Hint {idx + 1}
+                              </button>
+                            ))}
+                            {module.solution && (
+                              <button
+                                onClick={() => setRevealedHints(module.hints.length + 1)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  revealedHints > module.hints.length
+                                    ? 'bg-purple-500/30 border border-purple-500/50 text-purple-300'
+                                    : 'bg-gray-800 border border-gray-700 text-gray-400 hover:border-gray-600'
+                                }`}
+                              >
+                                Solution
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Revealed Hints */}
+                          {revealedHints > 0 && (
+                            <div className="mt-4 space-y-3 animate-in fade-in duration-300">
+                              {module.hints.slice(0, revealedHints).map((hint, idx) => (
+                                <div
+                                  key={idx}
+                                  className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg"
+                                >
+                                  <p className="text-xs font-bold text-yellow-300 mb-1">Hint {idx + 1}</p>
+                                  <p className="text-sm text-yellow-100/80">{hint}</p>
+                                </div>
+                              ))}
+                              {revealedHints > module.hints.length && module.solution && (
+                                <div className="bg-purple-500/10 border border-purple-500/30 p-3 rounded-lg">
+                                  <p className="text-xs font-bold text-purple-300 mb-1">Solution</p>
+                                  <pre className="text-sm text-purple-100/80 bg-black/30 p-2 rounded overflow-x-auto">
+                                    <code>{module.solution}</code>
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
             </div>
          </div>
          
@@ -155,6 +408,7 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
               <button onClick={() => setOutput(['> Terminal ready...'])} className="hover:text-red-400 transition-colors" title="Clear Console"><Trash2 className="w-3 h-3" /></button>
            </div>
            <div className={`flex-1 p-5 overflow-y-auto space-y-2 font-mono scrollbar-thin scrollbar-thumb-gray-800 ${scrollStyle}`}>
+             {syntaxError && <div className="flex items-start gap-2 mb-4 bg-red-500/10 border border-red-500/50 p-3 rounded-lg"><AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5 animate-pulse" /><p className="text-red-300 text-xs">{syntaxError}</p></div>}
              {output.map((line, i) => (
                <div key={i} className={line.includes('ERROR') || line.includes('FAILED') ? 'text-red-400' : line.includes('PASSED') ? 'text-emerald-400' : 'text-gray-300'}>
                  {line}
