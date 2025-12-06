@@ -1,30 +1,10 @@
 /**
  * Security Utilities
- * Handles secure authentication and authorization
+ * Handles secure operations: CSRF tokens, input validation, event logging
+ * 
+ * NOTE: Authentication (password verification, session tokens) is now 
+ * handled server-side only. See courseApi.js for login/logout flow.
  */
-
-/**
- * Verify admin password against environment variable
- * @param {string} inputPassword - Password entered by user
- * @returns {boolean} True if password matches admin password
- */
-export const verifyAdminPassword = (inputPassword) => {
-  const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-  
-  // Prevent timing attacks using consistent comparison
-  return constantTimeCompare(inputPassword, adminPassword);
-};
-
-/**
- * Verify moderator password against environment variable
- * @param {string} inputPassword - Password entered by user
- * @returns {boolean} True if password matches mod password
- */
-export const verifyModPassword = (inputPassword) => {
-  const modPassword = import.meta.env.VITE_MOD_PASSWORD;
-  
-  return constantTimeCompare(inputPassword, modPassword);
-};
 
 /**
  * Constant-time string comparison to prevent timing attacks
@@ -50,40 +30,6 @@ const constantTimeCompare = (a, b) => {
   }
   
   return result === 0;
-};
-
-/**
- * Create a secure session token (temporary, for this session only)
- * @param {string} role - 'admin' or 'mod'
- * @returns {string} Session token
- */
-export const createSessionToken = (role) => {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substr(2, 9);
-  const token = `${role}_${timestamp}_${random}`;
-  
-  // Store in sessionStorage (cleared when browser closes)
-  sessionStorage.setItem(`auth_${role}`, token);
-  
-  return token;
-};
-
-/**
- * Verify session token is valid
- * @param {string} role - 'admin' or 'mod'
- * @returns {boolean} True if valid session exists
- */
-export const verifySessionToken = (role) => {
-  const token = sessionStorage.getItem(`auth_${role}`);
-  return !!token;
-};
-
-/**
- * Clear session token (logout)
- * @param {string} role - 'admin' or 'mod'
- */
-export const clearSessionToken = (role) => {
-  sessionStorage.removeItem(`auth_${role}`);
 };
 
 /**

@@ -1,6 +1,10 @@
 import React from 'react';
 import { Cpu } from 'lucide-react';
 
+/**
+ * IMPORTANT: Export name must be 'cCourse' (not 'c101Course')
+ * This is imported in courses.jsx and must match exactly
+ */
 export const cCourse = {
   id: 'c-101',
   title: 'C Commandos',

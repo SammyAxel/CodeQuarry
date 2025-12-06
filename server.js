@@ -4,6 +4,7 @@ import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 // Get __dirname equivalent for ES modules
@@ -19,11 +20,152 @@ const API_ENDPOINT = process.env.API_ENDPOINT || 'https://emkc.org/api/v2/piston
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:4000';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// ⚠️ SECURITY: Admin passwords MUST be in environment variables (.env or Cloudflare)
+// NEVER hardcode or expose to frontend via VITE_ prefix
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const MOD_PASSWORD = process.env.MOD_PASSWORD;
+
+// Ensure passwords are configured
+if (!ADMIN_PASSWORD || !MOD_PASSWORD) {
+  console.error('❌ ERROR: ADMIN_PASSWORD and MOD_PASSWORD must be set in environment variables (.env file or Cloudflare)');
+  process.exit(1);
+}
+
+console.log('✅ Authentication passwords loaded from environment');
+
+// In-memory session store (use Redis for production)
+const sessions = new Map();
+
+/**
+ * Constant-time password comparison to prevent timing attacks
+ */
+const constantTimeCompare = (a, b) => {
+  if (!a || !b) return false;
+  const aLen = a.length;
+  const bLen = b.length;
+  let result = aLen === bLen ? 0 : 1;
+  const maxLen = Math.max(aLen, bLen);
+  for (let i = 0; i < maxLen; i++) {
+    const aChar = i < aLen ? a.charCodeAt(i) : 0;
+    const bChar = i < bLen ? b.charCodeAt(i) : 0;
+    result |= aChar ^ bChar;
+  }
+  return result === 0;
+};
+
+/**
+ * Generate secure session token
+ */
+const generateSessionToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
 app.use(cors({
   origin: CORS_ORIGIN,
   credentials: true,
 }));
 app.use(express.json());
+
+/**
+ * POST /api/auth/login
+ * Authenticate admin/mod with password
+ * Returns session token to be used for subsequent requests
+ */
+app.post('/api/auth/login', (req, res) => {
+  const { password, role } = req.body;
+  
+  if (!password || !role) {
+    return res.status(400).json({ error: 'Missing password or role' });
+  }
+  
+  if (role !== 'admin' && role !== 'mod') {
+    return res.status(400).json({ error: 'Invalid role' });
+  }
+  
+  // Verify password (constant-time comparison)
+  const expectedPassword = role === 'admin' ? ADMIN_PASSWORD : MOD_PASSWORD;
+  const isValid = constantTimeCompare(password, expectedPassword);
+  
+  if (!isValid) {
+    // Log failed attempt
+    console.warn(`[SECURITY] Failed login attempt for role: ${role}`);
+    // Delay response to prevent brute force
+    setTimeout(() => {
+      res.status(401).json({ error: 'Invalid password' });
+    }, 1000);
+    return;
+  }
+  
+  // Generate session token
+  const token = generateSessionToken();
+  const expiresAt = Date.now() + (30 * 60 * 1000); // 30 minutes
+  
+  sessions.set(token, {
+    role,
+    createdAt: Date.now(),
+    expiresAt,
+  });
+  
+  console.log(`[SECURITY] Successful login for role: ${role}`);
+  
+  res.json({
+    success: true,
+    token,
+    role,
+    expiresIn: 30 * 60, // seconds
+  });
+});
+
+/**
+ * POST /api/auth/logout
+ * Invalidate session token
+ */
+app.post('/api/auth/logout', (req, res) => {
+  const token = req.headers['x-session-token'];
+  if (token) {
+    sessions.delete(token);
+  }
+  res.json({ success: true });
+});
+
+/**
+ * Middleware to verify session token
+ */
+const verifySession = (req, res, next) => {
+  const token = req.headers['x-session-token'];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Missing session token' });
+  }
+  
+  const session = sessions.get(token);
+  
+  if (!session) {
+    return res.status(401).json({ error: 'Invalid or expired session token' });
+  }
+  
+  // Check expiration
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    return res.status(401).json({ error: 'Session expired' });
+  }
+  
+  // Attach session info to request
+  req.session = session;
+  req.sessionToken = token;
+  
+  next();
+};
+
+/**
+ * Middleware to verify admin role
+ */
+const requireAdmin = (req, res, next) => {
+  if (req.session.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
 
 /**
  * Health check endpoint for monitoring
@@ -118,22 +260,13 @@ app.post('/api/compile-c', (req, res) => {
 // ============================================
 
 const COURSES_DIR = path.join(__dirname, 'src', 'data');
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'GemMiner2025!';
-
-// Middleware to verify admin authentication
-const verifyAdmin = (req, res, next) => {
-  const authHeader = req.headers['x-admin-auth'];
-  if (!authHeader || authHeader !== ADMIN_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized - Admin authentication required' });
-  }
-  next();
-};
 
 /**
  * GET /api/admin/courses
  * Lists all course files in src/data/
+ * Requires: valid session token + admin role
  */
-app.get('/api/admin/courses', verifyAdmin, (req, res) => {
+app.get('/api/admin/courses', verifySession, requireAdmin, (req, res) => {
   try {
     const files = fs.readdirSync(COURSES_DIR)
       .filter(f => f.endsWith('.jsx') && f !== 'courses.jsx');
@@ -147,9 +280,10 @@ app.get('/api/admin/courses', verifyAdmin, (req, res) => {
 /**
  * POST /api/admin/courses/:courseId
  * Creates or updates a course file
+ * Requires: valid session token + admin role
  * @param {Object} course - The course object to save
  */
-app.post('/api/admin/courses/:courseId', verifyAdmin, (req, res) => {
+app.post('/api/admin/courses/:courseId', verifySession, requireAdmin, (req, res) => {
   const { courseId } = req.params;
   const { course } = req.body;
   
@@ -166,8 +300,15 @@ app.post('/api/admin/courses/:courseId', verifyAdmin, (req, res) => {
   const filePath = path.join(COURSES_DIR, `${sanitizedId}.jsx`);
   
   try {
+    // Read courses.jsx to check for existing export names
+    const coursesFilePath = path.join(COURSES_DIR, 'courses.jsx');
+    let coursesContent = '';
+    if (fs.existsSync(coursesFilePath)) {
+      coursesContent = fs.readFileSync(coursesFilePath, 'utf8');
+    }
+    
     // Generate the JSX file content
-    const fileContent = generateCourseFileContent(course, sanitizedId);
+    const fileContent = generateCourseFileContent(course, sanitizedId, coursesContent);
     
     // Write the file
     fs.writeFileSync(filePath, fileContent, 'utf8');
@@ -183,8 +324,9 @@ app.post('/api/admin/courses/:courseId', verifyAdmin, (req, res) => {
 /**
  * DELETE /api/admin/courses/:courseId
  * Deletes a course file (custom courses only, not built-in)
+ * Requires: valid session token + admin role
  */
-app.delete('/api/admin/courses/:courseId', verifyAdmin, (req, res) => {
+app.delete('/api/admin/courses/:courseId', verifySession, requireAdmin, (req, res) => {
   const { courseId } = req.params;
   
   // Protect built-in courses
@@ -213,8 +355,9 @@ app.delete('/api/admin/courses/:courseId', verifyAdmin, (req, res) => {
 /**
  * PUT /api/admin/courses/:courseId/update
  * Updates courses.jsx to include/exclude a course
+ * Requires: valid session token + admin role
  */
-app.put('/api/admin/courses/:courseId/update', verifyAdmin, (req, res) => {
+app.put('/api/admin/courses/:courseId/update', verifySession, requireAdmin, (req, res) => {
   const { courseId } = req.params;
   const { action } = req.body; // 'add' or 'remove'
   
@@ -223,8 +366,18 @@ app.put('/api/admin/courses/:courseId/update', verifyAdmin, (req, res) => {
   try {
     let content = fs.readFileSync(coursesFilePath, 'utf8');
     const sanitizedId = courseId.replace(/[^a-zA-Z0-9-_]/g, '');
-    const varName = sanitizedId.replace(/-/g, '').replace(/(\d+)/, '$1Course'); // e.g., py101 -> py101Course
-    const importName = sanitizedId.replace(/-(\d+)/, '$1Course'); // e.g., py-101 -> py101Course
+    
+    // Check if course already exists in courses.jsx and extract existing export name
+    let importName = null;
+    const existingImportMatch = content.match(new RegExp(`import\\s*\\{\\s*(\\w+)\\s*\\}\\s*from\\s*['\"]\\./\\$\\{sanitizedId\\}\\.jsx['\"]`));
+    if (existingImportMatch) {
+      importName = existingImportMatch[1];
+    } else {
+      // Generate new export name: courseId -> courseIdCourse format (e.g., rust-101 -> rust101Course)
+      importName = sanitizedId.replace(/-/g, '') + 'Course';
+    }
+    
+    const varName = importName;
     
     if (action === 'add') {
       // Add import if not exists
@@ -256,9 +409,17 @@ app.put('/api/admin/courses/:courseId/update', verifyAdmin, (req, res) => {
 /**
  * Helper function to generate course file content
  */
-function generateCourseFileContent(course, courseId) {
+function generateCourseFileContent(course, courseId, coursesContent = '') {
   // Convert course object to JSX file format
-  const varName = courseId.replace(/-/g, '').replace(/(\d+)/, '$1') + 'Course';
+  // Check if course already exists in courses.jsx and extract existing export name
+  let varName = null;
+  const existingImportMatch = coursesContent.match(new RegExp(`import\\s*\\{\\s*(\\w+)\\s*\\}\\s*from\\s*['\"]\\./\\$\\{courseId\\}\\.jsx['\"]`));
+  if (existingImportMatch) {
+    varName = existingImportMatch[1];
+  } else {
+    // Generate new export name: courseId -> courseIdCourse format (e.g., rust-101 -> rust101Course)
+    varName = courseId.replace(/-/g, '') + 'Course';
+  }
   
   // Deep clone and prepare course for serialization
   const serializableCourse = JSON.parse(JSON.stringify(course));

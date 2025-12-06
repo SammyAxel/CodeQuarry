@@ -5,17 +5,17 @@
 ### Already Integrated! No Setup Required.
 
 #### Login via Admin Portal
-1. Start the dev server: `npm run dev`
-2. Go to login page
-3. Click "Admin Portal" link (bottom right)
+1. Start both servers: `npm run dev:all`
+2. Go to login page: `http://localhost:4000`
+3. Click "Admin Portal" or "Moderator Portal" link
 4. Choose your role and enter password:
-   - **👑 Admin** (You): Password `GemMiner`
-   - **🧌 Mod** (Team): Password `GemGoblin`
-5. ✅ Access your respective dashboard
+   - **👑 Admin**: Password `GemMiner2025!`
+   - **🧌 Mod**: Password `GemGoblin2025!`
+5. ✅ Secure session created, access your dashboard
 
 ### Role Permissions
 
-#### 👑 Admin (GemMiner)
+#### 👑 Admin (GemMiner2025!)
 - ✅ Create/edit courses
 - ✅ Preview courses
 - ✅ Delete drafts
@@ -23,17 +23,20 @@
 - ✅ **Publish to Live** (Admin only)
 - ✅ Monitor all courses
 - ✅ Full access to all features
+- ✅ Server-side password verification (secure)
 
-#### 🧌 Mod (GemGoblin)
+#### 🧌 Mod (GemGoblin2025!)
 - ✅ Create/edit courses
 - ✅ Preview courses
 - ✅ Export as JSON
 - ❌ Delete drafts (admin only)
 - ❌ Publish to Live (admin only)
 - ✅ Create and refine content
+- ✅ Server-side password verification (secure)
 
 ### Exit Admin Mode
 - Click "Exit Admin" button in admin header (red button)
+- Session token is cleared
 - Returns to normal user login
 
 ## First Run (Create a Test Course)
@@ -181,9 +184,12 @@ src/
 ## Troubleshooting
 
 ### "Wrong Password" Error
-- Correct password: **`GemMiner`**
+- Admin password: **`GemMiner2025!`**
+- Mod password: **`GemGoblin2025!`**
 - Check caps lock
 - Copy-paste from docs if unsure
+- Session expires after 30 minutes (login again)
+- Make sure backend server is running (port 5000)
 
 ### Drafts Not Showing
 - Open DevTools (F12) → Application → Storage → localStorage

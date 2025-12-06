@@ -1,39 +1,68 @@
 /**
  * Course API Utilities
  * Handles communication with the backend server for course file management
+ * 
+ * ⚠️ SECURITY: Passwords are sent to backend for authentication,
+ * not stored in frontend code. Backend returns session tokens.
  */
 
-const API_BASE = 'http://localhost:5000/api/admin';
+const API_BASE = 'http://localhost:5000/api';
 
 /**
- * Get the admin secret from sessionStorage (set during login)
+ * Get the session token from sessionStorage
  */
-const getAdminAuth = () => {
-  return sessionStorage.getItem('adminSecret') || '';
+export const getSessionToken = () => {
+  return sessionStorage.getItem('adminSessionToken') || '';
 };
 
 /**
- * Set the admin secret (call this after successful admin login)
+ * Login to get a session token
+ * @param {string} password - Admin/mod password
+ * @param {string} role - 'admin' or 'mod'
  */
-export const setAdminAuth = (secret) => {
-  sessionStorage.setItem('adminSecret', secret);
+export const login = async (password, role) => {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password, role })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Login failed');
+  }
+  
+  const { token, role: returnedRole } = await response.json();
+  sessionStorage.setItem('adminSessionToken', token);
+  sessionStorage.setItem('adminRole', returnedRole);
+  return { token, role: returnedRole };
 };
 
 /**
- * Clear admin auth (call on logout)
+ * Logout - invalidate session
  */
-export const clearAdminAuth = () => {
-  sessionStorage.removeItem('adminSecret');
+export const logout = async () => {
+  const token = getSessionToken();
+  if (token) {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { 'X-Session-Token': token }
+      });
+    } catch (e) {
+      // Logout failure doesn't block clearing local session
+    }
+  }
+  sessionStorage.removeItem('adminSessionToken');
+  sessionStorage.removeItem('adminRole');
 };
 
 /**
  * List all course files
  */
 export const listCourses = async () => {
-  const response = await fetch(`${API_BASE}/courses`, {
-    headers: {
-      'X-Admin-Auth': getAdminAuth()
-    }
+  const response = await fetch(`${API_BASE}/admin/courses`, {
+    headers: { 'X-Session-Token': getSessionToken() }
   });
   
   if (!response.ok) {
@@ -50,11 +79,11 @@ export const listCourses = async () => {
  * @param {Object} course - The course object to save
  */
 export const saveCourse = async (courseId, course) => {
-  const response = await fetch(`${API_BASE}/courses/${courseId}`, {
+  const response = await fetch(`${API_BASE}/admin/courses/${courseId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Admin-Auth': getAdminAuth()
+      'X-Session-Token': getSessionToken()
     },
     body: JSON.stringify({ course })
   });
@@ -72,11 +101,9 @@ export const saveCourse = async (courseId, course) => {
  * @param {string} courseId - The course ID to delete
  */
 export const deleteCourse = async (courseId) => {
-  const response = await fetch(`${API_BASE}/courses/${courseId}`, {
+  const response = await fetch(`${API_BASE}/admin/courses/${courseId}`, {
     method: 'DELETE',
-    headers: {
-      'X-Admin-Auth': getAdminAuth()
-    }
+    headers: { 'X-Session-Token': getSessionToken() }
   });
   
   if (!response.ok) {
@@ -93,11 +120,11 @@ export const deleteCourse = async (courseId) => {
  * @param {string} action - 'add' or 'remove'
  */
 export const updateCoursesRegistry = async (courseId, action) => {
-  const response = await fetch(`${API_BASE}/courses/${courseId}/update`, {
+  const response = await fetch(`${API_BASE}/admin/courses/${courseId}/update`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'X-Admin-Auth': getAdminAuth()
+      'X-Session-Token': getSessionToken()
     },
     body: JSON.stringify({ action })
   });

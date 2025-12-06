@@ -4,7 +4,7 @@ import { CourseEditor } from './ModuleEditor';
 import { CoursePreview } from './CoursePreview';
 import { SecurityDashboard } from './SecurityDashboard';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
-import { publishCourse, saveCourse, checkServerHealth, setAdminAuth } from '../utils/courseApi';
+import { publishCourse, saveCourse, checkServerHealth, getSessionToken } from '../utils/courseApi';
 import { COURSES } from '../data/courses';
 
 export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
@@ -43,8 +43,14 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
     checkServerHealth().then(online => {
       setServerOnline(online);
       if (online) {
-        // Set admin auth for API calls
-        setAdminAuth('GemMiner2025!');
+        // Verify session token is available for API calls
+        const token = getSessionToken();
+        if (!token) {
+          console.warn('No valid session token found - API calls may fail');
+          logSecurityEvent('admin_dashboard_no_session', { 
+            timestamp: new Date().toISOString()
+          });
+        }
       }
     });
   }, []);

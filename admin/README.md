@@ -15,30 +15,36 @@ Use this theming when creating course titles, descriptions, and learning content
 
 ## Role System
 
-### 👑 Admin (Password: `GemMiner`)
+### 👑 Admin (Password: `GemMiner2025!`)
 - Full control: create, edit, delete, preview, export, and **publish** courses
 - Can monitor all team activity
 - Can delete drafts
 - Access to "Publish to Live" button
+- Server-side password verification (never exposed to frontend)
+- 30-minute session expiration for security
 
-### 🧌 Mod (Password: `GemGoblin`)
+### 🧌 Mod (Password: `GemGoblin2025!`)
 - Content creators: create, edit, preview, export courses
 - Cannot delete drafts (admin removes outdated content)
 - Cannot publish (admin handles deployment)
 - Great for team content creation workflow
+- Server-side password verification (never exposed to frontend)
+- 30-minute session expiration for security
 
 ## Quick Start
 
 ### Accessing Admin Panel
-1. On login page, click "Admin Portal" link (bottom)
+1. On login page, click "Admin Portal" or "Moderator Portal" button
 2. Enter your password:
-   - `GemMiner` → 👑 Admin mode
-   - `GemGoblin` → 🧌 Mod mode
-3. Access your respective dashboard with appropriate permissions
+   - `GemMiner2025!` → 👑 Admin mode
+   - `GemGoblin2025!` → 🧌 Mod mode
+3. You'll receive a secure session token (stored locally in browser)
+4. Access your respective dashboard with appropriate permissions
 
 ### Exit Admin Mode
 - Click "Exit Admin" button in admin header (red button)
-- Returns to normal user login screen
+- Session token is cleared from browser
+- Returns to normal login screen
 
 ## Architecture
 

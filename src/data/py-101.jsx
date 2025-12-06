@@ -1,6 +1,10 @@
 import React from 'react';
 import { Terminal } from 'lucide-react';
 
+/**
+ * IMPORTANT: Export name must be 'pyCourse' (not 'py101Course')
+ * This is imported in courses.jsx and must match exactly
+ */
 export const pyCourse = {
   id: 'py-101',
   title: 'Python Snakes',

@@ -1,7 +1,11 @@
 import React from 'react';
 import { Code2 } from 'lucide-react';
 
-export const js101Course = {
+/**
+ * IMPORTANT: Export name must be 'jsCourse' (not 'js101Course')
+ * This is imported in courses.jsx and must match exactly
+ */
+export const jsCourse = {
   id: 'js-101',
   title: "JavaScript for Newbs",
   description: "The backbone of the web. Make websites come alive with JS.",

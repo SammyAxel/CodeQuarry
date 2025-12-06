@@ -8,47 +8,67 @@ This document outlines the security measures implemented in CodeQuarry and provi
 
 ### 1. Authentication & Authorization
 
-**Status:** ✅ Implemented
+**Status:** ✅ Implemented (Server-Side)
 
-- **Password Management**: Hardcoded passwords removed, now using environment variables
-  - `VITE_ADMIN_PASSWORD` - Full admin access (create, edit, delete, publish)
-  - `VITE_MOD_PASSWORD` - Moderator access (create, edit only)
+#### Security Architecture
+- **Passwords Never Exposed**: Backend-only verification, never sent to frontend bundle
+- **Environment Variables**: `ADMIN_PASSWORD` and `MOD_PASSWORD` in `.env` (backend only)
+- **No VITE_ Prefix**: Frontend cannot access these variables
 
-- **Constant-Time Comparison**: Prevents timing attacks
-  - Uses `constantTimeCompare()` for password verification
-  - XOR-based comparison prevents attackers from measuring response time
+#### Session Token Flow
+1. User submits password on login page
+2. Backend verifies using constant-time comparison
+3. Backend generates 32-byte random session token
+4. Frontend stores token in `sessionStorage` (NOT password)
+5. All API requests include `X-Session-Token` header
+6. Backend validates token and expiration on each request
 
-- **Session Tokens**: One-time use tokens stored in `sessionStorage`
-  - Auto-cleared on browser close
-  - Prevents session replay attacks
+#### Features
+- **Constant-Time Comparison**: Prevents timing attacks with XOR-based comparison
+- **32-Byte Random Tokens**: Cryptographically secure (`crypto.randomBytes(32)`)
+- **30-Minute Expiration**: Sessions automatically expire
+- **Brute Force Protection**: 1-second delay on failed login attempts
+- **Auto-Clear**: Session tokens cleared on logout or browser close
+- **No Replay Attacks**: Session tied to specific browser/device
 
 **Setup Instructions:**
 ```bash
-# Create .env.local (NOT tracked by git)
-cp .env.example .env.local
-
-# Edit .env.local with actual passwords
-VITE_ADMIN_PASSWORD=your_secure_admin_password
-VITE_MOD_PASSWORD=your_secure_mod_password
+# Edit .env file (backend environment variables only)
+ADMIN_PASSWORD=your_secure_admin_password
+MOD_PASSWORD=your_secure_mod_password
+PORT=5000
 ```
+
+**Important:**
+- Never use `VITE_` prefix for sensitive data
+- Passwords are server-environment-only
+- Frontend only receives session tokens
+- See `MODERATOR_GUIDE.md` for user instructions
 
 ### 2. CSRF Protection
 
-**Status:** ✅ Implemented
+**Status:** ✅ Implemented (Frontend)
 
 - **CSRF Token Generation**: Each form action gets a unique token
   - Tokens are one-time use (invalidated after verification)
   - Stored in `sessionStorage`
+  - Separate from authentication tokens
 
 - **Token Verification**: Required before critical operations
   - Course creation/editing (ModuleEditor)
   - Course deletion (AdminDashboard)
   - Course import (file upload)
 
+**Implementation:**
+- CSRF tokens protect frontend form submissions
+- Session tokens protect API communication
+- Backend validates session tokens on all admin endpoints
+
 **Files:**
 - `src/utils/securityUtils.js` - Token generation/verification
 - `src/components/ModuleEditor.jsx` - Course editor CSRF protection
 - `src/components/AdminDashboard.jsx` - Delete confirmation with CSRF
+- `server.js` - Backend session validation middleware
 
 ### 3. Input Validation & XSS Prevention
 

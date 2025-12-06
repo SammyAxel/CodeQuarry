@@ -121,6 +121,18 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
 
           <div className="space-y-4">
             <div>
+              <label className="text-xs font-bold text-gray-400 uppercase">Course ID</label>
+              <input
+                type="text"
+                value={data.id}
+                onChange={(e) => setData({ ...data, id: sanitizeInput(e.target.value, 50).toLowerCase().replace(/\s+/g, '-') })}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1 font-mono text-sm"
+                placeholder="e.g., rust-101, web-201"
+              />
+              <p className="text-xs text-gray-500 mt-1">Unique identifier (lowercase, hyphens only). Used for filename.</p>
+            </div>
+
+            <div>
               <label className="text-xs font-bold text-gray-400 uppercase">Title</label>
               <input
                 type="text"

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Gem, LogIn, Pickaxe, Lock, X } from 'lucide-react';
-import { verifyAdminPassword, verifyModPassword, createSessionToken, logSecurityEvent } from '../utils/securityUtils';
+import { login, logout } from '../utils/courseApi';
+import { logSecurityEvent } from '../utils/securityUtils';
 
 export const LoginPage = ({ onLogin, onAdminLogin }) => {
   const [username, setUsername] = useState('');
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -15,36 +17,50 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
     }
   };
 
-  const handleAdminSubmit = (e) => {
+  const handleAdminSubmit = async (e) => {
     e.preventDefault();
-    let role = null;
+    setIsLoggingIn(true);
+    setAdminError('');
     
-    if (verifyAdminPassword(adminPassword)) {
-      role = 'admin';
-    } else if (verifyModPassword(adminPassword)) {
-      role = 'mod';
-    } else {
-      logSecurityEvent('admin_login_failed', { 
-        role: 'unknown',
+    try {
+      // Try admin login first
+      const response = await login(adminPassword, 'admin');
+      
+      logSecurityEvent('admin_login_success', { 
+        role: 'admin',
         timestamp: new Date().toISOString()
       });
-      setAdminError('Invalid password');
+      
+      setShowAdminModal(false);
       setAdminPassword('');
-      return;
+      setAdminError('');
+      onAdminLogin('admin');
+    } catch (adminError) {
+      // If admin login fails, try moderator login
+      try {
+        const response = await login(adminPassword, 'mod');
+        
+        logSecurityEvent('mod_login_success', { 
+          role: 'mod',
+          timestamp: new Date().toISOString()
+        });
+        
+        setShowAdminModal(false);
+        setAdminPassword('');
+        setAdminError('');
+        onAdminLogin('mod');
+      } catch (modError) {
+        // Both failed
+        logSecurityEvent('admin_login_failed', { 
+          role: 'unknown',
+          timestamp: new Date().toISOString()
+        });
+        setAdminError('Invalid password');
+        setAdminPassword('');
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
-    
-    // Create session token
-    const token = createSessionToken(role);
-    
-    logSecurityEvent(`${role}_login_success`, { 
-      role,
-      timestamp: new Date().toISOString()
-    });
-    
-    setShowAdminModal(false);
-    setAdminPassword('');
-    setAdminError('');
-    onAdminLogin(role);
   };
 
   return (
@@ -159,15 +175,17 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
                     setAdminPassword('');
                     setAdminError('');
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-bold transition-colors"
+                  disabled={isLoggingIn}
+                  className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                  disabled={isLoggingIn}
+                  className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Lock className="w-4 h-4" /> Access
+                  <Lock className="w-4 h-4" /> {isLoggingIn ? 'Checking...' : 'Access'}
                 </button>
               </div>
             </form>

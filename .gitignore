@@ -11,7 +11,8 @@ node_modules
 dist
 dist-ssr
 todo
-.env/local
+.env
+.env.local
 .tmp-c
 *.local
 
