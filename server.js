@@ -264,7 +264,7 @@ app.post('/api/compile-c', (req, res) => {
  * POST /api/user/register
  * Register a new user account
  */
-app.post('/api/user/register', (req, res) => {
+app.post('/api/user/register', async (req, res) => {
   const { username, email, password } = req.body;
   
   // Validation
@@ -292,20 +292,20 @@ app.post('/api/user/register', (req, res) => {
   }
   
   // Check if username/email already exists
-  if (db.usernameExists(username)) {
+  if (await db.usernameExists(username)) {
     return res.status(409).json({ error: 'Username already taken' });
   }
-  if (db.emailExists(email)) {
+  if (await db.emailExists(email)) {
     return res.status(409).json({ error: 'Email already registered' });
   }
   
   try {
-    const user = db.createUser(username, email, password);
+    const user = await db.createUser(username, email, password);
     
     // Generate session token
     const token = generateSessionToken();
-    db.createSession(user.id, token);
-    db.updateLastLogin(user.id);
+    await db.createSession(user.id, token);
+    await db.updateLastLogin(user.id);
     
     console.log(`[USER] New user registered: ${username}`);
     
@@ -329,14 +329,14 @@ app.post('/api/user/register', (req, res) => {
  * POST /api/user/login
  * Login with username/email and password
  */
-app.post('/api/user/login', (req, res) => {
+app.post('/api/user/login', async (req, res) => {
   const { identifier, password } = req.body;
   
   if (!identifier || !password) {
     return res.status(400).json({ error: 'Username/email and password are required' });
   }
   
-  const user = db.findUser(identifier);
+  const user = await db.findUser(identifier);
   
   if (!user) {
     // Delay to prevent timing attacks
@@ -355,8 +355,8 @@ app.post('/api/user/login', (req, res) => {
   
   // Generate session token
   const token = generateSessionToken();
-  db.createSession(user.id, token);
-  db.updateLastLogin(user.id);
+  await db.createSession(user.id, token);
+  await db.updateLastLogin(user.id);
   
   console.log(`[USER] User logged in: ${user.username}`);
   
@@ -377,10 +377,10 @@ app.post('/api/user/login', (req, res) => {
  * POST /api/user/logout
  * Logout user and invalidate session
  */
-app.post('/api/user/logout', (req, res) => {
+app.post('/api/user/logout', async (req, res) => {
   const token = req.headers['x-user-token'];
   if (token) {
-    db.deleteSession(token);
+    await db.deleteSession(token);
   }
   res.json({ success: true });
 });
@@ -388,14 +388,14 @@ app.post('/api/user/logout', (req, res) => {
 /**
  * Middleware to verify user session
  */
-const verifyUserSession = (req, res, next) => {
+const verifyUserSession = async (req, res, next) => {
   const token = req.headers['x-user-token'];
   
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
   }
   
-  const session = db.findSession(token);
+  const session = await db.findSession(token);
   
   if (!session) {
     return res.status(401).json({ error: 'Invalid or expired session' });
@@ -417,13 +417,13 @@ const verifyUserSession = (req, res, next) => {
  * GET /api/user/me
  * Get current user info
  */
-app.get('/api/user/me', verifyUserSession, (req, res) => {
-  const user = db.findUserById(req.user.id);
+app.get('/api/user/me', verifyUserSession, async (req, res) => {
+  const user = await db.findUserById(req.user.id);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
   
-  const stats = db.getUserStats(req.user.id);
+  const stats = await db.getUserStats(req.user.id);
   
   res.json({
     user: {
@@ -443,10 +443,10 @@ app.get('/api/user/me', verifyUserSession, (req, res) => {
  * PUT /api/user/profile
  * Update user profile
  */
-app.put('/api/user/profile', verifyUserSession, (req, res) => {
+app.put('/api/user/profile', verifyUserSession, async (req, res) => {
   const { displayName, avatarUrl } = req.body;
   
-  const updated = db.updateUserProfile(req.user.id, { displayName, avatarUrl });
+  const updated = await db.updateUserProfile(req.user.id, { displayName, avatarUrl });
   
   if (updated) {
     res.json({ success: true, user: updated });
@@ -459,7 +459,7 @@ app.put('/api/user/profile', verifyUserSession, (req, res) => {
  * PUT /api/user/password
  * Change user password
  */
-app.put('/api/user/password', verifyUserSession, (req, res) => {
+app.put('/api/user/password', verifyUserSession, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   
   if (!currentPassword || !newPassword) {
@@ -470,21 +470,21 @@ app.put('/api/user/password', verifyUserSession, (req, res) => {
     return res.status(400).json({ error: 'New password must be at least 6 characters' });
   }
   
-  const user = db.findUserById(req.user.id);
-  const fullUser = db.findUser(user.username);
+  const user = await db.findUserById(req.user.id);
+  const fullUser = await db.findUser(user.username);
   
   if (!db.verifyPassword(currentPassword, fullUser.password_hash)) {
     return res.status(401).json({ error: 'Current password is incorrect' });
   }
   
-  db.changePassword(req.user.id, newPassword);
+  await db.changePassword(req.user.id, newPassword);
   
   // Invalidate all other sessions
-  db.deleteAllUserSessions(req.user.id);
+  await db.deleteAllUserSessions(req.user.id);
   
   // Create new session for current device
   const token = generateSessionToken();
-  db.createSession(req.user.id, token);
+  await db.createSession(req.user.id, token);
   
   res.json({ success: true, token });
 });
@@ -497,9 +497,9 @@ app.put('/api/user/password', verifyUserSession, (req, res) => {
  * GET /api/progress
  * Get all progress for current user
  */
-app.get('/api/progress', verifyUserSession, (req, res) => {
-  const progress = db.getUserProgress(req.user.id);
-  const completedModules = db.getCompletedModuleIds(req.user.id);
+app.get('/api/progress', verifyUserSession, async (req, res) => {
+  const progress = await db.getUserProgress(req.user.id);
+  const completedModules = await db.getCompletedModuleIds(req.user.id);
   
   res.json({
     progress,
@@ -511,9 +511,9 @@ app.get('/api/progress', verifyUserSession, (req, res) => {
  * GET /api/progress/:courseId
  * Get progress for a specific course
  */
-app.get('/api/progress/:courseId', verifyUserSession, (req, res) => {
+app.get('/api/progress/:courseId', verifyUserSession, async (req, res) => {
   const { courseId } = req.params;
-  const progress = db.getCourseProgress(req.user.id, courseId);
+  const progress = await db.getCourseProgress(req.user.id, courseId);
   
   res.json(progress);
 });
@@ -522,14 +522,14 @@ app.get('/api/progress/:courseId', verifyUserSession, (req, res) => {
  * POST /api/progress/module
  * Save module progress
  */
-app.post('/api/progress/module', verifyUserSession, (req, res) => {
+app.post('/api/progress/module', verifyUserSession, async (req, res) => {
   const { courseId, moduleId, savedCode, hintsUsed, timeSpentSeconds, completed } = req.body;
   
   if (!courseId || !moduleId) {
     return res.status(400).json({ error: 'courseId and moduleId are required' });
   }
   
-  db.saveModuleProgress(req.user.id, courseId, moduleId, {
+  await db.saveModuleProgress(req.user.id, courseId, moduleId, {
     savedCode,
     hintsUsed,
     timeSpentSeconds,
@@ -543,14 +543,14 @@ app.post('/api/progress/module', verifyUserSession, (req, res) => {
  * POST /api/progress/step
  * Save step completion
  */
-app.post('/api/progress/step', verifyUserSession, (req, res) => {
+app.post('/api/progress/step', verifyUserSession, async (req, res) => {
   const { courseId, moduleId, stepIndex, hintsUsed, codeSnapshot } = req.body;
   
   if (!courseId || !moduleId || stepIndex === undefined) {
     return res.status(400).json({ error: 'courseId, moduleId, and stepIndex are required' });
   }
   
-  db.saveStepProgress(req.user.id, courseId, moduleId, stepIndex, {
+  await db.saveStepProgress(req.user.id, courseId, moduleId, stepIndex, {
     hintsUsed,
     codeSnapshot
   });
@@ -562,9 +562,9 @@ app.post('/api/progress/step', verifyUserSession, (req, res) => {
  * GET /api/progress/code/:courseId/:moduleId
  * Get saved code for a module
  */
-app.get('/api/progress/code/:courseId/:moduleId', verifyUserSession, (req, res) => {
+app.get('/api/progress/code/:courseId/:moduleId', verifyUserSession, async (req, res) => {
   const { courseId, moduleId } = req.params;
-  const savedCode = db.getSavedCode(req.user.id, courseId, moduleId);
+  const savedCode = await db.getSavedCode(req.user.id, courseId, moduleId);
   
   res.json({ savedCode });
 });
@@ -573,8 +573,8 @@ app.get('/api/progress/code/:courseId/:moduleId', verifyUserSession, (req, res) 
  * GET /api/user/stats
  * Get user stats for dashboard
  */
-app.get('/api/user/stats', verifyUserSession, (req, res) => {
-  const stats = db.getUserStats(req.user.id);
+app.get('/api/user/stats', verifyUserSession, async (req, res) => {
+  const stats = await db.getUserStats(req.user.id);
   res.json(stats);
 });
 
