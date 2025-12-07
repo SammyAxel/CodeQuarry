@@ -288,7 +288,11 @@ export const useCodeEngine = (module) => {
               isTimedOut = true;
             }, execTimeout);
             
-            const response = await fetch('/api/compile-c', {
+            // Use environment variable for API URL, fallback to relative path
+            const apiBase = import.meta.env.VITE_API_URL || '';
+            const apiUrl = `${apiBase}/api/compile-c`;
+            
+            const response = await fetch(apiUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ code })

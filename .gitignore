@@ -13,6 +13,8 @@ dist-ssr
 todo
 \.env
 .env.local
+.env.production
+.env.development
 .tmp-c
 *.local
 
@@ -26,3 +28,7 @@ todo
 *.njsproj
 *.sln
 *.sw?
+
+# Database
+codequarry.db
+codequarry.db-journal

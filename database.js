@@ -1,0 +1,641 @@
+/**
+ * Database Module for CodeQuarry
+ * Uses SQLite for user management, authentication, and progress tracking
+ */
+
+import Database from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize database
+const db = new Database(path.join(__dirname, 'codequarry.db'));
+
+// Enable foreign keys
+db.pragma('foreign_keys = ON');
+
+/**
+ * Initialize database tables
+ */
+const initDatabase = () => {
+  // Users table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      display_name TEXT,
+      avatar_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_login_at DATETIME,
+      is_active INTEGER DEFAULT 1
+    )
+  `);
+
+  // User sessions table (for persistent login)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Course progress table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS course_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      course_id TEXT NOT NULL,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      UNIQUE(user_id, course_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Module progress table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS module_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      course_id TEXT NOT NULL,
+      module_id TEXT NOT NULL,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      saved_code TEXT,
+      hints_used INTEGER DEFAULT 0,
+      time_spent_seconds INTEGER DEFAULT 0,
+      UNIQUE(user_id, course_id, module_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Step progress table (granular tracking)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS step_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      course_id TEXT NOT NULL,
+      module_id TEXT NOT NULL,
+      step_index INTEGER NOT NULL,
+      completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      hints_used INTEGER DEFAULT 0,
+      code_snapshot TEXT,
+      UNIQUE(user_id, course_id, module_id, step_index),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // User stats table (aggregated for dashboard)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_stats (
+      user_id INTEGER PRIMARY KEY,
+      total_modules_completed INTEGER DEFAULT 0,
+      total_courses_completed INTEGER DEFAULT 0,
+      total_steps_completed INTEGER DEFAULT 0,
+      total_time_spent_seconds INTEGER DEFAULT 0,
+      current_streak_days INTEGER DEFAULT 0,
+      longest_streak_days INTEGER DEFAULT 0,
+      last_activity_date DATE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Activity log table (for streaks and activity tracking)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS activity_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      activity_type TEXT NOT NULL,
+      course_id TEXT,
+      module_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  console.log('✅ Database tables initialized');
+};
+
+// Initialize on module load
+initDatabase();
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+/**
+ * Create a new user
+ * @param {string} username 
+ * @param {string} email 
+ * @param {string} password 
+ * @returns {Object} Created user (without password)
+ */
+export const createUser = (username, email, password) => {
+  const passwordHash = bcrypt.hashSync(password, 10);
+  
+  const stmt = db.prepare(`
+    INSERT INTO users (username, email, password_hash, display_name)
+    VALUES (?, ?, ?, ?)
+  `);
+  
+  const result = stmt.run(username, email.toLowerCase(), passwordHash, username);
+  
+  // Initialize user stats
+  db.prepare('INSERT INTO user_stats (user_id) VALUES (?)').run(result.lastInsertRowid);
+  
+  return {
+    id: result.lastInsertRowid,
+    username,
+    email: email.toLowerCase(),
+    displayName: username,
+    createdAt: new Date().toISOString()
+  };
+};
+
+/**
+ * Find user by username or email
+ * @param {string} identifier - Username or email
+ * @returns {Object|null} User object or null
+ */
+export const findUser = (identifier) => {
+  const stmt = db.prepare(`
+    SELECT id, username, email, password_hash, display_name, avatar_url, created_at, last_login_at
+    FROM users 
+    WHERE (username = ? OR email = ?) AND is_active = 1
+  `);
+  return stmt.get(identifier, identifier.toLowerCase());
+};
+
+/**
+ * Find user by ID
+ * @param {number} id 
+ * @returns {Object|null}
+ */
+export const findUserById = (id) => {
+  const stmt = db.prepare(`
+    SELECT id, username, email, display_name, avatar_url, created_at, last_login_at
+    FROM users 
+    WHERE id = ? AND is_active = 1
+  `);
+  return stmt.get(id);
+};
+
+/**
+ * Verify user password
+ * @param {string} password 
+ * @param {string} hash 
+ * @returns {boolean}
+ */
+export const verifyPassword = (password, hash) => {
+  return bcrypt.compareSync(password, hash);
+};
+
+/**
+ * Update user's last login time
+ * @param {number} userId 
+ */
+export const updateLastLogin = (userId) => {
+  const stmt = db.prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?');
+  stmt.run(userId);
+};
+
+/**
+ * Update user profile
+ * @param {number} userId 
+ * @param {Object} updates 
+ */
+export const updateUserProfile = (userId, updates) => {
+  const allowedFields = ['display_name', 'avatar_url'];
+  const setClause = [];
+  const values = [];
+  
+  for (const [key, value] of Object.entries(updates)) {
+    const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+    if (allowedFields.includes(dbKey)) {
+      setClause.push(`${dbKey} = ?`);
+      values.push(value);
+    }
+  }
+  
+  if (setClause.length === 0) return null;
+  
+  values.push(userId);
+  const stmt = db.prepare(`UPDATE users SET ${setClause.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
+  stmt.run(...values);
+  
+  return findUserById(userId);
+};
+
+/**
+ * Change user password
+ * @param {number} userId 
+ * @param {string} newPassword 
+ */
+export const changePassword = (userId, newPassword) => {
+  const passwordHash = bcrypt.hashSync(newPassword, 10);
+  const stmt = db.prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+  stmt.run(passwordHash, userId);
+};
+
+/**
+ * Check if username exists
+ * @param {string} username 
+ * @returns {boolean}
+ */
+export const usernameExists = (username) => {
+  const stmt = db.prepare('SELECT 1 FROM users WHERE username = ?');
+  return !!stmt.get(username);
+};
+
+/**
+ * Check if email exists
+ * @param {string} email 
+ * @returns {boolean}
+ */
+export const emailExists = (email) => {
+  const stmt = db.prepare('SELECT 1 FROM users WHERE email = ?');
+  return !!stmt.get(email.toLowerCase());
+};
+
+// ============================================
+// SESSION MANAGEMENT
+// ============================================
+
+/**
+ * Create a session for a user
+ * @param {number} userId 
+ * @param {string} token 
+ * @param {number} expiresInHours 
+ */
+export const createSession = (userId, token, expiresInHours = 24 * 7) => {
+  const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
+  const stmt = db.prepare('INSERT INTO user_sessions (user_id, token, expires_at) VALUES (?, ?, ?)');
+  stmt.run(userId, token, expiresAt);
+};
+
+/**
+ * Find session by token
+ * @param {string} token 
+ * @returns {Object|null}
+ */
+export const findSession = (token) => {
+  const stmt = db.prepare(`
+    SELECT s.*, u.id as user_id, u.username, u.email, u.display_name
+    FROM user_sessions s
+    JOIN users u ON s.user_id = u.id
+    WHERE s.token = ? AND s.expires_at > datetime('now')
+  `);
+  return stmt.get(token);
+};
+
+/**
+ * Delete session (logout)
+ * @param {string} token 
+ */
+export const deleteSession = (token) => {
+  const stmt = db.prepare('DELETE FROM user_sessions WHERE token = ?');
+  stmt.run(token);
+};
+
+/**
+ * Delete all sessions for a user
+ * @param {number} userId 
+ */
+export const deleteAllUserSessions = (userId) => {
+  const stmt = db.prepare('DELETE FROM user_sessions WHERE user_id = ?');
+  stmt.run(userId);
+};
+
+/**
+ * Clean up expired sessions
+ */
+export const cleanupExpiredSessions = () => {
+  const stmt = db.prepare("DELETE FROM user_sessions WHERE expires_at < datetime('now')");
+  const result = stmt.run();
+  return result.changes;
+};
+
+// ============================================
+// PROGRESS TRACKING
+// ============================================
+
+/**
+ * Save or update module progress
+ * @param {number} userId 
+ * @param {string} courseId 
+ * @param {string} moduleId 
+ * @param {Object} data 
+ */
+export const saveModuleProgress = (userId, courseId, moduleId, data = {}) => {
+  const { savedCode, hintsUsed, timeSpentSeconds, completed } = data;
+  
+  // Upsert course progress
+  db.prepare(`
+    INSERT INTO course_progress (user_id, course_id)
+    VALUES (?, ?)
+    ON CONFLICT(user_id, course_id) DO NOTHING
+  `).run(userId, courseId);
+  
+  // Upsert module progress
+  const stmt = db.prepare(`
+    INSERT INTO module_progress (user_id, course_id, module_id, saved_code, hints_used, time_spent_seconds, completed_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id, course_id, module_id) DO UPDATE SET
+      saved_code = COALESCE(?, saved_code),
+      hints_used = COALESCE(?, hints_used),
+      time_spent_seconds = time_spent_seconds + COALESCE(?, 0),
+      completed_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE completed_at END
+  `);
+  
+  stmt.run(
+    userId, courseId, moduleId, 
+    savedCode || null, hintsUsed || 0, timeSpentSeconds || 0, completed ? new Date().toISOString() : null,
+    savedCode, hintsUsed, timeSpentSeconds, completed ? 1 : 0
+  );
+  
+  // Log activity
+  logActivity(userId, completed ? 'module_completed' : 'module_progress', courseId, moduleId);
+  
+  // Update stats if completed
+  if (completed) {
+    updateUserStats(userId);
+  }
+};
+
+/**
+ * Save step completion
+ * @param {number} userId 
+ * @param {string} courseId 
+ * @param {string} moduleId 
+ * @param {number} stepIndex 
+ * @param {Object} data 
+ */
+export const saveStepProgress = (userId, courseId, moduleId, stepIndex, data = {}) => {
+  const { hintsUsed, codeSnapshot } = data;
+  
+  const stmt = db.prepare(`
+    INSERT INTO step_progress (user_id, course_id, module_id, step_index, hints_used, code_snapshot)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id, course_id, module_id, step_index) DO UPDATE SET
+      hints_used = COALESCE(?, hints_used),
+      code_snapshot = COALESCE(?, code_snapshot)
+  `);
+  
+  stmt.run(
+    userId, courseId, moduleId, stepIndex, hintsUsed || 0, codeSnapshot || null,
+    hintsUsed, codeSnapshot
+  );
+  
+  // Log activity
+  logActivity(userId, 'step_completed', courseId, moduleId);
+};
+
+/**
+ * Get all progress for a user
+ * @param {number} userId 
+ * @returns {Object}
+ */
+export const getUserProgress = (userId) => {
+  // Get course progress
+  const courses = db.prepare(`
+    SELECT course_id, started_at, completed_at
+    FROM course_progress
+    WHERE user_id = ?
+  `).all(userId);
+  
+  // Get module progress
+  const modules = db.prepare(`
+    SELECT course_id, module_id, started_at, completed_at, saved_code, hints_used, time_spent_seconds
+    FROM module_progress
+    WHERE user_id = ?
+  `).all(userId);
+  
+  // Get step progress
+  const steps = db.prepare(`
+    SELECT course_id, module_id, step_index, completed_at, hints_used
+    FROM step_progress
+    WHERE user_id = ?
+  `).all(userId);
+  
+  return { courses, modules, steps };
+};
+
+/**
+ * Get progress for a specific course
+ * @param {number} userId 
+ * @param {string} courseId 
+ * @returns {Object}
+ */
+export const getCourseProgress = (userId, courseId) => {
+  const course = db.prepare(`
+    SELECT * FROM course_progress WHERE user_id = ? AND course_id = ?
+  `).get(userId, courseId);
+  
+  const modules = db.prepare(`
+    SELECT * FROM module_progress WHERE user_id = ? AND course_id = ?
+  `).all(userId, courseId);
+  
+  const steps = db.prepare(`
+    SELECT * FROM step_progress WHERE user_id = ? AND course_id = ?
+  `).all(userId, courseId);
+  
+  return { course, modules, steps };
+};
+
+/**
+ * Get saved code for a module
+ * @param {number} userId 
+ * @param {string} courseId 
+ * @param {string} moduleId 
+ * @returns {string|null}
+ */
+export const getSavedCode = (userId, courseId, moduleId) => {
+  const result = db.prepare(`
+    SELECT saved_code FROM module_progress 
+    WHERE user_id = ? AND course_id = ? AND module_id = ?
+  `).get(userId, courseId, moduleId);
+  
+  return result?.saved_code || null;
+};
+
+// ============================================
+// STATS & ANALYTICS
+// ============================================
+
+/**
+ * Log user activity
+ * @param {number} userId 
+ * @param {string} activityType 
+ * @param {string} courseId 
+ * @param {string} moduleId 
+ */
+export const logActivity = (userId, activityType, courseId = null, moduleId = null) => {
+  const stmt = db.prepare(`
+    INSERT INTO activity_log (user_id, activity_type, course_id, module_id)
+    VALUES (?, ?, ?, ?)
+  `);
+  stmt.run(userId, activityType, courseId, moduleId);
+  
+  // Update streak
+  updateStreak(userId);
+};
+
+/**
+ * Update user streak
+ * @param {number} userId 
+ */
+const updateStreak = (userId) => {
+  const today = new Date().toISOString().split('T')[0];
+  const stats = db.prepare('SELECT last_activity_date, current_streak_days, longest_streak_days FROM user_stats WHERE user_id = ?').get(userId);
+  
+  if (!stats) return;
+  
+  let newStreak = stats.current_streak_days;
+  
+  if (stats.last_activity_date !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    
+    if (stats.last_activity_date === yesterday) {
+      // Continuing streak
+      newStreak = stats.current_streak_days + 1;
+    } else if (!stats.last_activity_date || stats.last_activity_date < yesterday) {
+      // Streak broken, start new one
+      newStreak = 1;
+    }
+    
+    const longestStreak = Math.max(newStreak, stats.longest_streak_days);
+    
+    db.prepare(`
+      UPDATE user_stats 
+      SET last_activity_date = ?, current_streak_days = ?, longest_streak_days = ?
+      WHERE user_id = ?
+    `).run(today, newStreak, longestStreak, userId);
+  }
+};
+
+/**
+ * Update user stats (call after completing modules)
+ * @param {number} userId 
+ */
+export const updateUserStats = (userId) => {
+  // Count completed modules
+  const modulesCompleted = db.prepare(`
+    SELECT COUNT(*) as count FROM module_progress 
+    WHERE user_id = ? AND completed_at IS NOT NULL
+  `).get(userId)?.count || 0;
+  
+  // Count completed courses (all modules in course completed)
+  // This is a simplified version - ideally should check if all modules in a course are done
+  const coursesCompleted = db.prepare(`
+    SELECT COUNT(*) as count FROM course_progress 
+    WHERE user_id = ? AND completed_at IS NOT NULL
+  `).get(userId)?.count || 0;
+  
+  // Count completed steps
+  const stepsCompleted = db.prepare(`
+    SELECT COUNT(*) as count FROM step_progress WHERE user_id = ?
+  `).get(userId)?.count || 0;
+  
+  // Total time spent
+  const timeSpent = db.prepare(`
+    SELECT SUM(time_spent_seconds) as total FROM module_progress WHERE user_id = ?
+  `).get(userId)?.total || 0;
+  
+  db.prepare(`
+    UPDATE user_stats 
+    SET total_modules_completed = ?, total_courses_completed = ?, 
+        total_steps_completed = ?, total_time_spent_seconds = ?
+    WHERE user_id = ?
+  `).run(modulesCompleted, coursesCompleted, stepsCompleted, timeSpent, userId);
+};
+
+/**
+ * Get user stats for dashboard
+ * @param {number} userId 
+ * @returns {Object}
+ */
+export const getUserStats = (userId) => {
+  const stats = db.prepare('SELECT * FROM user_stats WHERE user_id = ?').get(userId);
+  
+  // Get recent activity (last 7 days)
+  const recentActivity = db.prepare(`
+    SELECT DATE(created_at) as date, COUNT(*) as count
+    FROM activity_log
+    WHERE user_id = ? AND created_at > datetime('now', '-7 days')
+    GROUP BY DATE(created_at)
+    ORDER BY date DESC
+  `).all(userId);
+  
+  // Get courses in progress
+  const coursesInProgress = db.prepare(`
+    SELECT course_id, started_at
+    FROM course_progress
+    WHERE user_id = ? AND completed_at IS NULL
+  `).all(userId);
+  
+  return {
+    ...stats,
+    recentActivity,
+    coursesInProgress
+  };
+};
+
+/**
+ * Get completed module IDs for a user
+ * @param {number} userId 
+ * @returns {string[]}
+ */
+export const getCompletedModuleIds = (userId) => {
+  const results = db.prepare(`
+    SELECT module_id FROM module_progress 
+    WHERE user_id = ? AND completed_at IS NOT NULL
+  `).all(userId);
+  
+  return results.map(r => r.module_id);
+};
+
+// Export database instance for advanced queries if needed
+export { db };
+
+export default {
+  // User management
+  createUser,
+  findUser,
+  findUserById,
+  verifyPassword,
+  updateLastLogin,
+  updateUserProfile,
+  changePassword,
+  usernameExists,
+  emailExists,
+  
+  // Session management
+  createSession,
+  findSession,
+  deleteSession,
+  deleteAllUserSessions,
+  cleanupExpiredSessions,
+  
+  // Progress tracking
+  saveModuleProgress,
+  saveStepProgress,
+  getUserProgress,
+  getCourseProgress,
+  getSavedCode,
+  getCompletedModuleIds,
+  
+  // Stats & analytics
+  logActivity,
+  updateUserStats,
+  getUserStats,
+};

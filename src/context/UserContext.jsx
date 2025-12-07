@@ -1,101 +1,103 @@
 /**
- * User Context with Session Management
- * Manages user authentication, profile, progress tracking, and session timeouts
- * Uses localStorage for persistence and sessionStorage for session tracking
+ * User Context with Server-Side Authentication
+ * Manages user authentication, profile, and progress tracking via API
+ * Uses server-side session tokens stored in localStorage
  */
 
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
-import { STORAGE_KEYS } from '../constants/appConfig';
+import { 
+  getUserToken, 
+  getStoredUser, 
+  getCurrentUser, 
+  logoutUser, 
+  getProgress, 
+  saveModuleProgress as apiSaveModuleProgress,
+  saveStepProgress as apiSaveStepProgress,
+  isAuthenticated
+} from '../utils/userApi';
 import { logSecurityEvent } from '../utils/securityUtils';
 
 const UserContext = createContext();
 
 /**
- * UserProvider component - wraps app and provides user context with session management
+ * UserProvider component - wraps app and provides user context with server-side auth
  * @param {Object} props
  * @param {React.ReactNode} props.children - Child components
  */
 export const UserProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState({});
+  const [userProgress, setUserProgress] = useState({ modules: [], steps: [], completedModules: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminRole, setAdminRole] = useState(null);
-  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
-  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
-
-  // Get session timeout from environment (in minutes)
-  const SESSION_TIMEOUT_MINUTES = parseInt(import.meta.env.VITE_SESSION_TIMEOUT) || 30;
-  const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
-  const WARNING_TIME_MS = 5 * 60 * 1000; // 5 minutes before timeout
-
-  // Load users from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
-      const lastUser = localStorage.getItem(STORAGE_KEYS.LAST_USER);
-
-      if (savedUsers) {
-        const parsedUsers = JSON.parse(savedUsers);
-        setUsers(parsedUsers);
-
-        // Restore last logged-in user
-        if (lastUser && parsedUsers[lastUser]) {
-          setCurrentUser(lastUser);
-          setLastActivityTime(Date.now());
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load user data from localStorage:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Save users to localStorage whenever they change
-  useEffect(() => {
-    if (Object.keys(users).length > 0) {
-      try {
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-      } catch (error) {
-        console.error('Failed to save user data to localStorage:', error);
-      }
-    }
-  }, [users]);
+  const [showAuthPage, setShowAuthPage] = useState('login'); // 'login' | 'register'
 
   /**
-   * Login or create a new user
-   * @param {string} username - The username to login/create
+   * Initialize user session from stored token
    */
-  const login = useCallback((username) => {
-    if (!users[username]) {
-      setUsers(prev => ({
-        ...prev,
-        [username]: { progress: {} }
-      }));
-    }
-    setCurrentUser(username);
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        if (isAuthenticated()) {
+          // Validate session and get user data
+          const data = await getCurrentUser();
+          setCurrentUser(data.user);
+          
+          // Load progress
+          const progress = await getProgress();
+          setUserProgress({
+            modules: progress.progress.modules || [],
+            steps: progress.progress.steps || [],
+            completedModules: progress.completedModules || []
+          });
+        }
+      } catch (error) {
+        console.log('Session expired or invalid');
+        // Token invalid, user needs to log in
+        setCurrentUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  /**
+   * Login user (called after successful API login)
+   * @param {Object} user - User object from API
+   */
+  const login = useCallback(async (user) => {
+    setCurrentUser(user);
     setIsAdmin(false);
     setAdminRole(null);
-    setLastActivityTime(Date.now());
-    localStorage.setItem(STORAGE_KEYS.LAST_USER, username);
     
-    logSecurityEvent('user_login', {
-      username,
+    // Load user progress
+    try {
+      const progress = await getProgress();
+      setUserProgress({
+        modules: progress.progress.modules || [],
+        steps: progress.progress.steps || [],
+        completedModules: progress.completedModules || []
+      });
+    } catch (err) {
+      console.error('Failed to load progress:', err);
+    }
+    
+    logSecurityEvent('user_session_started', {
+      username: user.username,
       timestamp: new Date().toISOString()
     });
-  }, [users]);
+  }, []);
 
   /**
    * Handle admin login with role
    */
   const adminLogin = useCallback((role) => {
-    const adminUser = `admin-${role}`;
+    const adminUser = { username: `admin-${role}`, displayName: role === 'admin' ? 'Administrator' : 'Moderator' };
     setCurrentUser(adminUser);
     setIsAdmin(true);
     setAdminRole(role);
-    setLastActivityTime(Date.now());
-    localStorage.setItem(STORAGE_KEYS.LAST_USER, adminUser);
     
     logSecurityEvent('admin_session_started', {
       role,
@@ -106,201 +108,138 @@ export const UserProvider = ({ children }) => {
   /**
    * Logout current user
    */
-  const logout = useCallback((reason = 'user_initiated') => {
-    const endTime = Date.now();
-    
+  const logout = useCallback(async (reason = 'user_initiated') => {
     logSecurityEvent('user_logout', {
-      user: currentUser,
+      user: currentUser?.username,
       isAdmin,
       adminRole,
       reason,
-      sessionDurationMs: endTime - lastActivityTime,
       timestamp: new Date().toISOString()
     });
+    
+    // Clear server session
+    await logoutUser();
     
     setCurrentUser(null);
     setIsAdmin(false);
     setAdminRole(null);
-    setShowTimeoutWarning(false);
-    localStorage.removeItem(STORAGE_KEYS.LAST_USER);
-  }, [currentUser, isAdmin, adminRole, lastActivityTime]);
-
-  /**
-   * Track user activity to reset inactivity timer
-   */
-  const updateActivity = useCallback(() => {
-    setLastActivityTime(Date.now());
-    setShowTimeoutWarning(false);
-  }, []);
-
-  /**
-   * Monitor session timeout
-   */
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const checkTimeout = setInterval(() => {
-      const now = Date.now();
-      const sessionDuration = now - lastActivityTime;
-
-      // Show warning 5 minutes before timeout
-      if (sessionDuration >= SESSION_TIMEOUT_MS - WARNING_TIME_MS && !showTimeoutWarning) {
-        setShowTimeoutWarning(true);
-        logSecurityEvent('session_warning_shown', {
-          user: currentUser,
-          minutesRemaining: 5,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      // Auto-logout on timeout
-      if (sessionDuration >= SESSION_TIMEOUT_MS) {
-        clearInterval(checkTimeout);
-        logout('session_timeout');
-      }
-    }, 1000);
-
-    return () => clearInterval(checkTimeout);
-  }, [currentUser, lastActivityTime, SESSION_TIMEOUT_MS, showTimeoutWarning, logout]);
-
-  /**
-   * Track user activity on window events
-   */
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    
-    const handleActivity = () => {
-      updateActivity();
-    };
-
-    activityEvents.forEach(event => {
-      document.addEventListener(event, handleActivity);
-    });
-
-    return () => {
-      activityEvents.forEach(event => {
-        document.removeEventListener(event, handleActivity);
-      });
-    };
-  }, [currentUser, updateActivity]);
+    setUserProgress({ modules: [], steps: [], completedModules: [] });
+  }, [currentUser, isAdmin, adminRole]);
 
   /**
    * Mark a module as complete
+   * @param {string} courseId - Course ID
    * @param {string} moduleId - Module ID
    * @param {string} savedCode - Optional code to save
    */
-  const markModuleComplete = useCallback((moduleId, savedCode = null) => {
-    if (!currentUser) return;
+  const markModuleComplete = useCallback(async (courseId, moduleId, savedCode = null) => {
+    if (!currentUser || isAdmin) return;
 
-    setUsers(prevUsers => {
-      const userProgress = prevUsers[currentUser]?.progress || {};
-      const moduleProgress = {
-        ...userProgress[moduleId],
-        completed: true,
-      };
+    try {
+      await apiSaveModuleProgress(courseId, moduleId, {
+        savedCode,
+        completed: true
+      });
+      
+      // Update local state
+      setUserProgress(prev => ({
+        ...prev,
+        completedModules: [...new Set([...prev.completedModules, moduleId])]
+      }));
+    } catch (err) {
+      console.error('Failed to save module progress:', err);
+    }
+  }, [currentUser, isAdmin]);
 
-      if (savedCode) {
-        moduleProgress.savedCode = savedCode;
-      }
+  /**
+   * Save step completion
+   * @param {string} courseId - Course ID
+   * @param {string} moduleId - Module ID
+   * @param {number} stepIndex - Step index
+   * @param {Object} data - Additional data (hintsUsed, codeSnapshot)
+   */
+  const saveStepProgress = useCallback(async (courseId, moduleId, stepIndex, data = {}) => {
+    if (!currentUser || isAdmin) return;
 
-      return {
-        ...prevUsers,
-        [currentUser]: {
-          ...prevUsers[currentUser],
-          progress: {
-            ...userProgress,
-            [moduleId]: moduleProgress
-          }
-        }
-      };
-    });
-  }, [currentUser]);
+    try {
+      await apiSaveStepProgress(courseId, moduleId, stepIndex, data);
+    } catch (err) {
+      console.error('Failed to save step progress:', err);
+    }
+  }, [currentUser, isAdmin]);
 
   /**
    * Save code for a module without marking as complete
+   * @param {string} courseId - Course ID
    * @param {string} moduleId - Module ID
    * @param {string} code - Code to save
    */
-  const saveModuleCode = useCallback((moduleId, code) => {
-    if (!currentUser) return;
+  const saveModuleCode = useCallback(async (courseId, moduleId, code) => {
+    if (!currentUser || isAdmin) return;
 
-    setUsers(prevUsers => {
-      const userProgress = prevUsers[currentUser]?.progress || {};
-      return {
-        ...prevUsers,
-        [currentUser]: {
-          ...prevUsers[currentUser],
-          progress: {
-            ...userProgress,
-            [moduleId]: {
-              ...userProgress[moduleId],
-              savedCode: code
-            }
-          }
-        }
-      };
-    });
-  }, [currentUser]);
-
-  /**
-   * Get progress for current user
-   * @returns {Object} Progress data
-   */
-  const getUserProgress = useCallback(() => {
-    return currentUser ? users[currentUser]?.progress || {} : {};
-  }, [currentUser, users]);
+    try {
+      await apiSaveModuleProgress(courseId, moduleId, {
+        savedCode: code,
+        completed: false
+      });
+    } catch (err) {
+      console.error('Failed to save module code:', err);
+    }
+  }, [currentUser, isAdmin]);
 
   /**
    * Get completed modules for current user
    * @returns {Set} Set of completed module IDs
    */
   const getCompletedModules = useCallback(() => {
-    const progress = getUserProgress();
-    return new Set(
-      Object.keys(progress).filter(moduleId => progress[moduleId].completed)
-    );
-  }, [getUserProgress]);
+    return new Set(userProgress.completedModules);
+  }, [userProgress.completedModules]);
 
   /**
-   * Get remaining session time in seconds
+   * Check if a module is completed
+   * @param {string} moduleId 
+   * @returns {boolean}
    */
-  const getRemainingSessionTime = useCallback(() => {
-    if (!currentUser) return 0;
-    const sessionDuration = Date.now() - lastActivityTime;
-    const remaining = SESSION_TIMEOUT_MS - sessionDuration;
-    return Math.max(0, Math.ceil(remaining / 1000));
-  }, [currentUser, lastActivityTime, SESSION_TIMEOUT_MS]);
+  const isModuleCompleted = useCallback((moduleId) => {
+    return userProgress.completedModules.includes(moduleId);
+  }, [userProgress.completedModules]);
 
   /**
-   * Extend session (called when user clicks "Continue" on warning)
+   * Refresh user progress from server
    */
-  const extendSession = useCallback(() => {
-    updateActivity();
-    logSecurityEvent('session_extended', {
-      user: currentUser,
-      timestamp: new Date().toISOString()
-    });
-  }, [currentUser, updateActivity]);
+  const refreshProgress = useCallback(async () => {
+    if (!currentUser || isAdmin) return;
+    
+    try {
+      const progress = await getProgress();
+      setUserProgress({
+        modules: progress.progress.modules || [],
+        steps: progress.progress.steps || [],
+        completedModules: progress.completedModules || []
+      });
+    } catch (err) {
+      console.error('Failed to refresh progress:', err);
+    }
+  }, [currentUser, isAdmin]);
 
   const value = {
     currentUser,
-    users,
     isLoading,
     isAdmin,
     adminRole,
-    showTimeoutWarning,
-    sessionTimeoutMinutes: SESSION_TIMEOUT_MINUTES,
+    showAuthPage,
+    setShowAuthPage,
     login,
     adminLogin,
     logout,
     markModuleComplete,
+    saveStepProgress,
     saveModuleCode,
-    getUserProgress,
     getCompletedModules,
-    getRemainingSessionTime,
-    extendSession,
+    isModuleCompleted,
+    refreshProgress,
+    userProgress,
+    isAuthenticated: !!currentUser && !isAdmin,
   };
 
   return (

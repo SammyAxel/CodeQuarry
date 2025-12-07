@@ -9,9 +9,11 @@ import NavigationControls from './NavControl';
 import { CodeEditor } from './CodeEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { useCodeEngine } from '../hooks/useCodeEngine';
+import { getSavedCode, saveModuleProgress } from '../utils/userApi';
 
-export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCompleted, savedCode }) => { 
-  const [code, setCode] = useState(savedCode || module.initialCode || '');
+export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted }) => { 
+  const [code, setCode] = useState(module.initialCode || '');
+  const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [syntaxError, setSyntaxError] = useState(null);
@@ -31,13 +33,32 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
 
   const steps = parseSteps(module.instruction);
 
-  // Track when user modifies the code
+  // Track when user modifies the code with auto-save
+  const saveTimeoutRef = useRef(null);
+  
   const handleCodeChange = (newCode) => {
     setCode(newCode);
     if (!hasUserModifiedCode) {
       setHasUserModifiedCode(true);
     }
+    
+    // Debounced auto-save (save after 2 seconds of no typing)
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveModuleProgress(courseId, module.id, { savedCode: newCode });
+    }, 2000);
   };
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Update steps whenever code changes
   // Only show errors AFTER user has modified the code
@@ -114,16 +135,29 @@ export const PracticeMode = ({ module, navProps, onOpenMap, onMarkComplete, isCo
     setSyntaxError(null);
   }, [code, module.requiredCode, module.stepRequirements, module.requiredSyntax, module.stepSyntax, steps.length, hasUserModifiedCode]);
 
-  // Sync state on module change
+  // Sync state on module change and load saved code
   useEffect(() => {
-    setCode(savedCode || module.initialCode || '');
+    const loadSavedCode = async () => {
+      setIsLoadingCode(true);
+      try {
+        const saved = await getSavedCode(courseId, module.id);
+        setCode(saved || module.initialCode || '');
+      } catch (err) {
+        console.log('No saved code found, using initial');
+        setCode(module.initialCode || '');
+      } finally {
+        setIsLoadingCode(false);
+      }
+    };
+    
+    loadSavedCode();
     setOutput(['> Terminal ready...']);
     setShowSuccessModal(false);
     setSyntaxError(null);
     setCompletedSteps(new Set());
     setRevealedHints(0);
     setHasUserModifiedCode(false);
-  }, [module.id, setOutput]);
+  }, [module.id, courseId, setOutput]);
   
   const handleRunCode = async () => {
     const newCompletedSteps = new Set(completedSteps);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Gem, Map as MapIcon, Pickaxe, LogOut
+  Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User
 } from 'lucide-react';
 
 import { COURSES } from './data/courses';
@@ -13,8 +13,12 @@ import { AdminDashboard } from './components/AdminDashboard';
 import HomePage from './pages/HomePage';
 import { SyllabusPage } from './pages/SyllabusPage';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
+import { useRouting } from './hooks/useRouting';
 
 /**
  * Main Application Component
@@ -26,6 +30,7 @@ export default function App() {
   const [adminRole, setAdminRole] = useState(null); // 'admin' or 'mod'
   const [publishedCourseEdits, setPublishedCourseEdits] = useState({});
   const [customCourses, setCustomCourses] = useState([]); // Drafts that have been published
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'dashboard' | 'profile'
   
   // Load published course edits and custom courses from localStorage on mount
   useEffect(() => {
@@ -91,9 +96,12 @@ export default function App() {
     isLoading, 
     login, 
     logout, 
+    adminLogin: userAdminLogin,
     markModuleComplete,
     getCompletedModules,
-    getUserProgress 
+    isModuleCompleted,
+    showAuthPage,
+    setShowAuthPage,
   } = useUser();
 
   const {
@@ -109,9 +117,12 @@ export default function App() {
     setIsMapOpen,
   } = useApp();
 
+  // Get merged courses and initialize routing
+  const mergedCourses = getMergedCourses();
+  useRouting(mergedCourses);
+
   // Derive completed modules for the current user
   const completedModules = getCompletedModules();
-  const userProgress = getUserProgress();
   
   // If in admin mode, show admin dashboard
   if (isAdminMode) {
@@ -156,15 +167,20 @@ export default function App() {
   };
 
   const handleMarkComplete = (codeToSave = null) => {
-    if (!activeModule || !currentUser) return;
-    markModuleComplete(activeModule.id, codeToSave);
+    if (!activeModule || !activeCourse || !currentUser) return;
+    markModuleComplete(activeCourse.id, activeModule.id, codeToSave);
   };
 
-  const handleLogin = (username) => {
-    login(username);
+  const handleLogin = (user) => {
+    login(user);
+  };
+
+  const handleRegisterSuccess = (user) => {
+    login(user);
   };
 
   const handleAdminLogin = (role) => {
+    userAdminLogin(role);
     setAdminRole(role);
     setIsAdminMode(true);
   };
@@ -183,7 +199,21 @@ export default function App() {
   }
 
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} onAdminLogin={handleAdminLogin} />;
+    if (showAuthPage === 'register') {
+      return (
+        <RegisterPage 
+          onRegisterSuccess={handleRegisterSuccess} 
+          onBackToLogin={() => setShowAuthPage('login')} 
+        />
+      );
+    }
+    return (
+      <LoginPage 
+        onLogin={handleLogin} 
+        onAdminLogin={handleAdminLogin} 
+        onShowRegister={() => setShowAuthPage('register')}
+      />
+    );
   }
 
   return (
@@ -196,19 +226,41 @@ export default function App() {
 
       <div className="relative z-10">
       <nav className="h-16 border-b border-gray-800 bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-40 px-6 flex items-center justify-between">
-         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigateHome()}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
-         <div className="flex items-center gap-8">
+         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { navigateHome(); setCurrentPage('home'); }}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
+         <div className="flex items-center gap-6">
            {view === VIEWS.LEARNING && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> Map</button>}
-           <div className="flex items-center gap-4">
-             <span className="text-sm font-bold text-gray-300">{currentUser}</span>
+           <button 
+             onClick={() => { navigateHome(); setCurrentPage('dashboard'); }}
+             className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'dashboard' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+           >
+             <BarChart3 className="w-4 h-4" /> Dashboard
+           </button>
+           <div className="flex items-center gap-3">
+             <button 
+               onClick={() => { navigateHome(); setCurrentPage('profile'); }}
+               className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'profile' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+             >
+               <User className="w-4 h-4" />
+               {currentUser?.displayName || currentUser?.username || 'User'}
+             </button>
              <button onClick={handleLogout} className="p-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors" title="Logout"><LogOut className="w-4 h-4" /></button>
            </div>
          </div>
       </nav>
       
       <main>
-        {view === VIEWS.HOME && <HomePage courses={getMergedCourses()} onSelectCourse={navigateToSyllabus} />}
-        {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => window.location.href = '/'} onSelectModule={navigateToLearning} completedModules={completedModules} />}
+        {currentPage === 'dashboard' && view === VIEWS.HOME && (
+          <DashboardPage 
+            courses={getMergedCourses()} 
+            onSelectCourse={(course) => { setCurrentPage('home'); navigateToSyllabus(course); }}
+            onBack={() => setCurrentPage('home')}
+          />
+        )}
+        {currentPage === 'profile' && view === VIEWS.HOME && (
+          <ProfilePage onBack={() => setCurrentPage('home')} />
+        )}
+        {currentPage === 'home' && view === VIEWS.HOME && <HomePage courses={getMergedCourses()} onSelectCourse={navigateToSyllabus} />}
+        {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => { navigateHome(); setCurrentPage('home'); }} onSelectModule={navigateToLearning} completedModules={completedModules} />}
         
         {view === VIEWS.LEARNING && (
           <div className="h-[calc(100vh-64px)] flex overflow-hidden relative">
@@ -238,11 +290,11 @@ export default function App() {
               // Passing 'onOpenMap' to all components
               const commonProps = {
                 module: activeModule,
+                courseId: activeCourse.id,
                 navProps: navProps,
                 onOpenMap: () => setIsMapOpen(true),
                 onMarkComplete: handleMarkComplete,
                 isCompleted: completedModules.has(activeModule.id),
-                savedCode: userProgress[activeModule.id]?.savedCode,
               };
 
               if (type === 'video') return <VideoEssay {...commonProps} />;

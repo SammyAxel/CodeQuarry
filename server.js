@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import * as db from './database.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -253,6 +254,328 @@ app.post('/api/compile-c', (req, res) => {
   // Forward to v1 endpoint
   req.url = '/api/v1/compile-c';
   app(req, res);
+});
+
+// ============================================
+// USER AUTHENTICATION ENDPOINTS
+// ============================================
+
+/**
+ * POST /api/user/register
+ * Register a new user account
+ */
+app.post('/api/user/register', (req, res) => {
+  const { username, email, password } = req.body;
+  
+  // Validation
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Username, email, and password are required' });
+  }
+  
+  // Username validation
+  if (username.length < 3 || username.length > 20) {
+    return res.status(400).json({ error: 'Username must be 3-20 characters' });
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+  }
+  
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+  
+  // Password validation
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+  
+  // Check if username/email already exists
+  if (db.usernameExists(username)) {
+    return res.status(409).json({ error: 'Username already taken' });
+  }
+  if (db.emailExists(email)) {
+    return res.status(409).json({ error: 'Email already registered' });
+  }
+  
+  try {
+    const user = db.createUser(username, email, password);
+    
+    // Generate session token
+    const token = generateSessionToken();
+    db.createSession(user.id, token);
+    db.updateLastLogin(user.id);
+    
+    console.log(`[USER] New user registered: ${username}`);
+    
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        displayName: user.displayName
+      }
+    });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+/**
+ * POST /api/user/login
+ * Login with username/email and password
+ */
+app.post('/api/user/login', (req, res) => {
+  const { identifier, password } = req.body;
+  
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Username/email and password are required' });
+  }
+  
+  const user = db.findUser(identifier);
+  
+  if (!user) {
+    // Delay to prevent timing attacks
+    setTimeout(() => {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }, 500);
+    return;
+  }
+  
+  if (!db.verifyPassword(password, user.password_hash)) {
+    setTimeout(() => {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }, 500);
+    return;
+  }
+  
+  // Generate session token
+  const token = generateSessionToken();
+  db.createSession(user.id, token);
+  db.updateLastLogin(user.id);
+  
+  console.log(`[USER] User logged in: ${user.username}`);
+  
+  res.json({
+    success: true,
+    token,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      displayName: user.display_name,
+      avatarUrl: user.avatar_url
+    }
+  });
+});
+
+/**
+ * POST /api/user/logout
+ * Logout user and invalidate session
+ */
+app.post('/api/user/logout', (req, res) => {
+  const token = req.headers['x-user-token'];
+  if (token) {
+    db.deleteSession(token);
+  }
+  res.json({ success: true });
+});
+
+/**
+ * Middleware to verify user session
+ */
+const verifyUserSession = (req, res, next) => {
+  const token = req.headers['x-user-token'];
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  const session = db.findSession(token);
+  
+  if (!session) {
+    return res.status(401).json({ error: 'Invalid or expired session' });
+  }
+  
+  // Attach user info to request
+  req.user = {
+    id: session.user_id,
+    username: session.username,
+    email: session.email,
+    displayName: session.display_name
+  };
+  req.userToken = token;
+  
+  next();
+};
+
+/**
+ * GET /api/user/me
+ * Get current user info
+ */
+app.get('/api/user/me', verifyUserSession, (req, res) => {
+  const user = db.findUserById(req.user.id);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  const stats = db.getUserStats(req.user.id);
+  
+  res.json({
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      displayName: user.display_name,
+      avatarUrl: user.avatar_url,
+      createdAt: user.created_at,
+      lastLoginAt: user.last_login_at
+    },
+    stats
+  });
+});
+
+/**
+ * PUT /api/user/profile
+ * Update user profile
+ */
+app.put('/api/user/profile', verifyUserSession, (req, res) => {
+  const { displayName, avatarUrl } = req.body;
+  
+  const updated = db.updateUserProfile(req.user.id, { displayName, avatarUrl });
+  
+  if (updated) {
+    res.json({ success: true, user: updated });
+  } else {
+    res.status(400).json({ error: 'No valid updates provided' });
+  }
+});
+
+/**
+ * PUT /api/user/password
+ * Change user password
+ */
+app.put('/api/user/password', verifyUserSession, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current and new password are required' });
+  }
+  
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+  
+  const user = db.findUserById(req.user.id);
+  const fullUser = db.findUser(user.username);
+  
+  if (!db.verifyPassword(currentPassword, fullUser.password_hash)) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+  
+  db.changePassword(req.user.id, newPassword);
+  
+  // Invalidate all other sessions
+  db.deleteAllUserSessions(req.user.id);
+  
+  // Create new session for current device
+  const token = generateSessionToken();
+  db.createSession(req.user.id, token);
+  
+  res.json({ success: true, token });
+});
+
+// ============================================
+// PROGRESS TRACKING ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/progress
+ * Get all progress for current user
+ */
+app.get('/api/progress', verifyUserSession, (req, res) => {
+  const progress = db.getUserProgress(req.user.id);
+  const completedModules = db.getCompletedModuleIds(req.user.id);
+  
+  res.json({
+    progress,
+    completedModules
+  });
+});
+
+/**
+ * GET /api/progress/:courseId
+ * Get progress for a specific course
+ */
+app.get('/api/progress/:courseId', verifyUserSession, (req, res) => {
+  const { courseId } = req.params;
+  const progress = db.getCourseProgress(req.user.id, courseId);
+  
+  res.json(progress);
+});
+
+/**
+ * POST /api/progress/module
+ * Save module progress
+ */
+app.post('/api/progress/module', verifyUserSession, (req, res) => {
+  const { courseId, moduleId, savedCode, hintsUsed, timeSpentSeconds, completed } = req.body;
+  
+  if (!courseId || !moduleId) {
+    return res.status(400).json({ error: 'courseId and moduleId are required' });
+  }
+  
+  db.saveModuleProgress(req.user.id, courseId, moduleId, {
+    savedCode,
+    hintsUsed,
+    timeSpentSeconds,
+    completed
+  });
+  
+  res.json({ success: true });
+});
+
+/**
+ * POST /api/progress/step
+ * Save step completion
+ */
+app.post('/api/progress/step', verifyUserSession, (req, res) => {
+  const { courseId, moduleId, stepIndex, hintsUsed, codeSnapshot } = req.body;
+  
+  if (!courseId || !moduleId || stepIndex === undefined) {
+    return res.status(400).json({ error: 'courseId, moduleId, and stepIndex are required' });
+  }
+  
+  db.saveStepProgress(req.user.id, courseId, moduleId, stepIndex, {
+    hintsUsed,
+    codeSnapshot
+  });
+  
+  res.json({ success: true });
+});
+
+/**
+ * GET /api/progress/code/:courseId/:moduleId
+ * Get saved code for a module
+ */
+app.get('/api/progress/code/:courseId/:moduleId', verifyUserSession, (req, res) => {
+  const { courseId, moduleId } = req.params;
+  const savedCode = db.getSavedCode(req.user.id, courseId, moduleId);
+  
+  res.json({ savedCode });
+});
+
+/**
+ * GET /api/user/stats
+ * Get user stats for dashboard
+ */
+app.get('/api/user/stats', verifyUserSession, (req, res) => {
+  const stats = db.getUserStats(req.user.id);
+  res.json(stats);
 });
 
 // ============================================

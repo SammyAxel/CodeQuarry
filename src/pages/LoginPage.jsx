@@ -1,30 +1,57 @@
 import React, { useState } from 'react';
-import { Gem, LogIn, Pickaxe, Lock, X } from 'lucide-react';
-import { login, logout } from '../utils/courseApi';
+import { Gem, LogIn, Pickaxe, Lock, X, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { login as adminLogin, logout } from '../utils/courseApi';
+import { loginUser } from '../utils/userApi';
 import { logSecurityEvent } from '../utils/securityUtils';
 
-export const LoginPage = ({ onLogin, onAdminLogin }) => {
-  const [username, setUsername] = useState('');
+export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  
+  // Admin modal state
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [adminError, setAdminError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isAdminLoggingIn, setIsAdminLoggingIn] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username.trim()) {
-      onLogin(username.trim());
+    if (!identifier.trim() || !password.trim()) return;
+    
+    setIsLoggingIn(true);
+    setError('');
+    
+    try {
+      const result = await loginUser(identifier.trim(), password);
+      
+      logSecurityEvent('user_login_success', { 
+        username: result.user.username,
+        timestamp: new Date().toISOString()
+      });
+      
+      onLogin(result.user);
+    } catch (err) {
+      setError(err.message || 'Invalid username or password');
+      logSecurityEvent('user_login_failed', { 
+        identifier: identifier.trim(),
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleAdminSubmit = async (e) => {
     e.preventDefault();
-    setIsLoggingIn(true);
+    setIsAdminLoggingIn(true);
     setAdminError('');
     
     try {
       // Try admin login first
-      const response = await login(adminPassword, 'admin');
+      await adminLogin(adminPassword, 'admin');
       
       logSecurityEvent('admin_login_success', { 
         role: 'admin',
@@ -35,10 +62,10 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
       setAdminPassword('');
       setAdminError('');
       onAdminLogin('admin');
-    } catch (adminError) {
+    } catch (adminErr) {
       // If admin login fails, try moderator login
       try {
-        const response = await login(adminPassword, 'mod');
+        await adminLogin(adminPassword, 'mod');
         
         logSecurityEvent('mod_login_success', { 
           role: 'mod',
@@ -49,7 +76,7 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
         setAdminPassword('');
         setAdminError('');
         onAdminLogin('mod');
-      } catch (modError) {
+      } catch (modErr) {
         // Both failed
         logSecurityEvent('admin_login_failed', { 
           role: 'unknown',
@@ -59,7 +86,7 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
         setAdminPassword('');
       }
     } finally {
-      setIsLoggingIn(false);
+      setIsAdminLoggingIn(false);
     }
   };
 
@@ -87,33 +114,75 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
         <p className="text-gray-400 mb-2 text-lg font-semibold">Dig Deep. Code High.</p>
         <div className="h-1 w-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-8"></div>
         
-        <p className="text-gray-400 mb-10 text-sm">Enter your username to begin your mining expedition.</p>
+        <p className="text-gray-400 mb-6 text-sm">Sign in to continue your mining expedition</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <input 
               type="text" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-              placeholder="Username" 
+              value={identifier} 
+              onChange={(e) => {
+                setIdentifier(e.target.value);
+                setError('');
+              }} 
+              placeholder="Username or Email" 
               className="w-full px-5 py-4 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-center text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
+              autoComplete="username"
             />
-            {username && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-              </div>
-            )}
           </div>
+          
+          <div className="relative">
+            <input 
+              type={showPassword ? 'text' : 'password'}
+              value={password} 
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError('');
+              }} 
+              placeholder="Password" 
+              className="w-full px-5 py-4 pr-12 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-center text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+          
+          {error && (
+            <p className="text-red-400 text-sm">{error}</p>
+          )}
           
           <button 
             type="submit" 
             className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none group"
-            disabled={!username.trim()}
+            disabled={!identifier.trim() || !password.trim() || isLoggingIn}
           >
-            <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> 
-            Start Mining
+            {isLoggingIn ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> 
+                Start Mining
+              </>
+            )}
           </button>
         </form>
+
+        {/* Register Link */}
+        <button
+          onClick={onShowRegister}
+          className="mt-4 w-full py-3 bg-transparent border border-purple-500/50 hover:border-purple-400 text-purple-400 hover:text-purple-300 font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300"
+        >
+          <UserPlus className="w-5 h-5" />
+          Create Account
+        </button>
 
         {/* Admin Login Button */}
         <button
@@ -175,17 +244,17 @@ export const LoginPage = ({ onLogin, onAdminLogin }) => {
                     setAdminPassword('');
                     setAdminError('');
                   }}
-                  disabled={isLoggingIn}
+                  disabled={isAdminLoggingIn}
                   className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoggingIn}
+                  disabled={isAdminLoggingIn}
                   className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Lock className="w-4 h-4" /> {isLoggingIn ? 'Checking...' : 'Access'}
+                  <Lock className="w-4 h-4" /> {isAdminLoggingIn ? 'Checking...' : 'Access'}
                 </button>
               </div>
             </form>
