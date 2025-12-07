@@ -5,9 +5,11 @@ import {
 } from 'lucide-react';
 import { getCurrentUser, updateProfile, changePassword } from '../utils/userApi';
 import { useUser } from '../context/UserContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const ProfilePage = ({ onBack }) => {
   const { currentUser, login } = useUser();
+  const { t } = useLanguage();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -94,7 +96,7 @@ export const ProfilePage = ({ onBack }) => {
   if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-64px)] bg-[#0d1117] flex items-center justify-center">
-        <div className="animate-pulse text-purple-400 text-xl">Loading profile...</div>
+        <div className="animate-pulse text-purple-400 text-xl">{t('common.loading')}</div>
       </div>
     );
   }
@@ -111,7 +113,7 @@ export const ProfilePage = ({ onBack }) => {
           className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back
+          {t('common.backToHome')}
         </button>
 
         {/* Profile Card */}
@@ -154,7 +156,7 @@ export const ProfilePage = ({ onBack }) => {
             <div>
               <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Display Name
+                {t('profile.displayName')}
               </label>
               {isEditingProfile ? (
                 <div className="flex gap-2">
@@ -174,7 +176,7 @@ export const ProfilePage = ({ onBack }) => {
                     ) : (
                       <Save className="w-4 h-4" />
                     )}
-                    Save
+                    {t('profile.save')}
                   </button>
                   <button
                     onClick={() => {
@@ -183,7 +185,7 @@ export const ProfilePage = ({ onBack }) => {
                     }}
                     className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
                   >
-                    Cancel
+                    {t('profile.cancel')}
                   </button>
                 </div>
               ) : (
@@ -193,7 +195,7 @@ export const ProfilePage = ({ onBack }) => {
                     onClick={() => setIsEditingProfile(true)}
                     className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
                   >
-                    Edit
+                    {t('profile.edit')}
                   </button>
                 </div>
               )}
@@ -203,13 +205,13 @@ export const ProfilePage = ({ onBack }) => {
             <div>
               <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                Email
+                {t('profile.email')}
               </label>
               <div className="flex items-center justify-between">
                 <span className="text-white">{user?.email}</span>
                 <span className="text-xs text-gray-500 flex items-center gap-1">
                   <Shield className="w-3 h-3" />
-                  Verified
+                  {t('profile.verified')}
                 </span>
               </div>
             </div>
@@ -218,7 +220,7 @@ export const ProfilePage = ({ onBack }) => {
             <div>
               <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <Gem className="w-4 h-4" />
-                Username
+                {t('profile.username')}
               </label>
               <span className="text-white">@{user?.username}</span>
             </div>
@@ -227,7 +229,7 @@ export const ProfilePage = ({ onBack }) => {
             <div>
               <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Member Since
+                {t('profile.memberSince')}
               </label>
               <span className="text-white">
                 {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
@@ -258,13 +260,13 @@ export const ProfilePage = ({ onBack }) => {
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
             >
               <Lock className="w-4 h-4" />
-              <span className="font-bold">Change Password</span>
+              <span className="font-bold">{t('profile.changePassword')}</span>
             </button>
 
             {showPasswordSection && (
               <form onSubmit={handleChangePassword} className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Current Password</label>
+                  <label className="block text-sm text-gray-400 mb-1">{t('profile.currentPassword')}</label>
                   <div className="relative">
                     <input
                       type={showPasswords ? 'text' : 'password'}
@@ -284,7 +286,7 @@ export const ProfilePage = ({ onBack }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">New Password</label>
+                  <label className="block text-sm text-gray-400 mb-1">{t('profile.newPassword')}</label>
                   <input
                     type={showPasswords ? 'text' : 'password'}
                     value={newPassword}
@@ -296,7 +298,7 @@ export const ProfilePage = ({ onBack }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Confirm New Password</label>
+                  <label className="block text-sm text-gray-400 mb-1">{t('profile.confirmNewPassword')}</label>
                   <input
                     type={showPasswords ? 'text' : 'password'}
                     value={confirmPassword}
@@ -332,7 +334,7 @@ export const ProfilePage = ({ onBack }) => {
                     ) : (
                       <Lock className="w-4 h-4" />
                     )}
-                    Update Password
+                    {t('profile.updatePassword')}
                   </button>
                   <button
                     type="button"
@@ -345,7 +347,7 @@ export const ProfilePage = ({ onBack }) => {
                     }}
                     className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
                   >
-                    Cancel
+                    {t('profile.cancel')}
                   </button>
                 </div>
               </form>

@@ -1,6 +1,8 @@
 import React, { memo, useState, useMemo } from 'react';
-import { ChevronRight, Gem, Pickaxe, Coins, Search, X, AlertCircle } from 'lucide-react';
+import { ChevronRight, Gem, Pickaxe, Coins, Search, X, AlertCircle, Globe } from 'lucide-react';
 import { sanitizeInput } from '../utils/securityUtils';
+import { getCourseLanguages } from '../utils/courseTranslations';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * Home page showing available courses
@@ -13,6 +15,7 @@ import { sanitizeInput } from '../utils/securityUtils';
  * @returns {JSX.Element}
  */
 const HomePage = ({ courses, onSelectCourse }) => {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter courses based on search query
@@ -128,7 +131,23 @@ const HomePage = ({ courses, onSelectCourse }) => {
             <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-purple-300 group-hover:to-pink-300 group-hover:bg-clip-text transition-all duration-300 relative z-10">
               {course.title}
             </h3>
-            <p className="text-gray-400 text-sm mb-6 leading-relaxed relative z-10">{course.description}</p>
+            <p className="text-gray-400 text-sm mb-4 leading-relaxed relative z-10">{course.description}</p>
+            
+            {/* Language indicators */}
+            <div className="flex gap-1.5 mb-4 relative z-10 flex-wrap">
+              <span className="text-xs px-2 py-0.5 bg-green-600/20 text-green-400 rounded font-bold border border-green-600/30">
+                🇬🇧 EN
+              </span>
+              {(() => {
+                const languages = getCourseLanguages(course.id);
+                const langFlags = { id: '🇮🇩', es: '🇪🇸', fr: '🇫🇷', de: '🇩🇪', ja: '🇯🇵', ko: '🇰🇷', zh: '🇨🇳' };
+                return languages.map(lang => (
+                  <span key={lang} className="text-xs px-2 py-0.5 bg-purple-600/20 text-purple-400 rounded font-bold border border-purple-600/30">
+                    {langFlags[lang] || '🌍'} {lang.toUpperCase()}
+                  </span>
+                ));
+              })()}
+            </div>
             
             <div className="flex items-center text-purple-300 font-bold text-sm transition-all duration-300 relative mt-auto pt-4 group-hover:text-purple-200">
               <Pickaxe className="w-4 h-4 mr-2 opacity-60 -rotate-45 group-hover:opacity-100 group-hover:-translate-x-1 transition-all duration-300" />

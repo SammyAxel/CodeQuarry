@@ -10,8 +10,10 @@ import { CodeEditor } from './CodeEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { useCodeEngine } from '../hooks/useCodeEngine';
 import { getSavedCode, saveModuleProgress } from '../utils/userApi';
+import { useLanguage } from '../context/LanguageContext';
 
 export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted }) => { 
+  const { t } = useLanguage();
   const [code, setCode] = useState(module.initialCode || '');
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -340,7 +342,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
         </div>
 
         <div className="flex items-center gap-3">
-           {isEngineLoading && <span className="text-xs text-yellow-500 flex gap-2"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</span>}
+           {isEngineLoading && <span className="text-xs text-yellow-500 flex gap-2"><Loader2 className="w-3 h-3 animate-spin"/> {t('practice.loading')}</span>}
            {engineError && <button onClick={initializeEngines} className="text-red-400 hover:text-red-300 p-2"><RefreshCw className="w-4 h-4" /></button>}
            <button onClick={() => { setCode(module.initialCode); setHasUserModifiedCode(false); setSyntaxError(null); setCompletedSteps(new Set()); }} className="p-2 text-gray-400 hover:text-white"><RotateCcw className="w-4 h-4" /></button>
            <button 
@@ -349,7 +351,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
              title="Run Code (Ctrl+Enter)"
              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-green-900/20 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
            >
-             <Play className="w-4 h-4 fill-current" /> Run Code
+             <Play className="w-4 h-4 fill-current" /> {t('practice.run')}
            </button>
         </div>
       </div>

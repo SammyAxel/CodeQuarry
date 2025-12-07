@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen, AlertCircle, Shield, BookOpen, Layers, Server, ServerOff } from 'lucide-react';
+import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen, AlertCircle, Shield, BookOpen, Layers, Server, ServerOff, Languages, Globe } from 'lucide-react';
 import { CourseEditor } from './ModuleEditor';
 import { CoursePreview } from './CoursePreview';
 import { SecurityDashboard } from './SecurityDashboard';
+import { CourseTranslationEditor } from './CourseTranslationEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
 import { publishCourse, saveCourse, checkServerHealth, getSessionToken } from '../utils/courseApi';
 import { COURSES } from '../data/courses';
+import { getCourseLanguages } from '../utils/courseTranslations';
 
 export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
-  const [view, setView] = useState('list'); // list, editor, preview, review, security
-  const [activeTab, setActiveTab] = useState('published'); // 'drafts' or 'published'
+  const [view, setView] = useState('list'); // list, editor, preview, review, security, translate
+  const [activeTab, setActiveTab] = useState('published'); // 'drafts' or 'published' or 'translations'
   const [drafts, setDrafts] = useState([]);
   const [publishedEdits, setPublishedEdits] = useState({}); // Stores local edits to published courses
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -18,6 +20,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
   const [isPublishing, setIsPublishing] = useState(false);
   const [editingPublishedId, setEditingPublishedId] = useState(null); // Track if editing a published course
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+  const [translatingCourse, setTranslatingCourse] = useState(null);
   
   // Check if user is admin (can publish/delete/edit all)
   const isAdmin = adminRole === 'admin';
@@ -247,6 +250,21 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
     }
   };
 
+  if (view === 'translate' && translatingCourse) {
+    return (
+      <CourseTranslationEditor
+        course={translatingCourse}
+        onClose={() => {
+          setView('list');
+          setTranslatingCourse(null);
+        }}
+        onSave={() => {
+          // Refresh will happen automatically
+        }}
+      />
+    );
+  }
+
   if (view === 'editor' && editingCourse) {
     return (
       <CourseEditor
@@ -398,6 +416,17 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
           >
             <Layers className="w-4 h-4" />
             Drafts ({drafts.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('translations')}
+            className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-colors border-b-2 -mb-px ${
+              activeTab === 'translations'
+                ? 'text-purple-400 border-purple-500 bg-purple-600/10'
+                : 'text-gray-400 border-transparent hover:text-white hover:bg-gray-800/50'
+            }`}
+          >
+            <Languages className="w-4 h-4" />
+            Translations
           </button>
         </div>
       </div>
@@ -614,6 +643,77 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
             <li>✓ Admin (you) reviews and publishes to src/data/</li>
           </ul>
         </div>
+        </div>
+      )}
+
+      {/* Translations Tab */}
+      {activeTab === 'translations' && (
+        <div className="grid gap-4">
+          <div className="p-4 bg-purple-600/10 border border-purple-600/30 rounded-lg mb-4">
+            <h4 className="font-bold text-purple-300 mb-2">📚 Course Translations</h4>
+            <p className="text-sm text-gray-300">
+              Translate course content to different languages. Click "Translate" to add or edit translations for any course.
+            </p>
+          </div>
+
+          {COURSES.map(course => {
+            const availableLanguages = getCourseLanguages(course.id);
+            const languageLabels = [
+              { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+              { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+              { code: 'fr', name: 'French', flag: '🇫🇷' },
+              { code: 'de', name: 'German', flag: '🇩🇪' },
+              { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+              { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+              { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
+            ];
+
+            return (
+              <div
+                key={course.id}
+                className="bg-gray-900/50 border border-gray-800 hover:border-purple-600/50 rounded-lg p-6 transition-all"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold mb-1">{course.title}</h3>
+                    <p className="text-gray-400 text-sm mb-3">{course.description}</p>
+                    
+                    {/* Language Badges */}
+                    <div className="flex gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600/20 text-green-300 rounded font-bold">
+                        🇬🇧 English <Check className="w-3 h-3" />
+                      </div>
+                      {availableLanguages.map(lang => {
+                        const langInfo = languageLabels.find(l => l.code === lang);
+                        return langInfo ? (
+                          <div key={lang} className="flex items-center gap-1 text-xs px-2 py-1 bg-purple-600/20 text-purple-300 rounded font-bold">
+                            {langInfo.flag} {langInfo.name} <Check className="w-3 h-3" />
+                          </div>
+                        ) : null;
+                      })}
+                      {availableLanguages.length === 0 && (
+                        <span className="text-xs text-gray-500 italic">No translations yet</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-2xl">{typeof course.icon === 'string' ? course.icon : '📚'}</div>
+                </div>
+
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => {
+                      setTranslatingCourse(course);
+                      setView('translate');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-bold transition-colors"
+                  >
+                    <Languages className="w-4 h-4" />
+                    Translate
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

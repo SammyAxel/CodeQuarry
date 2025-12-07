@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { getUserStats, getProgress } from '../utils/userApi';
 import { useUser } from '../context/UserContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
   const { currentUser } = useUser();
+  const { t } = useLanguage();
   const [stats, setStats] = useState(null);
   const [progress, setProgress] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +38,7 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
   if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-64px)] bg-[#0d1117] flex items-center justify-center">
-        <div className="animate-pulse text-purple-400 text-xl">Loading dashboard...</div>
+        <div className="animate-pulse text-purple-400 text-xl">{t('common.loading')}</div>
       </div>
     );
   }
@@ -82,12 +84,12 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
               className="flex items-center gap-2 text-gray-400 hover:text-white mb-2 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Courses
+              {t('common.backToHome')}
             </button>
             <h1 className="text-3xl font-black text-white">
               Welcome back, <span className="text-purple-400">{currentUser?.displayName || currentUser?.username}</span>!
             </h1>
-            <p className="text-gray-400 mt-1">Track your learning progress and achievements</p>
+            <p className="text-gray-400 mt-1">{t('dashboard.title')}</p>
           </div>
           <div className="flex items-center gap-2 bg-gradient-to-r from-purple-900/50 to-pink-900/50 px-4 py-2 rounded-xl border border-purple-500/30">
             <Gem className="w-5 h-5 text-purple-400" />
@@ -103,7 +105,7 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
               <div className="p-2 bg-purple-500/20 rounded-lg">
                 <CheckCircle2 className="w-5 h-5 text-purple-400" />
               </div>
-              <span className="text-gray-400 text-sm">Modules Completed</span>
+              <span className="text-gray-400 text-sm">{t('dashboard.stats.modulesCompleted')}</span>
             </div>
             <div className="text-3xl font-black text-white">{completedModulesCount}</div>
             <div className="text-sm text-gray-500 mt-1">of {totalModules} total</div>
@@ -115,10 +117,10 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
               <div className="p-2 bg-orange-500/20 rounded-lg">
                 <Flame className="w-5 h-5 text-orange-400" />
               </div>
-              <span className="text-gray-400 text-sm">Current Streak</span>
+              <span className="text-gray-400 text-sm">{t('dashboard.stats.currentStreak')}</span>
             </div>
             <div className="text-3xl font-black text-white">{stats?.current_streak_days || 0}</div>
-            <div className="text-sm text-gray-500 mt-1">days in a row</div>
+            <div className="text-sm text-gray-500 mt-1">{t('dashboard.stats.days')}</div>
           </div>
 
           {/* Time Spent */}
@@ -127,7 +129,7 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
               <div className="p-2 bg-blue-500/20 rounded-lg">
                 <Clock className="w-5 h-5 text-blue-400" />
               </div>
-              <span className="text-gray-400 text-sm">Time Spent</span>
+              <span className="text-gray-400 text-sm">{t('dashboard.stats.timeSpent')}</span>
             </div>
             <div className="text-3xl font-black text-white">{formatTime(stats?.total_time_spent_seconds)}</div>
             <div className="text-sm text-gray-500 mt-1">learning</div>
@@ -139,10 +141,10 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
               <div className="p-2 bg-emerald-500/20 rounded-lg">
                 <Trophy className="w-5 h-5 text-emerald-400" />
               </div>
-              <span className="text-gray-400 text-sm">Best Streak</span>
+              <span className="text-gray-400 text-sm">{t('dashboard.stats.longestStreak')}</span>
             </div>
             <div className="text-3xl font-black text-white">{stats?.longest_streak_days || 0}</div>
-            <div className="text-sm text-gray-500 mt-1">days record</div>
+            <div className="text-sm text-gray-500 mt-1">{t('dashboard.stats.days')}</div>
           </div>
         </div>
 
@@ -151,7 +153,7 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-purple-400" />
-              Overall Progress
+              {t('dashboard.progress')}
             </h2>
             <span className="text-2xl font-black text-purple-400">{progressPercent}%</span>
           </div>
@@ -172,17 +174,17 @@ export const DashboardPage = ({ courses, onSelectCourse, onBack }) => {
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
               <Play className="w-5 h-5 text-blue-400" />
-              Continue Learning
+              {t('dashboard.continue')}
             </h2>
             {coursesInProgress.length === 0 ? (
               <div className="text-center py-8">
                 <BookOpen className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-500">No courses in progress</p>
+                <p className="text-gray-500">{t('dashboard.noProgress')}</p>
                 <button 
                   onClick={onBack}
                   className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-colors"
                 >
-                  Start a Course
+                  {t('home.getStarted')}
                 </button>
               </div>
             ) : (

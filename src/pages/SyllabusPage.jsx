@@ -1,7 +1,9 @@
 import React from 'react';
 import { ArrowLeft, Play, PlayCircle, FileText, TrainTrack, Lock, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export const SyllabusPage = ({ course, onBack, onSelectModule, completedModules }) => {
+  const { t } = useLanguage();
   const completedSet = new Set(completedModules);
   const completedCount = completedSet.size;
   const totalModules = course.modules.length;
@@ -9,7 +11,7 @@ export const SyllabusPage = ({ course, onBack, onSelectModule, completedModules 
 
   return (
     <div className="max-w-4xl mx-auto p-6 animate-in fade-in slide-in-from-right-8 duration-300">
-      <button onClick={onBack} className="flex items-center text-gray-400 hover:text-white mb-8 transition-colors group"><TrainTrack className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" /> Back to Quarry</button>
+      <button onClick={onBack} className="flex items-center text-gray-400 hover:text-white mb-8 transition-colors group"><TrainTrack className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" /> {t('common.backToHome')}</button>
       <div className="bg-[#161b22] border border-gray-800 rounded-3xl p-8 mb-8 relative overflow-hidden">
         {/* ENHANCED: Larger, more central glow for the card */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-purple-900/30 via-transparent to-transparent opacity-50 blur-2xl"></div>
@@ -22,7 +24,7 @@ export const SyllabusPage = ({ course, onBack, onSelectModule, completedModules 
         {/* NEW: Progress Bar */}
         <div className="mt-6 relative z-10">
             <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-bold text-purple-300">Progress</span>
+                <span className="text-sm font-bold text-purple-300">{t('dashboard.progress')}</span>
                 <span className="text-sm font-bold text-purple-300">{percentage}%</span>
             </div>
             <div className="w-full bg-gray-900 rounded-full h-2.5 border border-gray-700">

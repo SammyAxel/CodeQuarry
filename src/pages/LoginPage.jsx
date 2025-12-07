@@ -3,8 +3,10 @@ import { Gem, LogIn, Pickaxe, Lock, X, Eye, EyeOff, UserPlus } from 'lucide-reac
 import { login as adminLogin, logout } from '../utils/courseApi';
 import { loginUser } from '../utils/userApi';
 import { logSecurityEvent } from '../utils/securityUtils';
+import { useLanguage } from '../context/LanguageContext';
 
 export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
+  const { t } = useLanguage();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -114,7 +116,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
         <p className="text-gray-400 mb-2 text-lg font-semibold">Dig Deep. Code High.</p>
         <div className="h-1 w-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mx-auto mb-8"></div>
         
-        <p className="text-gray-400 mb-6 text-sm">Sign in to continue your mining expedition</p>
+        <p className="text-gray-400 mb-6 text-sm">{t('auth.loginSubtitle')}</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
@@ -125,7 +127,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
                 setIdentifier(e.target.value);
                 setError('');
               }} 
-              placeholder="Username or Email" 
+              placeholder={t('auth.username')} 
               className="w-full px-5 py-4 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-center text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
               autoComplete="username"
             />
@@ -139,7 +141,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
                 setPassword(e.target.value);
                 setError('');
               }} 
-              placeholder="Password" 
+              placeholder={t('auth.password')} 
               className="w-full px-5 py-4 pr-12 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-center text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
               autoComplete="current-password"
             />
@@ -164,12 +166,12 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
             {isLoggingIn ? (
               <>
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Signing in...
+                {t('common.loading')}
               </>
             ) : (
               <>
                 <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> 
-                Start Mining
+                {t('auth.signIn')}
               </>
             )}
           </button>
@@ -181,7 +183,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
           className="mt-4 w-full py-3 bg-transparent border border-purple-500/50 hover:border-purple-400 text-purple-400 hover:text-purple-300 font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300"
         >
           <UserPlus className="w-5 h-5" />
-          Create Account
+          {t('auth.createAccount')}
         </button>
 
         {/* Admin Login Button */}
@@ -189,7 +191,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
           onClick={() => setShowAdminModal(true)}
           className="mt-6 text-xs text-gray-600 hover:text-gray-400 transition-colors flex items-center justify-center gap-1 mx-auto"
         >
-          <Lock className="w-3 h-3" /> Admin Portal
+          <Lock className="w-3 h-3" /> {t('auth.adminPortal')}
         </button>
         
         <p className="text-xs text-gray-600 mt-8 font-mono">Version 1.0 • Mining Since 2025</p>
@@ -247,7 +249,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
                   disabled={isAdminLoggingIn}
                   className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Cancel
+                  {t('auth.cancel')}
                 </button>
                 <button
                   type="submit"

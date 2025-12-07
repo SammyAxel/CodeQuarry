@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User
+  Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages
 } from 'lucide-react';
 
 import { COURSES } from './data/courses';
@@ -18,6 +18,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
+import { useLanguage } from './context/LanguageContext';
 import { useRouting } from './hooks/useRouting';
 
 /**
@@ -104,6 +105,20 @@ export default function App() {
     showAuthPage,
     setShowAuthPage,
   } = useUser();
+
+  // Sync URL with auth page state
+  useEffect(() => {
+    if (!currentUser) {
+      const path = window.location.pathname;
+      if (path === '/register') {
+        setShowAuthPage('register');
+      } else if (path === '/login' || path === '/') {
+        setShowAuthPage('login');
+      }
+    }
+  }, [currentUser]);
+
+  const { language, toggleLanguage, t } = useLanguage();
 
   const {
     view,
@@ -197,6 +212,10 @@ export default function App() {
 
   const handleLogout = () => {
     logout();
+    navigateHome();
+    setCurrentPage('home');
+    // Reset URL to home
+    window.history.pushState({}, '', '/');
   };
 
   // If no user is logged in, show the login page.
@@ -210,18 +229,32 @@ export default function App() {
 
   if (!currentUser) {
     if (showAuthPage === 'register') {
+      // Update URL to /register
+      if (window.location.pathname !== '/register') {
+        window.history.pushState({}, '', '/register');
+      }
       return (
         <RegisterPage 
           onRegisterSuccess={handleRegisterSuccess} 
-          onBackToLogin={() => setShowAuthPage('login')} 
+          onBackToLogin={() => {
+            setShowAuthPage('login');
+            window.history.pushState({}, '', '/login');
+          }} 
         />
       );
+    }
+    // Update URL to /login
+    if (window.location.pathname !== '/login') {
+      window.history.pushState({}, '', '/login');
     }
     return (
       <LoginPage 
         onLogin={handleLogin} 
         onAdminLogin={handleAdminLogin} 
-        onShowRegister={() => setShowAuthPage('register')}
+        onShowRegister={() => {
+          setShowAuthPage('register');
+          window.history.pushState({}, '', '/register');
+        }}
       />
     );
   }
@@ -236,14 +269,14 @@ export default function App() {
 
       <div className="relative z-10">
       <nav className="h-16 border-b border-gray-800 bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-40 px-6 flex items-center justify-between">
-         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { navigateHome(); setCurrentPage('home'); }}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
+         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { navigateHome(); setCurrentPage('home'); window.history.pushState({}, '', '/'); }}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
          <div className="flex items-center gap-6">
-           {view === VIEWS.LEARNING && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> Map</button>}
+           {view === VIEWS.LEARNING && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> {t('map.title')}</button>}
            <button 
-             onClick={() => { navigateHome(); setCurrentPage('dashboard'); }}
+             onClick={() => { navigateHome(); setCurrentPage('dashboard'); window.history.pushState({}, '', '/dashboard'); }}
              className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'dashboard' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
            >
-             <BarChart3 className="w-4 h-4" /> Dashboard
+             <BarChart3 className="w-4 h-4" /> {t('nav.dashboard')}
            </button>
            {lastAdminRole && (
              <button 
@@ -254,15 +287,23 @@ export default function App() {
                {lastAdminRole === 'admin' ? '👑' : '🧌'} Admin
              </button>
            )}
+           <button
+             onClick={toggleLanguage}
+             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors text-sm font-bold"
+             title={language === 'en' ? 'Switch to Indonesian' : 'Ganti ke Bahasa Inggris'}
+           >
+             <Languages className="w-4 h-4" />
+             {language === 'en' ? 'ID' : 'EN'}
+           </button>
            <div className="flex items-center gap-3">
              <button 
-               onClick={() => { navigateHome(); setCurrentPage('profile'); }}
+               onClick={() => { navigateHome(); setCurrentPage('profile'); window.history.pushState({}, '', '/profile'); }}
                className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'profile' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
              >
                <User className="w-4 h-4" />
                {currentUser?.displayName || currentUser?.username || 'User'}
              </button>
-             <button onClick={handleLogout} className="p-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors" title="Logout"><LogOut className="w-4 h-4" /></button>
+             <button onClick={handleLogout} className="p-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors" title={t('nav.logout')}><LogOut className="w-4 h-4" /></button>
            </div>
          </div>
       </nav>

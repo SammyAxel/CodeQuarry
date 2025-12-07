@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Gem, UserPlus, Pickaxe, Eye, EyeOff, Check, X, ArrowLeft } from 'lucide-react';
 import { register } from '../utils/userApi';
+import { useLanguage } from '../context/LanguageContext';
 
 export const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -97,14 +99,14 @@ export const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
         </div>
         
         <h1 className="text-4xl font-black text-white mb-2 tracking-tighter bg-gradient-to-r from-emerald-300 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
-          Join the Quarry
+          {t('auth.createAccount')}
         </h1>
-        <p className="text-gray-400 mb-6 text-sm">Create your account to start mining knowledge gems</p>
+        <p className="text-gray-400 mb-6 text-sm">{t('auth.signUp')}</p>
         
         <form onSubmit={handleSubmit} className="space-y-4 text-left">
           {/* Username */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Username</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('auth.username')}</label>
             <input 
               type="text" 
               name="username"
@@ -134,7 +136,7 @@ export const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
           
           {/* Email */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Email</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('auth.email')}</label>
             <input 
               type="email" 
               name="email"

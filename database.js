@@ -5,6 +5,10 @@
 
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const { Pool } = pg;
 
