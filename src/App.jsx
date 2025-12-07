@@ -31,6 +31,7 @@ export default function App() {
   const [publishedCourseEdits, setPublishedCourseEdits] = useState({});
   const [customCourses, setCustomCourses] = useState([]); // Drafts that have been published
   const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'dashboard' | 'profile'
+  const [lastAdminRole, setLastAdminRole] = useState(() => localStorage.getItem('lastAdminRole')); // Remember last admin role
   
   // Load published course edits and custom courses from localStorage on mount
   useEffect(() => {
@@ -182,7 +183,16 @@ export default function App() {
   const handleAdminLogin = (role) => {
     userAdminLogin(role);
     setAdminRole(role);
+    setLastAdminRole(role);
+    localStorage.setItem('lastAdminRole', role);
     setIsAdminMode(true);
+  };
+
+  const handleEnterAdminMode = () => {
+    if (lastAdminRole) {
+      setAdminRole(lastAdminRole);
+      setIsAdminMode(true);
+    }
   };
 
   const handleLogout = () => {
@@ -235,6 +245,15 @@ export default function App() {
            >
              <BarChart3 className="w-4 h-4" /> Dashboard
            </button>
+           {lastAdminRole && (
+             <button 
+               onClick={handleEnterAdminMode}
+               className="flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
+               title="Enter Admin Mode"
+             >
+               {lastAdminRole === 'admin' ? '👑' : '🧌'} Admin
+             </button>
+           )}
            <div className="flex items-center gap-3">
              <button 
                onClick={() => { navigateHome(); setCurrentPage('profile'); }}
