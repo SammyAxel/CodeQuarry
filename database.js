@@ -46,7 +46,7 @@ const initDatabase = async () => {
     // Check if ID 2 exists and ID 1 doesn't
     const checkId2 = await client.query('SELECT id FROM users WHERE id = 2');
     
-    if (checkId1.rows.length === 0 && checkId2.rows.length > 0) {
+    if (checkId2.rows.length > 0) {
       console.log('🔄 Migration: Moving user ID 2 → 1...');
       await client.query('ALTER SEQUENCE users_id_seq RESTART WITH 4');
       await client.query('UPDATE module_progress SET user_id = 1 WHERE user_id = 2');
