@@ -7,6 +7,7 @@
  */
 
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
+const SERVER_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 /**
  * Get the session token from sessionStorage
@@ -156,7 +157,7 @@ export const publishCourse = async (course) => {
  */
 export const checkServerHealth = async () => {
   try {
-    const response = await fetch('http://localhost:5000/api/health');
+    const response = await fetch(`${SERVER_BASE}/api/health`);
     return response.ok;
   } catch {
     return false;
