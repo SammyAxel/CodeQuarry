@@ -94,7 +94,11 @@ export const UserProvider = ({ children }) => {
    * Handle admin login with role
    */
   const adminLogin = useCallback((role) => {
-    const adminUser = { username: `admin-${role}`, displayName: role === 'admin' ? 'Administrator' : 'Moderator' };
+    const adminUser = { 
+      username: `admin-${role}`, 
+      displayName: role === 'admin' ? 'Administrator' : 'Moderator',
+      role: role === 'admin' ? 'admin' : 'mod'
+    };
     setCurrentUser(adminUser);
     setIsAdmin(true);
     setAdminRole(role);
