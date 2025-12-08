@@ -1,0 +1,19 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CodeQuarry pickaxe braces emblem">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#121A1F"/>
+      <stop offset="100%" stop-color="#0A1115"/>
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" rx="32" fill="url(#bg)"/>
+  <!-- Curly braces -->
+  <path d="M72,84 c0,-14 10,-28 26,-32 l0,0 c-10,4 -16,12 -16,22 v20 c0,10 -6,18 -18,22 c12,4 18,12 18,22 v20 c0,10 6,18 16,22 l0,0 c-16,-4 -26,-18 -26,-32 v-14 c0,-10 -8,-18 -20,-20 c12,-2 20,-10 20,-20 Z" fill="#98C379"/>
+  <path d="M184,84 c0,-14 -10,-28 -26,-32 l0,0 c10,4 16,12 16,22 v20 c0,10 6,18 18,22 c-12,4 -18,12 -18,22 v20 c0,10 -6,18 -16,22 l0,0 c16,-4 26,-18 26,-32 v-14 c0,-10 8,-18 20,-20 c-12,-2 -20,-10 -20,-20 Z" fill="#61AFEF"/>
+  <!-- Pickaxe -->
+  <g transform="translate(128,128) rotate(-20)">
+    <rect x="-6" y="-54" width="12" height="108" rx="6" fill="#D0B89B"/>
+    <path d="M-40,-46 h80 c12,0 24,10 24,22 h-12 c0,-6 -6,-10 -12,-10 h-80 c-6,0 -12,4 -12,10 h-12 c0,-12 12,-22 24,-22 Z" fill="#9EC6D1"/>
+  </g>
+  <!-- Caption -->
+  <text x="128" y="220" text-anchor="middle" font-family="Inter, system-ui" font-size="18" fill="#C3E7F1" opacity="0.9">CodeQuarry</text>
+</svg>

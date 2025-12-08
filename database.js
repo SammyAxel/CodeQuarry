@@ -45,6 +45,7 @@ const initDatabase = async () => {
         password_hash TEXT NOT NULL,
         display_name TEXT,
         avatar_url TEXT,
+        role TEXT DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login_at TIMESTAMP,
@@ -151,6 +152,19 @@ const initDatabase = async () => {
       )
     `);
 
+    // Migration: Add role column if it doesn't exist (for existing databases)
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'role'
+        ) THEN
+          ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user';
+        END IF;
+      END $$;
+    `);
+
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
   } catch (error) {
@@ -234,7 +248,7 @@ export const findUser = async (identifier) => {
  */
 export const findUserById = async (id) => {
   const result = await pool.query(
-    `SELECT id, username, email, display_name, avatar_url, created_at, last_login_at
+    `SELECT id, username, email, display_name, avatar_url, role, created_at, last_login_at
      FROM users 
      WHERE id = $1 AND is_active = true`,
     [id]
@@ -858,6 +872,7 @@ export default {
   createUser,
   findUser,
   findUserById,
+  getUserById: findUserById, // Alias for consistency
   verifyPassword,
   updateLastLogin,
   updateUserProfile,
