@@ -788,8 +788,8 @@ function formatValue(value, key = '') {
     return 'null';
   }
   if (typeof value === 'string') {
-    // Use template literals for multiline strings
-    if (value.includes('\n') || value.includes('`')) {
+    // Use template literals for multiline strings, long strings, and data URLs
+    if (value.includes('\n') || value.includes('`') || value.includes('data:image') || value.length > 500) {
       // Escape backticks and ${
       const escaped = value.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
       return '`' + escaped + '`';
