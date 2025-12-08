@@ -127,6 +127,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
       await adminLogin(authPassword, 'admin');
       setShowAuthModal(false);
       setAuthPassword('');
+      setServerOnline(true);
       
       // Execute pending action
       if (pendingAction) {
@@ -138,6 +139,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
         await adminLogin(authPassword, 'mod');
         setShowAuthModal(false);
         setAuthPassword('');
+        setServerOnline(true);
         
         // Execute pending action
         if (pendingAction) {
