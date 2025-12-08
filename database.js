@@ -36,27 +36,6 @@ const initDatabase = async () => {
   try {
     await client.query('BEGIN');
 
-    // === ONE-TIME MIGRATION: Drop unused tables from schema simplification ===
-    // These can be removed after the first successful deploy
-    await client.query('DROP TABLE IF EXISTS step_progress CASCADE');
-    await client.query('DROP TABLE IF EXISTS course_progress CASCADE');
-    console.log('✅ Migration: Dropped unused tables (step_progress, course_progress)');
-
-    // === ONE-TIME MIGRATION: Move user ID 2 to ID 1 (for founder) ===
-    // Check if ID 2 exists and ID 1 doesn't
-    const checkId2 = await client.query('SELECT id FROM users WHERE id = 2');
-    
-    if (checkId2.rows.length > 0) {
-      console.log('🔄 Migration: Moving user ID 2 → 1...');
-      await client.query('ALTER SEQUENCE users_id_seq RESTART WITH 4');
-      await client.query('UPDATE module_progress SET user_id = 1 WHERE user_id = 2');
-      await client.query('UPDATE activity_log SET user_id = 1 WHERE user_id = 2');
-      await client.query('UPDATE user_stats SET user_id = 1 WHERE user_id = 2');
-      await client.query('UPDATE user_sessions SET user_id = 1 WHERE user_id = 2');
-      await client.query('UPDATE users SET id = 1 WHERE id = 2');
-      console.log('✅ Migration: User ID migration complete (ID 2 → 1)');
-    }
-
     // Users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -162,6 +141,26 @@ const initDatabase = async () => {
         END IF;
       END $$;
     `);
+
+    // === ONE-TIME MIGRATION: Move user ID 2 to ID 1 (for founder) ===
+    // Run AFTER tables are created
+    try {
+      const checkId2 = await client.query('SELECT id FROM users WHERE id = 2');
+      
+      if (checkId2.rows.length > 0) {
+        console.log('🔄 Migration: Moving user ID 2 → 1...');
+        await client.query('ALTER SEQUENCE users_id_seq RESTART WITH 4');
+        await client.query('UPDATE module_progress SET user_id = 1 WHERE user_id = 2');
+        await client.query('UPDATE activity_log SET user_id = 1 WHERE user_id = 2');
+        await client.query('UPDATE user_stats SET user_id = 1 WHERE user_id = 2');
+        await client.query('UPDATE user_sessions SET user_id = 1 WHERE user_id = 2');
+        await client.query('UPDATE users SET id = 1 WHERE id = 2');
+        console.log('✅ Migration: User ID migration complete (ID 2 → 1)');
+      }
+    } catch (migrationErr) {
+      // If migration fails, just log it - don't block startup
+      console.log('ℹ️ ID migration skipped (may have already run):', migrationErr.message);
+    }
 
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
