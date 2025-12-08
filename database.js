@@ -142,23 +142,6 @@ const initDatabase = async () => {
       END $$;
     `);
 
-    // === ONE-TIME MIGRATION: Move user ID 2 to ID 1 (for founder) ===
-    // Run AFTER tables are created
-    try {
-      const checkId2 = await client.query('SELECT id FROM users WHERE id = 2');
-      
-      if (checkId2.rows.length > 0) {
-        console.log('🔄 Migration: Moving user ID 2 → 1...');
-        // Since all child tables were manually cleaned, just rename the user
-        await client.query('ALTER SEQUENCE users_id_seq RESTART WITH 4');
-        await client.query('UPDATE users SET id = 1 WHERE id = 2');
-        console.log('✅ Migration: User ID migration complete (ID 2 → 1)');
-      }
-    } catch (migrationErr) {
-      // If migration fails, just log it - don't block startup
-      console.log('ℹ️ ID migration skipped (may have already run):', migrationErr.message);
-    }
-
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
   } catch (error) {
