@@ -16,7 +16,7 @@ const AdminUserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = sessionStorage.getItem('sessionToken');
+      const token = localStorage.getItem('userToken');
       const response = await fetch(`${API_URL}/api/admin/users`, {
         headers: {
           'x-user-token': token
@@ -43,7 +43,7 @@ const AdminUserManagement = () => {
     }
 
     try {
-      const token = sessionStorage.getItem('sessionToken');
+      const token = localStorage.getItem('userToken');
       const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -71,7 +71,7 @@ const AdminUserManagement = () => {
     }
 
     try {
-      const token = sessionStorage.getItem('sessionToken');
+      const token = localStorage.getItem('userToken');
       const response = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
         method: 'PATCH',
         headers: {

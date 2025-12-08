@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 dotenv.config();
 
 // Now import database after env vars are loaded
-import * as db from './database.js';
+import db from './database.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
