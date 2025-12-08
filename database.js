@@ -256,7 +256,10 @@ const seedCoursesIfEmpty = async () => {
 /**
  * Comprehensive course data for reseeding
  */
-const COMPREHENSIVE_COURSES = [
+const COMPREHENSIVE_COURSES = []; // Courses managed directly via Railway SQL - See line below
+
+/*
+const COMPREHENSIVE_COURSES_DEPRECATED = [
   {
     id: 'js-101',
     title: 'JavaScript for Newbs',
@@ -333,9 +336,7 @@ const COMPREHENSIVE_COURSES = [
       { id: 'c-m12', title: 'Arrays Practice', type: 'practice', theory: `## Practice: Arrays`, instruction: 'Create an array int nums[3] = {2, 4, 6}. Print the element at index 1.', initialCode: '#include <stdio.h>\\n\\nint main() {\\n    // Create array and print index 1\\n    \\n    return 0;\\n}', language: 'c', expectedOutput: '4', hints: ['int nums[3] = {2, 4, 6};', 'printf("%d\\n", nums[1]);'], solution: '#include <stdio.h>\\n\\nint main() {\\n    int nums[3] = {2, 4, 6};\\n    printf("%d\\n", nums[1]);\\n    return 0;\\n}' },
       { id: 'c-m13', title: 'Pointers (Intro)', type: 'article', readTime: '12 min', content: `## Pointers: Memory Addresses\n\nPointers store memory addresses.\n\n\`\`\`c\nint x = 42;\nint *ptr = &x;  // ptr holds address of x\n\nprintf("%d\\n", x);    // 42 (value)\nprintf("%p\\n", ptr);  // Address\nprintf("%d\\n", *ptr); // 42 (dereference)\n\`\`\`\n\n### Why Pointers?\n- Modify variables in functions\n- Dynamic memory allocation\n- Efficient data structures` },
       { id: 'c-m14', title: 'Final Challenge', type: 'practice', theory: `## Final Challenge: FizzBuzz in C`, instruction: 'Implement FizzBuzz for numbers 1 to 15.', initialCode: '#include <stdio.h>\\n\\nint main() {\\n    // FizzBuzz\\n    \\n    return 0;\\n}', language: 'c', expectedOutput: '1\\n2\\nFizz\\n4\\nBuzz\\nFizz\\n7\\n8\\nFizz\\nBuzz\\n11\\nFizz\\n13\\n14\\nFizzBuzz', hints: ['for (int i = 1; i <= 15; i++)', 'if (i % 15 == 0) printf("FizzBuzz\\n");', 'else if (i % 3 == 0) printf("Fizz\\n");', 'else if (i % 5 == 0) printf("Buzz\\n");', 'else printf("%d\\n", i);'], solution: '#include <stdio.h>\\n\\nint main() {\\n    for (int i = 1; i <= 15; i++) {\\n        if (i % 15 == 0) {\\n            printf("FizzBuzz\\n");\\n        } else if (i % 3 == 0) {\\n            printf("Fizz\\n");\\n        } else if (i % 5 == 0) {\\n            printf("Buzz\\n");\\n        } else {\\n            printf("%d\\n", i);\\n        }\\n    }\\n    return 0;\\n}' }
-    ]
-  }
-];
+*/
 
 /**
  * Force reseed all courses with comprehensive content
