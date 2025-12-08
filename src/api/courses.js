@@ -84,12 +84,13 @@ export const createCourse = async (courseData) => {
  * @returns {Promise<Object>} Updated course
  */
 export const updateCourse = async (courseId, updates) => {
-  const token = localStorage.getItem('authToken');
+  const token = sessionStorage.getItem('adminSessionToken') || localStorage.getItem('authToken');
   
   const response = await fetch(`${API_BASE}/api/courses/${courseId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      'X-Session-Token': token,
       'X-User-Token': token
     },
     body: JSON.stringify(updates)

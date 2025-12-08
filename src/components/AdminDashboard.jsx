@@ -6,6 +6,7 @@ import { SecurityDashboard } from './SecurityDashboard';
 import { CourseTranslationEditor } from './CourseTranslationEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
 import { publishCourse, saveCourse, checkServerHealth, getSessionToken, login as adminLogin } from '../utils/courseApi';
+import { updateCourse } from '../api/courses';
 import { COURSES, useCourses } from '../data/courses';
 import { getCourseLanguages } from '../utils/courseTranslations';
 
@@ -167,23 +168,20 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
           // Store the course data and action, show auth modal
           setPendingAction(() => async () => {
             try {
-              const courseToSave = {
-                ...course,
-                id: editingPublishedId
-              };
-              await saveCourse(editingPublishedId, courseToSave);
+              await updateCourse(editingPublishedId, course);
               
               const updatedEdits = { ...publishedEdits };
               delete updatedEdits[editingPublishedId];
               savePublishedEdits(updatedEdits);
               
-              alert('✅ Course saved to file!\n\n⚠️ Restart the dev server to see changes.');
+              await refetchCourses(); // Refresh courses from API
+              alert('✅ Course saved to database!');
               setEditingPublishedId(null);
               setView('list');
               setEditingCourse(null);
             } catch (error) {
-              console.error('Save to file error:', error);
-              alert('❌ Failed to save to file: ' + error.message + '\n\nFalling back to localStorage.');
+              console.error('Save to database error:', error);
+              alert('❌ Failed to save to database: ' + error.message + '\n\nFalling back to localStorage.');
               // Fallback to localStorage
               const updatedEdits = {
                 ...publishedEdits,
@@ -202,25 +200,22 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
         }
 
         try {
-          const courseToSave = {
-            ...course,
-            id: editingPublishedId
-          };
-          await saveCourse(editingPublishedId, courseToSave);
+          await updateCourse(editingPublishedId, course);
           
-          // Clear any localStorage edits for this course since it's now in file
+          // Clear any localStorage edits for this course since it's now saved to database
           const updatedEdits = { ...publishedEdits };
           delete updatedEdits[editingPublishedId];
           savePublishedEdits(updatedEdits);
           
-          alert('✅ Course saved to file!\n\n⚠️ Restart the dev server to see changes.');
+          await refetchCourses(); // Refresh courses from API
+          alert('✅ Course saved to database!');
           setEditingPublishedId(null);
           setView('list');
           setEditingCourse(null);
           return;
         } catch (error) {
-          console.error('Save to file error:', error);
-          alert('❌ Failed to save to file: ' + error.message + '\n\nFalling back to localStorage.');
+          console.error('Save to database error:', error);
+          alert('❌ Failed to save to database: ' + error.message + '\n\nFalling back to localStorage.');
         }
       }
       
