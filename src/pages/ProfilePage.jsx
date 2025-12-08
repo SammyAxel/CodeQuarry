@@ -67,7 +67,7 @@ export const ProfilePage = ({ onBack }) => {
     }
   };
 
-  const handleAvatarUpload = (e) => {
+  const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
@@ -75,10 +75,26 @@ export const ProfilePage = ({ onBack }) => {
         return;
       }
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const dataUrl = event.target?.result;
         setAvatarPreview(dataUrl);
         setAvatarUrl(dataUrl);
+        
+        // Auto-save avatar
+        setProfileSaving(true);
+        try {
+          const result = await updateProfile({ displayName, avatarUrl: dataUrl });
+          setUserData(prev => ({ ...prev, user: result.user }));
+          login({ ...currentUser, displayName, avatarUrl: dataUrl });
+          setProfileMessage({ type: 'success', text: 'Profile picture updated!' });
+        } catch (err) {
+          setProfileMessage({ type: 'error', text: err.message || 'Failed to update avatar' });
+          // Revert on error
+          setAvatarPreview(userData?.user?.avatarUrl || null);
+          setAvatarUrl(userData?.user?.avatarUrl || '');
+        } finally {
+          setProfileSaving(false);
+        }
       };
       reader.readAsDataURL(file);
     }
