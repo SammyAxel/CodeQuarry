@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Plus, X, Copy, AlertCircle, Server, ServerOff, Save, Upload } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, Plus, X, Copy, AlertCircle, Server, ServerOff, Save, Upload, Download, FileJson } from 'lucide-react';
 import { ModuleFormEditor } from './ModuleFormEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, sanitizeInput } from '../utils/securityUtils';
 
@@ -11,6 +11,7 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
   const [editingModuleIndex, setEditingModuleIndex] = useState(null);
   const [customIconPreview, setCustomIconPreview] = useState(course.customIconUrl || null);
   const [csrfToken, setCSRFToken] = useState('');
+  const fileInputRef = useRef(null);
 
   // Generate CSRF token on component mount
   useEffect(() => {
@@ -60,6 +61,88 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
   const handleDuplicateModule = (index) => {
     const module = { ...data.modules[index], id: `mod-${Date.now()}` };
     setData({ ...data, modules: [...data.modules, module] });
+  };
+
+  // Export modules as JSON
+  const handleExportModules = () => {
+    const modulesJSON = JSON.stringify(data.modules, null, 2);
+    const blob = new Blob([modulesJSON], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.id}-modules.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    logSecurityEvent('modules_exported', { 
+      courseId: course.id,
+      moduleCount: data.modules.length,
+      timestamp: new Date().toISOString()
+    });
+  };
+
+  // Import modules from JSON
+  const handleImportModules = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.json')) {
+      alert('Please select a valid JSON file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedModules = JSON.parse(e.target.result);
+        
+        // Validate structure
+        if (!Array.isArray(importedModules)) {
+          alert('Invalid format: Expected an array of modules');
+          return;
+        }
+
+        // Basic validation for each module
+        const isValid = importedModules.every(mod => 
+          mod.id && mod.title && mod.type
+        );
+
+        if (!isValid) {
+          alert('Invalid module structure: Each module must have id, title, and type');
+          return;
+        }
+
+        // Confirm before replacing
+        const confirmed = window.confirm(
+          `This will replace all ${data.modules.length} existing modules with ${importedModules.length} imported modules. Continue?`
+        );
+
+        if (confirmed) {
+          setData({ ...data, modules: importedModules });
+          logSecurityEvent('modules_imported', { 
+            courseId: course.id,
+            oldCount: data.modules.length,
+            newCount: importedModules.length,
+            timestamp: new Date().toISOString()
+          });
+          alert(`Successfully imported ${importedModules.length} modules!`);
+        }
+      } catch (error) {
+        console.error('Import error:', error);
+        alert('Failed to parse JSON file. Please check the file format.');
+        logSecurityEvent('modules_import_failed', { 
+          courseId: course.id,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
+
+    reader.readAsText(file);
+    // Reset input so same file can be selected again
+    event.target.value = '';
   };
 
   // Validate CSRF token before saving
@@ -233,6 +316,32 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
                   {serverOnline ? 'Server online - can save to file' : 'Server offline - saves to browser only'}
                 </div>
               )}
+
+              {/* Import/Export modules */}
+              <div className="border-t border-gray-700 pt-4 space-y-2">
+                <p className="text-xs text-gray-400 mb-2">📦 Module Management</p>
+                <button
+                  onClick={handleExportModules}
+                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export Modules JSON
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportModules}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                >
+                  <FileJson className="w-4 h-4" />
+                  Import Modules JSON
+                </button>
+              </div>
               
               {/* Save to localStorage (default) */}
               <button
