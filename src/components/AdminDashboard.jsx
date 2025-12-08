@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen, AlertCircle, Shield, BookOpen, Layers, Server, ServerOff, Languages, Globe } from 'lucide-react';
+import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen, AlertCircle, Shield, BookOpen, Layers, Server, ServerOff, Languages, Globe, Lock } from 'lucide-react';
 import { CourseEditor } from './ModuleEditor';
 import { CoursePreview } from './CoursePreview';
 import { SecurityDashboard } from './SecurityDashboard';
 import { CourseTranslationEditor } from './CourseTranslationEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
-import { publishCourse, saveCourse, checkServerHealth, getSessionToken } from '../utils/courseApi';
+import { publishCourse, saveCourse, checkServerHealth, getSessionToken, login as adminLogin } from '../utils/courseApi';
 import { COURSES, useCourses } from '../data/courses';
 import { getCourseLanguages } from '../utils/courseTranslations';
 
@@ -21,6 +21,11 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
   const [editingPublishedId, setEditingPublishedId] = useState(null); // Track if editing a published course
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [translatingCourse, setTranslatingCourse] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null); // Stores the action to execute after auth
   
   // Fetch courses from API
   const { courses: apiCourses, loading: coursesLoading, refetch: refetchCourses } = useCourses();
@@ -103,8 +108,62 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
     setView('editor');
   };
 
+  // Check if user is authenticated, show modal if not
+  const requireAuth = (action) => {
+    const token = getSessionToken();
+    if (!token) {
+      setPendingAction(action);
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  // Handle authentication
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setIsAuthenticating(true);
+    setAuthError('');
+
+    try {
+      await adminLogin(authPassword, 'admin');
+      setShowAuthModal(false);
+      setAuthPassword('');
+      
+      // Execute pending action
+      if (pendingAction) {
+        pendingAction();
+        setPendingAction(null);
+      }
+    } catch (adminErr) {
+      try {
+        await adminLogin(authPassword, 'mod');
+        setShowAuthModal(false);
+        setAuthPassword('');
+        
+        // Execute pending action
+        if (pendingAction) {
+          pendingAction();
+          setPendingAction(null);
+        }
+      } catch (modErr) {
+        setAuthError('Invalid password');
+        setAuthPassword('');
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
   // Save course
   const handleSaveCourse = async (course, saveToFile = false) => {
+    // Check authentication before saving to file
+    if (saveToFile && serverOnline && editingPublishedId) {
+      if (!requireAuth(() => handleSaveCourse(course, saveToFile))) {
+        return;
+      }
+    }
+
     // Check if this is a published course edit
     if (editingPublishedId) {
       // If saveToFile is true and server is online, save directly to file
@@ -754,6 +813,60 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Authentication Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#161b22] border border-purple-500/30 rounded-lg p-8 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-6">
+              <Lock className="w-6 h-6 text-purple-400" />
+              <h2 className="text-2xl font-bold">Authentication Required</h2>
+            </div>
+            <p className="text-gray-300 mb-6">Enter your password to save to the server.</p>
+            
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="Admin/Moderator password"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  autoFocus
+                />
+              </div>
+              
+              {authError && (
+                <div className="p-3 bg-red-900/20 border border-red-500/30 rounded text-red-400 text-sm">
+                  {authError}
+                </div>
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAuthModal(false);
+                    setAuthPassword('');
+                    setAuthError('');
+                    setPendingAction(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAuthenticating}
+                  className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 text-white rounded font-bold transition-colors"
+                >
+                  {isAuthenticating ? 'Authenticating...' : 'Login'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
