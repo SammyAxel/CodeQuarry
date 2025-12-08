@@ -802,7 +802,6 @@ export default {
   
   // Progress tracking
   saveModuleProgress,
-  saveStepProgress,
   getUserProgress,
   getCourseProgress,
   getSavedCode,
