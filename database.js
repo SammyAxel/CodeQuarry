@@ -116,6 +116,26 @@ const initDatabase = async () => {
       )
     `);
 
+    // Courses table - stores full course data as JSONB
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS courses (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        icon TEXT,
+        custom_icon_url TEXT,
+        language TEXT DEFAULT 'javascript',
+        difficulty TEXT DEFAULT 'copper',
+        is_published BOOLEAN DEFAULT false,
+        is_premium BOOLEAN DEFAULT false,
+        author_id INTEGER,
+        modules JSONB NOT NULL DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
     // Course translations table
     await client.query(`
       CREATE TABLE IF NOT EXISTS course_translations (
@@ -125,7 +145,8 @@ const initDatabase = async () => {
         translation_data JSONB NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(course_id, language)
+        UNIQUE(course_id, language),
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
       )
     `);
 
@@ -144,12 +165,91 @@ const initDatabase = async () => {
 
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
+    
+    // Auto-seed courses if table is empty
+    await seedCoursesIfEmpty();
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('❌ Error initializing database:', error);
     throw error;
   } finally {
     client.release();
+  }
+};
+
+/**
+ * Auto-seed courses if the courses table is empty
+ */
+const seedCoursesIfEmpty = async () => {
+  try {
+    const result = await pool.query('SELECT COUNT(*) FROM courses');
+    const count = parseInt(result.rows[0].count);
+    
+    if (count > 0) {
+      console.log(`📚 Courses table has ${count} courses`);
+      return;
+    }
+    
+    console.log('🌱 Seeding courses...');
+    
+    // JS-101 Course
+    await pool.query(
+      `INSERT INTO courses (id, title, description, icon, language, difficulty, is_published, modules)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      ['js-101', 'JavaScript for Newbs', 'The backbone of the web. Make websites come alive with JS.', '📜', 'javascript', 'copper', true, JSON.stringify([
+        { id: 'js-m0', title: 'Welcome (Course Overview)', type: 'video', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', duration: '3:12', description: 'A short intro to what you will learn in this JavaScript mini-course.' },
+        { id: 'js-m1', title: 'The Mic Check (Output)', type: 'practice', theory: '### Outputting Data\nIn JavaScript we use `console.log()` to display output.\n\n```javascript\nconsole.log("Hello World");\n```', instruction: 'Use `console.log()` to print "Hello World".', initialCode: '// Your journey begins here\n', language: 'javascript', expectedOutput: 'Hello World', hints: ['Type: console.log("Hello World")'], solution: 'console.log("Hello World");' },
+        { id: 'js-m2', title: 'The Container Store (Variables)', type: 'article', readTime: '5 min', content: '### Variables in JavaScript\n\nUse `const` for constants and `let` when the value will change.\n\n```javascript\nconst name = "Player";\nlet score = 0;\n```' },
+        { id: 'js-m3', title: 'Types & Math', type: 'practice', theory: '### Data Types & Math\nJavaScript has numbers, strings, booleans. Math operators: `+ - * / %`\n\n```javascript\nconsole.log(10 * 10); // 100\n```', instruction: 'Calculate and print `10 * 10`.', initialCode: '// console.log( ... )', language: 'javascript', expectedOutput: '100', hints: ['console.log(10 * 10)'], solution: 'console.log(10 * 10);' },
+        { id: 'js-m4', title: 'Decisions (Conditionals)', type: 'article', readTime: '6 min', content: '### Conditionals\n\n```javascript\nif (age >= 18) {\n  console.log("Adult");\n} else {\n  console.log("Minor");\n}\n```' },
+        { id: 'js-m5', title: 'Loops', type: 'practice', theory: '### Loops\n\n```javascript\nfor (let i = 0; i < 5; i++) {\n  console.log(i);\n}\n```', instruction: 'Print numbers 1 to 5 using a for loop.', initialCode: '// Write a loop\n', language: 'javascript', expectedOutput: '1\n2\n3\n4\n5', hints: ['for (let i = 1; i <= 5; i++)'], solution: 'for (let i = 1; i <= 5; i++) {\n  console.log(i);\n}' },
+        { id: 'js-m6', title: 'Functions', type: 'article', readTime: '7 min', content: '### Functions\n\n```javascript\nfunction greet(name) {\n  return "Hello, " + name + "!";\n}\n```' },
+        { id: 'js-m7', title: 'Arrays', type: 'practice', theory: '### Arrays\n\n```javascript\nconst fruits = ["apple", "banana"];\nconsole.log(fruits[0]); // apple\n```', instruction: 'Create an array `colors` with "red", "green", "blue" and log the second item.', initialCode: '// Create array\n', language: 'javascript', expectedOutput: 'green', hints: ['const colors = ["red", "green", "blue"]'], solution: 'const colors = ["red", "green", "blue"];\nconsole.log(colors[1]);' },
+        { id: 'js-m8', title: 'Objects', type: 'article', readTime: '6 min', content: '### Objects\n\n```javascript\nconst player = { name: "Alex", score: 100 };\nconsole.log(player.name); // Alex\n```' },
+        { id: 'js-m9', title: 'Final Challenge', type: 'practice', theory: '### Putting It All Together', instruction: 'Create a function `sum(a, b)` that returns `a + b`. Print `sum(5, 3)`.', initialCode: '// Define sum\n', language: 'javascript', expectedOutput: '8', hints: ['function sum(a, b) { return a + b; }'], solution: 'function sum(a, b) {\n  return a + b;\n}\nconsole.log(sum(5, 3));' }
+      ])]
+    );
+    
+    // PY-101 Course
+    await pool.query(
+      `INSERT INTO courses (id, title, description, icon, language, difficulty, is_published, modules)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      ['py-101', 'Python for Newbs', 'The most beginner-friendly language. Perfect for AI, data, and automation.', '🐍', 'python', 'copper', true, JSON.stringify([
+        { id: 'py-m0', title: 'Welcome to Python', type: 'video', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', duration: '4:30', description: 'Introduction to Python.' },
+        { id: 'py-m1', title: 'Hello Python (Output)', type: 'practice', theory: '### The print() Function\n\n```python\nprint("Hello, World!")\n```', instruction: 'Use `print()` to display "Hello World".', initialCode: '# Start here\n', language: 'python', expectedOutput: 'Hello World', hints: ['print("Hello World")'], solution: 'print("Hello World")' },
+        { id: 'py-m2', title: 'Variables & Types', type: 'article', readTime: '5 min', content: '### Variables in Python\n\n```python\nname = "Alex"\nage = 25\n```' },
+        { id: 'py-m3', title: 'Math Operations', type: 'practice', theory: '### Math in Python\n\n```python\nprint(10 + 5)  # 15\n```', instruction: 'Calculate and print `7 * 8`.', initialCode: '# Calculate\n', language: 'python', expectedOutput: '56', hints: ['print(7 * 8)'], solution: 'print(7 * 8)' },
+        { id: 'py-m4', title: 'Conditionals', type: 'article', readTime: '6 min', content: '### If Statements\n\n```python\nif age >= 18:\n    print("Adult")\n```' },
+        { id: 'py-m5', title: 'Loops', type: 'practice', theory: '### For Loops\n\n```python\nfor i in range(5):\n    print(i)\n```', instruction: 'Print 1 through 5 using a for loop.', initialCode: '# Print 1 to 5\n', language: 'python', expectedOutput: '1\n2\n3\n4\n5', hints: ['for i in range(1, 6):'], solution: 'for i in range(1, 6):\n    print(i)' },
+        { id: 'py-m6', title: 'Functions', type: 'article', readTime: '7 min', content: '### Functions\n\n```python\ndef greet(name):\n    return f"Hello, {name}!"\n```' },
+        { id: 'py-m7', title: 'Lists', type: 'practice', theory: '### Lists\n\n```python\nfruits = ["apple", "banana"]\nprint(fruits[0])\n```', instruction: 'Create a list `numbers` with 10, 20, 30 and print `sum(numbers)`.', initialCode: '# Create list\n', language: 'python', expectedOutput: '60', hints: ['numbers = [10, 20, 30]'], solution: 'numbers = [10, 20, 30]\nprint(sum(numbers))' },
+        { id: 'py-m8', title: 'Dictionaries', type: 'article', readTime: '6 min', content: '### Dictionaries\n\n```python\nperson = {"name": "Alex", "age": 25}\n```' },
+        { id: 'py-m9', title: 'Final Challenge', type: 'practice', theory: '### Putting It All Together', instruction: 'Create a function `double(n)` that returns `n * 2`. Print `double(21)`.', initialCode: '# Define double\n', language: 'python', expectedOutput: '42', hints: ['def double(n): return n * 2'], solution: 'def double(n):\n    return n * 2\n\nprint(double(21))' }
+      ])]
+    );
+    
+    // C-101 Course
+    await pool.query(
+      `INSERT INTO courses (id, title, description, icon, language, difficulty, is_published, modules)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      ['c-101', 'C for Newbs', 'The foundation of modern computing. Learn memory, pointers, and raw power.', '⚙️', 'c', 'copper', true, JSON.stringify([
+        { id: 'c-m0', title: 'Welcome to C', type: 'video', videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', duration: '5:00', description: 'Introduction to C programming.' },
+        { id: 'c-m1', title: 'Hello C (Output)', type: 'practice', theory: '### The printf() Function\n\n```c\n#include <stdio.h>\nint main() {\n    printf("Hello World\\n");\n    return 0;\n}\n```', instruction: 'Print "Hello World" using printf.', initialCode: '#include <stdio.h>\n\nint main() {\n    // Your code\n    return 0;\n}\n', language: 'c', expectedOutput: 'Hello World', hints: ['printf("Hello World\\n");'], solution: '#include <stdio.h>\n\nint main() {\n    printf("Hello World\\n");\n    return 0;\n}' },
+        { id: 'c-m2', title: 'Variables & Types', type: 'article', readTime: '6 min', content: '### C Data Types\n\n```c\nint age = 25;\nfloat price = 19.99;\nchar grade = \'A\';\n```' },
+        { id: 'c-m3', title: 'Math & Operators', type: 'practice', theory: '### Math in C\n\n```c\nprintf("%d\\n", 10 + 5);\n```', instruction: 'Calculate and print `12 * 4`.', initialCode: '#include <stdio.h>\n\nint main() {\n    // Calculate\n    return 0;\n}\n', language: 'c', expectedOutput: '48', hints: ['printf("%d\\n", 12 * 4);'], solution: '#include <stdio.h>\n\nint main() {\n    printf("%d\\n", 12 * 4);\n    return 0;\n}' },
+        { id: 'c-m4', title: 'Conditionals', type: 'article', readTime: '5 min', content: '### If Statements\n\n```c\nif (age >= 18) {\n    printf("Adult\\n");\n}\n```' },
+        { id: 'c-m5', title: 'Loops', type: 'practice', theory: '### For Loop\n\n```c\nfor (int i = 0; i < 5; i++) {\n    printf("%d\\n", i);\n}\n```', instruction: 'Print 1 through 5 using a for loop.', initialCode: '#include <stdio.h>\n\nint main() {\n    // Loop\n    return 0;\n}\n', language: 'c', expectedOutput: '1\n2\n3\n4\n5', hints: ['for (int i = 1; i <= 5; i++)'], solution: '#include <stdio.h>\n\nint main() {\n    for (int i = 1; i <= 5; i++) {\n        printf("%d\\n", i);\n    }\n    return 0;\n}' },
+        { id: 'c-m6', title: 'Functions', type: 'article', readTime: '7 min', content: '### Functions\n\n```c\nint add(int a, int b) {\n    return a + b;\n}\n```' },
+        { id: 'c-m7', title: 'Arrays', type: 'practice', theory: '### Arrays\n\n```c\nint nums[3] = {10, 20, 30};\nprintf("%d", nums[0]);\n```', instruction: 'Create an array with 2, 4, 6 and print index 1.', initialCode: '#include <stdio.h>\n\nint main() {\n    // Array\n    return 0;\n}\n', language: 'c', expectedOutput: '4', hints: ['int arr[3] = {2, 4, 6};'], solution: '#include <stdio.h>\n\nint main() {\n    int arr[3] = {2, 4, 6};\n    printf("%d\\n", arr[1]);\n    return 0;\n}' },
+        { id: 'c-m8', title: 'Pointers (Intro)', type: 'article', readTime: '8 min', content: '### Pointers\n\n```c\nint x = 42;\nint *ptr = &x;\nprintf("%d", *ptr); // 42\n```' },
+        { id: 'c-m9', title: 'Final Challenge', type: 'practice', theory: '### Putting It All Together', instruction: 'Create a function `square(n)` that returns `n * n`. Print `square(7)`.', initialCode: '#include <stdio.h>\n\n// Define square\n\nint main() {\n    // Call square(7)\n    return 0;\n}\n', language: 'c', expectedOutput: '49', hints: ['int square(int n) { return n * n; }'], solution: '#include <stdio.h>\n\nint square(int n) {\n    return n * n;\n}\n\nint main() {\n    printf("%d\\n", square(7));\n    return 0;\n}' }
+      ])]
+    );
+    
+    console.log('✅ Courses seeded successfully (3 courses, 30 modules)');
+  } catch (error) {
+    console.error('⚠️ Error seeding courses:', error.message);
+    // Don't throw - seeding failure shouldn't crash the app
   }
 };
 
@@ -778,6 +878,108 @@ export const resetCourseProgress = async (courseId) => {
   );
 };
 
+// ============================================
+// COURSE MANAGEMENT
+// ============================================
+
+/**
+ * Create a new course
+ * @param {Object} courseData 
+ * @returns {Object} Created course
+ */
+export const createCourse = async (courseData) => {
+  const { id, title, description, icon, customIconUrl, language, difficulty, isPublished, isPremium, authorId, modules } = courseData;
+  
+  const result = await pool.query(
+    `INSERT INTO courses (id, title, description, icon, custom_icon_url, language, difficulty, is_published, is_premium, author_id, modules)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+     RETURNING *`,
+    [id, title, description, icon, customIconUrl, language || 'javascript', difficulty || 'copper', isPublished || false, isPremium || false, authorId, JSON.stringify(modules || [])]
+  );
+  
+  return formatCourse(result.rows[0]);
+};
+
+/**
+ * Get all courses (optionally filter by published status)
+ * @param {boolean} publishedOnly 
+ * @returns {Array} List of courses
+ */
+export const getAllCourses = async (publishedOnly = false) => {
+  const query = publishedOnly 
+    ? 'SELECT * FROM courses WHERE is_published = true ORDER BY created_at DESC'
+    : 'SELECT * FROM courses ORDER BY created_at DESC';
+  
+  const result = await pool.query(query);
+  return result.rows.map(formatCourse);
+};
+
+/**
+ * Get a course by ID
+ * @param {string} courseId 
+ * @returns {Object|null} Course or null
+ */
+export const getCourse = async (courseId) => {
+  const result = await pool.query('SELECT * FROM courses WHERE id = $1', [courseId]);
+  return result.rows[0] ? formatCourse(result.rows[0]) : null;
+};
+
+/**
+ * Update a course
+ * @param {string} courseId 
+ * @param {Object} updates 
+ * @returns {Object} Updated course
+ */
+export const updateCourse = async (courseId, updates) => {
+  const { title, description, icon, customIconUrl, language, difficulty, isPublished, isPremium, modules } = updates;
+  
+  const result = await pool.query(
+    `UPDATE courses SET
+       title = COALESCE($2, title),
+       description = COALESCE($3, description),
+       icon = COALESCE($4, icon),
+       custom_icon_url = $5,
+       language = COALESCE($6, language),
+       difficulty = COALESCE($7, difficulty),
+       is_published = COALESCE($8, is_published),
+       is_premium = COALESCE($9, is_premium),
+       modules = COALESCE($10, modules),
+       updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+     RETURNING *`,
+    [courseId, title, description, icon, customIconUrl, language, difficulty, isPublished, isPremium, modules ? JSON.stringify(modules) : null]
+  );
+  
+  return result.rows[0] ? formatCourse(result.rows[0]) : null;
+};
+
+/**
+ * Delete a course
+ * @param {string} courseId 
+ */
+export const deleteCourse = async (courseId) => {
+  await pool.query('DELETE FROM courses WHERE id = $1', [courseId]);
+};
+
+/**
+ * Format course from DB to API format
+ */
+const formatCourse = (row) => ({
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  icon: row.icon,
+  customIconUrl: row.custom_icon_url,
+  language: row.language,
+  difficulty: row.difficulty,
+  isPublished: row.is_published,
+  isPremium: row.is_premium,
+  authorId: row.author_id,
+  modules: row.modules,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   pool.end(() => {
@@ -819,6 +1021,13 @@ export default {
   logActivity,
   updateUserStats,
   getUserStats,
+  
+  // Course management
+  createCourse,
+  getAllCourses,
+  getCourse,
+  updateCourse,
+  deleteCourse,
   
   // Course translations
   saveCourseTranslation,

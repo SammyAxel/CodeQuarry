@@ -3,7 +3,7 @@ import {
   Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages
 } from 'lucide-react';
 
-import { COURSES } from './data/courses';
+import { COURSES, useCourses } from './data/courses';
 import { VIEWS, STORAGE_KEYS } from './constants/appConfig';
 import { VideoEssay } from './components/VideoEssay';
 import { ArticleEssay } from './components/ArticleEssay';
@@ -35,6 +35,9 @@ export default function App() {
   const [customCourses, setCustomCourses] = useState([]); // Drafts that have been published
   const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'dashboard' | 'profile' | 'users'
   const [lastAdminRole, setLastAdminRole] = useState(() => localStorage.getItem('lastAdminRole')); // Remember last admin role
+  
+  // Fetch courses from API
+  const { courses: apiCourses, loading: coursesLoading, error: coursesError, refetch: refetchCourses } = useCourses();
   
   // Load translations cache on mount
   useEffect(() => {
@@ -78,9 +81,10 @@ export default function App() {
     }
   }, []);
 
-  // Get merged courses (original + local edits + custom published courses)
+  // Get merged courses (API courses + local edits + custom published courses)
   const getMergedCourses = () => {
-    const editedOriginals = COURSES.map(course => {
+    const baseCourses = apiCourses || COURSES;
+    const editedOriginals = baseCourses.map(course => {
       if (publishedCourseEdits[course.id]) {
         return { ...course, ...publishedCourseEdits[course.id] };
       }

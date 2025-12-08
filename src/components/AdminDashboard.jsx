@@ -6,7 +6,7 @@ import { SecurityDashboard } from './SecurityDashboard';
 import { CourseTranslationEditor } from './CourseTranslationEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
 import { publishCourse, saveCourse, checkServerHealth, getSessionToken } from '../utils/courseApi';
-import { COURSES } from '../data/courses';
+import { COURSES, useCourses } from '../data/courses';
 import { getCourseLanguages } from '../utils/courseTranslations';
 
 export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
@@ -21,6 +21,9 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
   const [editingPublishedId, setEditingPublishedId] = useState(null); // Track if editing a published course
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [translatingCourse, setTranslatingCourse] = useState(null);
+  
+  // Fetch courses from API
+  const { courses: apiCourses, loading: coursesLoading, refetch: refetchCourses } = useCourses();
   
   // Check if user is admin (can publish/delete/edit all)
   const isAdmin = adminRole === 'admin';
@@ -74,9 +77,10 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
     }
   };
 
-  // Get merged published courses (original + local edits)
+  // Get merged published courses (API courses + local edits)
   const getMergedPublishedCourses = () => {
-    return COURSES.map(course => {
+    const baseCourses = apiCourses || COURSES;
+    return baseCourses.map(course => {
       if (publishedEdits[course.id]) {
         return { ...course, ...publishedEdits[course.id], _hasLocalEdits: true };
       }
@@ -404,7 +408,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            Published Courses ({COURSES.length})
+            Published Courses ({(apiCourses || COURSES).length})
           </button>
           <button
             onClick={() => setActiveTab('drafts')}
@@ -656,7 +660,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
             </p>
           </div>
 
-          {COURSES.map(course => {
+          {(apiCourses || COURSES).map(course => {
             const availableLanguages = getCourseLanguages(course.id);
             const languageLabels = [
               { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
