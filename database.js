@@ -42,6 +42,22 @@ const initDatabase = async () => {
     await client.query('DROP TABLE IF EXISTS course_progress CASCADE');
     console.log('✅ Migration: Dropped unused tables (step_progress, course_progress)');
 
+    // === ONE-TIME MIGRATION: Move user ID 2 to ID 1 (for founder) ===
+    // Check if ID 2 exists and ID 1 doesn't
+    const checkId1 = await client.query('SELECT id FROM users WHERE id = 1');
+    const checkId2 = await client.query('SELECT id FROM users WHERE id = 2');
+    
+    if (checkId1.rows.length === 0 && checkId2.rows.length > 0) {
+      console.log('🔄 Migration: Moving user ID 2 → 1...');
+      await client.query('ALTER SEQUENCE users_id_seq RESTART WITH 4');
+      await client.query('UPDATE module_progress SET user_id = 1 WHERE user_id = 2');
+      await client.query('UPDATE activity_log SET user_id = 1 WHERE user_id = 2');
+      await client.query('UPDATE user_stats SET user_id = 1 WHERE user_id = 2');
+      await client.query('UPDATE user_sessions SET user_id = 1 WHERE user_id = 2');
+      await client.query('UPDATE users SET id = 1 WHERE id = 2');
+      console.log('✅ Migration: User ID migration complete (ID 2 → 1)');
+    }
+
     // Users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
