@@ -544,24 +544,7 @@ app.post('/api/progress/module', verifyUserSession, async (req, res) => {
   res.json({ success: true });
 });
 
-/**
- * POST /api/progress/step
- * Save step completion
- */
-app.post('/api/progress/step', verifyUserSession, async (req, res) => {
-  const { courseId, moduleId, stepIndex, hintsUsed, codeSnapshot } = req.body;
-  
-  if (!courseId || !moduleId || stepIndex === undefined) {
-    return res.status(400).json({ error: 'courseId, moduleId, and stepIndex are required' });
-  }
-  
-  await db.saveStepProgress(req.user.id, courseId, moduleId, stepIndex, {
-    hintsUsed,
-    codeSnapshot
-  });
-  
-  res.json({ success: true });
-});
+// NOTE: POST /api/progress/step removed - step tracking simplified to module level
 
 /**
  * GET /api/progress/code/:courseId/:moduleId

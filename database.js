@@ -65,18 +65,8 @@ const initDatabase = async () => {
       )
     `);
 
-    // Course progress table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS course_progress (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        course_id TEXT NOT NULL,
-        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        completed_at TIMESTAMP,
-        UNIQUE(user_id, course_id),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    `);
+    // NOTE: course_progress removed in schema simplification
+    // Course completion is now derived from module_progress
 
     // Module progress table
     await client.query(`
@@ -95,21 +85,8 @@ const initDatabase = async () => {
       )
     `);
 
-    // Step progress table (granular tracking)
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS step_progress (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        course_id TEXT NOT NULL,
-        module_id TEXT NOT NULL,
-        step_index INTEGER NOT NULL,
-        completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        hints_used INTEGER DEFAULT 0,
-        code_snapshot TEXT,
-        UNIQUE(user_id, course_id, module_id, step_index),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    `);
+    // NOTE: step_progress removed in schema simplification
+    // Step tracking is handled at module level via saved_code
 
     // User stats table (aggregated for dashboard)
     await client.query(`
@@ -333,32 +310,13 @@ export const getAllUsers = async () => {
 
 /**
  * Delete a user and all related data
+ * All related tables have ON DELETE CASCADE, so deleting from users table
+ * automatically cleans up: user_sessions, course_progress, module_progress,
+ * step_progress, user_stats, activity_log
  * @param {number} userId 
  */
 export const deleteUser = async (userId) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    
-    // Delete user sessions
-    await client.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
-    
-    // Delete user progress
-    await client.query('DELETE FROM user_progress WHERE user_id = $1', [userId]);
-    
-    // Delete user stats
-    await client.query('DELETE FROM user_stats WHERE user_id = $1', [userId]);
-    
-    // Delete the user
-    await client.query('DELETE FROM users WHERE id = $1', [userId]);
-    
-    await client.query('COMMIT');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
+  await pool.query('DELETE FROM users WHERE id = $1', [userId]);
 };
 
 /**
@@ -465,70 +423,29 @@ export const cleanupExpiredSessions = async () => {
 export const saveModuleProgress = async (userId, courseId, moduleId, data = {}) => {
   const { savedCode, hintsUsed, timeSpentSeconds, completed } = data;
   
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    
-    // Upsert course progress
-    await client.query(
-      `INSERT INTO course_progress (user_id, course_id)
-       VALUES ($1, $2)
-       ON CONFLICT (user_id, course_id) DO NOTHING`,
-      [userId, courseId]
-    );
-    
-    // Upsert module progress
-    await client.query(
-      `INSERT INTO module_progress (user_id, course_id, module_id, saved_code, hints_used, time_spent_seconds, completed_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (user_id, course_id, module_id) DO UPDATE SET
-         saved_code = COALESCE($4, module_progress.saved_code),
-         hints_used = COALESCE($5, module_progress.hints_used),
-         time_spent_seconds = module_progress.time_spent_seconds + COALESCE($6, 0),
-         completed_at = CASE WHEN $8 = true THEN CURRENT_TIMESTAMP ELSE module_progress.completed_at END`,
-      [userId, courseId, moduleId, savedCode || null, hintsUsed || 0, timeSpentSeconds || 0, completed ? new Date() : null, !!completed]
-    );
-    
-    await client.query('COMMIT');
-    
-    // Log activity
-    await logActivity(userId, completed ? 'module_completed' : 'module_progress', courseId, moduleId);
-    
-    // Update stats if completed
-    if (completed) {
-      await updateUserStats(userId);
-    }
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-};
-
-/**
- * Save step completion
- * @param {number} userId 
- * @param {string} courseId 
- * @param {string} moduleId 
- * @param {number} stepIndex 
- * @param {Object} data 
- */
-export const saveStepProgress = async (userId, courseId, moduleId, stepIndex, data = {}) => {
-  const { hintsUsed, codeSnapshot } = data;
-  
+  // Upsert module progress (course progress is derived from this)
   await pool.query(
-    `INSERT INTO step_progress (user_id, course_id, module_id, step_index, hints_used, code_snapshot)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     ON CONFLICT (user_id, course_id, module_id, step_index) DO UPDATE SET
-       hints_used = COALESCE($5, step_progress.hints_used),
-       code_snapshot = COALESCE($6, step_progress.code_snapshot)`,
-    [userId, courseId, moduleId, stepIndex, hintsUsed || 0, codeSnapshot || null]
+    `INSERT INTO module_progress (user_id, course_id, module_id, saved_code, hints_used, time_spent_seconds, completed_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (user_id, course_id, module_id) DO UPDATE SET
+       saved_code = COALESCE($4, module_progress.saved_code),
+       hints_used = COALESCE($5, module_progress.hints_used),
+       time_spent_seconds = module_progress.time_spent_seconds + COALESCE($6, 0),
+       completed_at = CASE WHEN $8 = true THEN CURRENT_TIMESTAMP ELSE module_progress.completed_at END`,
+    [userId, courseId, moduleId, savedCode || null, hintsUsed || 0, timeSpentSeconds || 0, completed ? new Date() : null, !!completed]
   );
   
   // Log activity
-  await logActivity(userId, 'step_completed', courseId, moduleId);
+  await logActivity(userId, completed ? 'module_completed' : 'module_progress', courseId, moduleId);
+  
+  // Update stats if completed
+  if (completed) {
+    await updateUserStats(userId);
+  }
 };
+
+// NOTE: saveStepProgress removed in schema simplification
+// Step-level tracking is now handled at module level via saved_code in module_progress
 
 /**
  * Get all progress for a user
@@ -536,30 +453,25 @@ export const saveStepProgress = async (userId, courseId, moduleId, stepIndex, da
  * @returns {Object}
  */
 export const getUserProgress = async (userId) => {
-  // Get course progress
-  const coursesResult = await pool.query(
-    `SELECT course_id, started_at, completed_at FROM course_progress WHERE user_id = $1`,
-    [userId]
-  );
-  
-  // Get module progress
+  // Get module progress (course progress derived from this)
   const modulesResult = await pool.query(
     `SELECT course_id, module_id, started_at, completed_at, saved_code, hints_used, time_spent_seconds
      FROM module_progress WHERE user_id = $1`,
     [userId]
   );
   
-  // Get step progress
-  const stepsResult = await pool.query(
-    `SELECT course_id, module_id, step_index, completed_at, hints_used
-     FROM step_progress WHERE user_id = $1`,
-    [userId]
-  );
+  // Derive course progress from modules
+  const courseMap = {};
+  for (const mod of modulesResult.rows) {
+    if (!courseMap[mod.course_id]) {
+      courseMap[mod.course_id] = { course_id: mod.course_id, started_at: mod.started_at, modules: [] };
+    }
+    courseMap[mod.course_id].modules.push(mod);
+  }
   
   return {
-    courses: coursesResult.rows,
-    modules: modulesResult.rows,
-    steps: stepsResult.rows
+    courses: Object.values(courseMap),
+    modules: modulesResult.rows
   };
 };
 
@@ -570,25 +482,22 @@ export const getUserProgress = async (userId) => {
  * @returns {Object}
  */
 export const getCourseProgress = async (userId, courseId) => {
-  const courseResult = await pool.query(
-    'SELECT * FROM course_progress WHERE user_id = $1 AND course_id = $2',
-    [userId, courseId]
-  );
-  
   const modulesResult = await pool.query(
     'SELECT * FROM module_progress WHERE user_id = $1 AND course_id = $2',
     [userId, courseId]
   );
   
-  const stepsResult = await pool.query(
-    'SELECT * FROM step_progress WHERE user_id = $1 AND course_id = $2',
-    [userId, courseId]
-  );
+  // Derive course progress from modules
+  const modules = modulesResult.rows;
+  const course = modules.length > 0 ? {
+    course_id: courseId,
+    started_at: modules.reduce((min, m) => m.started_at < min ? m.started_at : min, modules[0].started_at),
+    completed_at: modules.every(m => m.completed_at) ? modules.reduce((max, m) => m.completed_at > max ? m.completed_at : max, modules[0].completed_at) : null
+  } : null;
   
   return {
-    course: courseResult.rows[0] || null,
-    modules: modulesResult.rows,
-    steps: stepsResult.rows
+    course,
+    modules
   };
 };
 
@@ -684,20 +593,13 @@ export const updateUserStats = async (userId) => {
   );
   const modulesCompleted = parseInt(modulesResult.rows[0]?.count) || 0;
   
-  // Count completed courses
+  // Count distinct courses with at least one completed module (derived)
   const coursesResult = await pool.query(
-    `SELECT COUNT(*) as count FROM course_progress 
+    `SELECT COUNT(DISTINCT course_id) as count FROM module_progress 
      WHERE user_id = $1 AND completed_at IS NOT NULL`,
     [userId]
   );
   const coursesCompleted = parseInt(coursesResult.rows[0]?.count) || 0;
-  
-  // Count completed steps
-  const stepsResult = await pool.query(
-    'SELECT COUNT(*) as count FROM step_progress WHERE user_id = $1',
-    [userId]
-  );
-  const stepsCompleted = parseInt(stepsResult.rows[0]?.count) || 0;
   
   // Total time spent
   const timeResult = await pool.query(
@@ -711,7 +613,7 @@ export const updateUserStats = async (userId) => {
      SET total_modules_completed = $1, total_courses_completed = $2, 
          total_steps_completed = $3, total_time_spent_seconds = $4
      WHERE user_id = $5`,
-    [modulesCompleted, coursesCompleted, stepsCompleted, timeSpent, userId]
+    [modulesCompleted, coursesCompleted, 0, timeSpent, userId]
   );
 };
 
@@ -734,11 +636,13 @@ export const getUserStats = async (userId) => {
     [userId]
   );
   
-  // Get courses in progress
+  // Get courses in progress (derived from module_progress)
   const coursesResult = await pool.query(
-    `SELECT course_id, started_at
-     FROM course_progress
-     WHERE user_id = $1 AND completed_at IS NULL`,
+    `SELECT DISTINCT course_id, MIN(started_at) as started_at
+     FROM module_progress
+     WHERE user_id = $1
+     GROUP BY course_id
+     HAVING COUNT(*) > COUNT(completed_at)`,
     [userId]
   );
   
