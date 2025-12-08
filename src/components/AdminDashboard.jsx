@@ -118,8 +118,6 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
     }
     return true;
   };
-
-  // Handle authentication
   const handleAuth = async (e) => {
     e.preventDefault();
     setIsAuthenticating(true);
@@ -157,17 +155,50 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
 
   // Save course
   const handleSaveCourse = async (course, saveToFile = false) => {
-    // Check authentication before saving to file
-    if (saveToFile && serverOnline && editingPublishedId) {
-      if (!requireAuth(() => handleSaveCourse(course, saveToFile))) {
-        return;
-      }
-    }
-
     // Check if this is a published course edit
     if (editingPublishedId) {
       // If saveToFile is true and server is online, save directly to file
       if (saveToFile && serverOnline) {
+        // Check authentication before saving to file
+        const token = getSessionToken();
+        if (!token) {
+          // Store the course data and action, show auth modal
+          setPendingAction(() => async () => {
+            try {
+              const courseToSave = {
+                ...course,
+                id: editingPublishedId
+              };
+              await saveCourse(editingPublishedId, courseToSave);
+              
+              const updatedEdits = { ...publishedEdits };
+              delete updatedEdits[editingPublishedId];
+              savePublishedEdits(updatedEdits);
+              
+              alert('✅ Course saved to file!\n\n⚠️ Restart the dev server to see changes.');
+              setEditingPublishedId(null);
+              setView('list');
+              setEditingCourse(null);
+            } catch (error) {
+              console.error('Save to file error:', error);
+              alert('❌ Failed to save to file: ' + error.message + '\n\nFalling back to localStorage.');
+              // Fallback to localStorage
+              const updatedEdits = {
+                ...publishedEdits,
+                [editingPublishedId]: {
+                  ...course,
+                  id: editingPublishedId,
+                  updatedAt: new Date().toISOString()
+                }
+              };
+              savePublishedEdits(updatedEdits);
+              setEditingPublishedId(null);
+            }
+          });
+          setShowAuthModal(true);
+          return;
+        }
+
         try {
           const courseToSave = {
             ...course,
