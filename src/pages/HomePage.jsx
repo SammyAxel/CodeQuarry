@@ -121,7 +121,11 @@ const HomePage = ({ courses, onSelectCourse }) => {
             
             <div className="flex justify-between items-start mb-6 relative z-10">
               <div className="p-3 bg-gray-900/60 rounded-xl group-hover:bg-gray-800 transition-all duration-300 ring-1 ring-gray-700 group-hover:ring-purple-500/50">
-                {course.icon}
+                {course.customIconUrl ? (
+                  <img src={course.customIconUrl} alt={course.title} className="w-8 h-8 rounded object-cover" />
+                ) : (
+                  course.icon
+                )}
               </div>
               <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-purple-900/50 to-purple-800/50 rounded-full text-purple-300 border border-purple-700/50 group-hover:border-purple-500/70 transition-all duration-300">
                 {course.level}

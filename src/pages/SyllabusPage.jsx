@@ -16,7 +16,13 @@ export const SyllabusPage = ({ course, onBack, onSelectModule, completedModules 
         {/* ENHANCED: Larger, more central glow for the card */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-purple-900/30 via-transparent to-transparent opacity-50 blur-2xl"></div>
         <div className="flex items-center gap-6 mb-4 relative z-10">
-          <div className="p-4 bg-gray-900/50 rounded-2xl border border-gray-800">{course.icon}</div>
+          <div className="p-4 bg-gray-900/50 rounded-2xl border border-gray-800">
+            {course.customIconUrl ? (
+              <img src={course.customIconUrl} alt={course.title} className="w-12 h-12 rounded object-cover" />
+            ) : (
+              course.icon
+            )}
+          </div>
           <div><h2 className="text-4xl font-black text-white tracking-tight">{course.title}</h2><p className="text-purple-400 font-mono text-sm mt-1">ID: {course.id.toUpperCase()}</p></div>
         </div>
         <p className="text-gray-300 text-lg relative z-10 max-w-2xl">{course.description}</p>

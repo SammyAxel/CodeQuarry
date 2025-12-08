@@ -168,6 +168,7 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
 
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase">Icon</label>
+              <p className="text-xs text-gray-500 mt-1 mb-2">Choose an emoji or upload a custom image (PNG/JPG, max 2MB)</p>
               <div className="grid grid-cols-4 gap-2 mt-2">
                 {ICONS.map((icon) => (
                   <button

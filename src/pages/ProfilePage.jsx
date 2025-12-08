@@ -15,6 +15,8 @@ export const ProfilePage = ({ onBack }) => {
   
   // Profile editing
   const [displayName, setDisplayName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
@@ -35,6 +37,8 @@ export const ProfilePage = ({ onBack }) => {
         const data = await getCurrentUser();
         setUserData(data);
         setDisplayName(data.user.displayName || data.user.username);
+        setAvatarUrl(data.user.avatarUrl || '');
+        setAvatarPreview(data.user.avatarUrl || null);
       } catch (err) {
         console.error('Failed to load user data:', err);
       } finally {
@@ -50,16 +54,33 @@ export const ProfilePage = ({ onBack }) => {
     setProfileMessage(null);
     
     try {
-      const result = await updateProfile({ displayName });
+      const result = await updateProfile({ displayName, avatarUrl });
       setUserData(prev => ({ ...prev, user: result.user }));
       // Update context
-      login({ ...currentUser, displayName });
+      login({ ...currentUser, displayName, avatarUrl });
       setIsEditingProfile(false);
       setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (err) {
       setProfileMessage({ type: 'error', text: err.message || 'Failed to update profile' });
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        setProfileMessage({ type: 'error', text: 'Image must be less than 2MB' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result;
+        setAvatarPreview(dataUrl);
+        setAvatarUrl(dataUrl);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -121,12 +142,26 @@ export const ProfilePage = ({ onBack }) => {
           {/* Profile Header */}
           <div className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 p-8 text-center">
             <div className="relative inline-block">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-4xl font-black text-white">
-                {(user?.displayName || user?.username || 'U')[0].toUpperCase()}
-              </div>
-              <button className="absolute bottom-0 right-0 p-2 bg-gray-800 rounded-full border border-gray-700 hover:bg-gray-700 transition-colors">
+              {avatarPreview ? (
+                <img 
+                  src={avatarPreview} 
+                  alt="Profile" 
+                  className="w-24 h-24 rounded-full object-cover border-4 border-purple-500/50"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-4xl font-black text-white">
+                  {(user?.displayName || user?.username || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <label className="absolute bottom-0 right-0 p-2 bg-gray-800 rounded-full border border-gray-700 hover:bg-gray-700 transition-colors cursor-pointer">
                 <Camera className="w-4 h-4 text-gray-400" />
-              </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
             <h1 className="text-2xl font-black text-white mt-4">
               {user?.displayName || user?.username}
