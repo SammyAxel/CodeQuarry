@@ -1046,6 +1046,21 @@ app.patch('/api/admin/users/:id/role', verifyUserSession, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/courses/:courseId/reset-progress
+ * Reset all student progress for a course (use when updating course structure)
+ */
+app.post('/api/admin/courses/:courseId/reset-progress', verifySession, requireAdmin, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    await db.resetCourseProgress(courseId);
+    res.json({ success: true, message: `Progress reset for course ${courseId}` });
+  } catch (error) {
+    console.error('Error resetting course progress:', error);
+    res.status(500).json({ error: 'Failed to reset course progress' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`✅ CodeQuarry API server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);

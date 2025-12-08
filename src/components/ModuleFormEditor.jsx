@@ -1,7 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChevronLeft, Plus, X, Info } from 'lucide-react';
 
 export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
+  const textareaRef = useRef(null);
+  
+  // Markdown helper function
+  const insertMarkdown = (before, after = '') => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    const newText = textarea.value.substring(0, start) + before + selectedText + after + textarea.value.substring(end);
+    
+    setData({ ...data, content: newText });
+    
+    // Restore cursor position
+    setTimeout(() => {
+      textarea.selectionStart = start + before.length;
+      textarea.selectionEnd = start + before.length + selectedText.length;
+      textarea.focus();
+    }, 0);
+  };
+  
   // Convert legacy regex fields to string arrays for the new format
   const convertLegacyData = (mod) => {
     // Handle requiredCode - convert from regex or use existing array
@@ -425,12 +447,77 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
 
         {data.type === 'article' && (
           <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-            <h3 className="font-bold mb-4 text-purple-400">Article Content</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-purple-400">Article Content</h3>
+              <div className="text-xs text-gray-500">Markdown format</div>
+            </div>
+            
+            {/* Markdown Toolbar */}
+            <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
+              <button
+                type="button"
+                onClick={() => insertMarkdown('## ', ' (Heading)')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                title="Heading"
+              >
+                H2
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown('**', '**')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors font-bold"
+                title="Bold"
+              >
+                B
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown('*', '*')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors italic"
+                title="Italic"
+              >
+                I
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown('`', '`')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors font-mono"
+                title="Code"
+              >
+                {'<>'}
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown('- ', '')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                title="List"
+              >
+                • List
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown('```javascript\n', '\n```')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                title="Code Block"
+              >
+                {'<code>'}
+              </button>
+              <button
+                type="button"
+                onClick={() => insertMarkdown('[', '](url)')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                title="Link"
+              >
+                🔗
+              </button>
+            </div>
+            
             <textarea
+              ref={textareaRef}
               value={data.content}
               onChange={(e) => setData({ ...data, content: e.target.value })}
-              placeholder="HTML or Markdown content"
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white h-48 resize-none font-mono"
+              placeholder="Use markdown formatting. Click the buttons above for help."
+              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white h-48 resize-none font-mono text-sm"
             />
           </div>
         )}

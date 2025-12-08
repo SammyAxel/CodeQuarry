@@ -770,6 +770,17 @@ export const deleteCourseTranslation = async (courseId, language) => {
   );
 };
 
+/**
+ * Reset all progress for a course (call when updating course structure)
+ * @param {string} courseId 
+ */
+export const resetCourseProgress = async (courseId) => {
+  await pool.query(
+    `DELETE FROM module_progress WHERE course_id = $1`,
+    [courseId]
+  );
+};
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   pool.end(() => {
@@ -818,6 +829,7 @@ export default {
   getAllCourseTranslations,
   getCourseLanguages,
   deleteCourseTranslation,
+  resetCourseProgress,
   
   // Pool for advanced queries
   pool
