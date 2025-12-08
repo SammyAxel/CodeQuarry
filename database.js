@@ -149,19 +149,14 @@ const initDatabase = async () => {
       
       if (checkId2.rows.length > 0) {
         console.log('🔄 Migration: Moving user ID 2 → 1...');
-        // Temporarily disable FK constraints for this migration
-        await client.query('SET CONSTRAINTS ALL DEFERRED');
-        
-        // Update child tables FIRST
+        // Update child tables FIRST to satisfy FK constraints
+        await client.query('UPDATE users SET id = 1 WHERE id = 2');
         await client.query('UPDATE user_sessions SET user_id = 1 WHERE user_id = 2');
         await client.query('UPDATE module_progress SET user_id = 1 WHERE user_id = 2');
         await client.query('UPDATE activity_log SET user_id = 1 WHERE user_id = 2');
         await client.query('UPDATE user_stats SET user_id = 1 WHERE user_id = 2');
-        
         // Now safe to update the parent table
         await client.query('ALTER SEQUENCE users_id_seq RESTART WITH 4');
-        await client.query('UPDATE users SET id = 1 WHERE id = 2');
-        
         console.log('✅ Migration: User ID migration complete (ID 2 → 1)');
       }
     } catch (migrationErr) {
