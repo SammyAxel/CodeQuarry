@@ -38,9 +38,9 @@ const initDatabase = async () => {
 
     // === ONE-TIME MIGRATION: Drop unused tables from schema simplification ===
     // These can be removed after the first successful deploy
-    await client.query('DROP TABLE IF EXISTS step_progress');
-    await client.query('DROP TABLE IF EXISTS course_progress');
-    console.log('Migration: Dropped unused tables (step_progress, course_progress)');
+    await client.query('DROP TABLE IF EXISTS step_progress CASCADE');
+    await client.query('DROP TABLE IF EXISTS course_progress CASCADE');
+    console.log('✅ Migration: Dropped unused tables (step_progress, course_progress)');
 
     // Users table
     await client.query(`
