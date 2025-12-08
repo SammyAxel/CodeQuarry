@@ -608,12 +608,15 @@ export const updateUserStats = async (userId) => {
   );
   const timeSpent = parseInt(timeResult.rows[0]?.total) || 0;
   
+  // Insert or update user stats
   await pool.query(
-    `UPDATE user_stats 
-     SET total_modules_completed = $1, total_courses_completed = $2, 
-         total_steps_completed = $3, total_time_spent_seconds = $4
-     WHERE user_id = $5`,
-    [modulesCompleted, coursesCompleted, 0, timeSpent, userId]
+    `INSERT INTO user_stats (user_id, total_modules_completed, total_courses_completed, total_time_spent_seconds)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id) DO UPDATE SET
+       total_modules_completed = $2,
+       total_courses_completed = $3,
+       total_time_spent_seconds = $4`,
+    [userId, modulesCompleted, coursesCompleted, timeSpent]
   );
 };
 
