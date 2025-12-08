@@ -835,7 +835,13 @@ function formatValue(value, key = '') {
  * POST /api/translations/save
  * Save course translation (admin only)
  */
-app.post('/api/translations/save', authenticateSession, (req, res) => {
+app.post('/api/translations/save', verifyUserSession, async (req, res) => {
+  // Check if user is admin
+  const fullUser = await db.getUserById(req.user.id);
+  if (fullUser.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  
   const { courseId, language, translation } = req.body;
   
   if (!courseId || !language || !translation) {
@@ -933,7 +939,13 @@ app.get('/api/translations/:courseId/languages', (req, res) => {
  * DELETE /api/translations/:courseId/:language
  * Delete a course translation (admin only)
  */
-app.delete('/api/translations/:courseId/:language', authenticateSession, (req, res) => {
+app.delete('/api/translations/:courseId/:language', verifyUserSession, async (req, res) => {
+  // Check if user is admin
+  const fullUser = await db.getUserById(req.user.id);
+  if (fullUser.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  
   const { courseId, language } = req.params;
   
   db.deleteCourseTranslation(courseId, language)
@@ -944,6 +956,108 @@ app.delete('/api/translations/:courseId/:language', authenticateSession, (req, r
       console.error('Error deleting translation:', error);
       res.status(500).json({ error: 'Failed to delete translation' });
     });
+});
+
+// ============================================
+// ADMIN USER MANAGEMENT ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/admin/users
+ * Get all users (admin only)
+ */
+app.get('/api/admin/users', verifyUserSession, async (req, res) => {
+  try {
+    const fullUser = await db.getUserById(req.user.id);
+    if (fullUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const users = await db.getAllUsers();
+    res.json({ users });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+/**
+ * GET /api/admin/users/:id
+ * Get specific user by ID (admin only)
+ */
+app.get('/api/admin/users/:id', verifyUserSession, async (req, res) => {
+  try {
+    const fullUser = await db.getUserById(req.user.id);
+    if (fullUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const user = await db.getUserById(parseInt(req.params.id));
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ user });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Delete a user (admin only)
+ */
+app.delete('/api/admin/users/:id', verifyUserSession, async (req, res) => {
+  try {
+    const fullUser = await db.getUserById(req.user.id);
+    if (fullUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const userId = parseInt(req.params.id);
+    
+    // Prevent admin from deleting themselves
+    if (userId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    await db.deleteUser(userId);
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+/**
+ * PATCH /api/admin/users/:id/role
+ * Update user role (admin only)
+ */
+app.patch('/api/admin/users/:id/role', verifyUserSession, async (req, res) => {
+  try {
+    const fullUser = await db.getUserById(req.user.id);
+    if (fullUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const userId = parseInt(req.params.id);
+    const { role } = req.body;
+
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role. Must be "user" or "admin"' });
+    }
+
+    // Prevent admin from changing their own role
+    if (userId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot change your own role' });
+    }
+
+    await db.updateUserRole(userId, role);
+    res.json({ success: true, message: 'User role updated successfully' });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ error: 'Failed to update user role' });
+  }
 });
 
 app.listen(PORT, () => {

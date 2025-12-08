@@ -305,6 +305,61 @@ export const changePassword = async (userId, newPassword) => {
 };
 
 /**
+ * Get all users (admin only)
+ * @returns {Array} All users without password hashes
+ */
+export const getAllUsers = async () => {
+  const result = await pool.query(
+    `SELECT id, username, email, display_name, avatar_url, role, created_at, last_login_at, updated_at
+     FROM users
+     ORDER BY created_at DESC`
+  );
+  return result.rows;
+};
+
+/**
+ * Delete a user and all related data
+ * @param {number} userId 
+ */
+export const deleteUser = async (userId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Delete user sessions
+    await client.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+    
+    // Delete user progress
+    await client.query('DELETE FROM user_progress WHERE user_id = $1', [userId]);
+    
+    // Delete user stats
+    await client.query('DELETE FROM user_stats WHERE user_id = $1', [userId]);
+    
+    // Delete the user
+    await client.query('DELETE FROM users WHERE id = $1', [userId]);
+    
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Update user role
+ * @param {number} userId 
+ * @param {string} role - 'user' or 'admin'
+ */
+export const updateUserRole = async (userId, role) => {
+  await pool.query(
+    'UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+    [role, userId]
+  );
+};
+
+/**
  * Check if username exists
  * @param {string} username 
  * @returns {boolean}
@@ -809,6 +864,9 @@ export default {
   changePassword,
   usernameExists,
   emailExists,
+  getAllUsers,
+  deleteUser,
+  updateUserRole,
   
   // Session management
   createSession,

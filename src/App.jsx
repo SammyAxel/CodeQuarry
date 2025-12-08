@@ -10,6 +10,7 @@ import { ArticleEssay } from './components/ArticleEssay';
 import { PracticeMode } from './components/practice';
 import { CourseMap } from './components/CourseMap';
 import { AdminDashboard } from './components/AdminDashboard';
+import AdminUserManagement from './components/AdminUserManagement';
 import HomePage from './pages/HomePage';
 import { SyllabusPage } from './pages/SyllabusPage';
 import { LoginPage } from './pages/LoginPage';
@@ -32,7 +33,7 @@ export default function App() {
   const [adminRole, setAdminRole] = useState(null); // 'admin' or 'mod'
   const [publishedCourseEdits, setPublishedCourseEdits] = useState({});
   const [customCourses, setCustomCourses] = useState([]); // Drafts that have been published
-  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'dashboard' | 'profile'
+  const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'dashboard' | 'profile' | 'users'
   const [lastAdminRole, setLastAdminRole] = useState(() => localStorage.getItem('lastAdminRole')); // Remember last admin role
   
   // Load translations cache on mount
@@ -299,13 +300,31 @@ export default function App() {
            >
              <BarChart3 className="w-4 h-4" /> {t('nav.dashboard')}
            </button>
-           {lastAdminRole && (
+           {lastAdminRole === 'admin' && (
+             <>
+               <button 
+                 onClick={() => { navigateHome(); setCurrentPage('users'); window.history.pushState({}, '', '/admin/users'); }}
+                 className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'users' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+                 title="User Management"
+               >
+                 👥 Users
+               </button>
+               <button 
+                 onClick={handleEnterAdminMode}
+                 className="flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
+                 title="Enter Admin Mode"
+               >
+                 👑 Admin
+               </button>
+             </>
+           )}
+           {lastAdminRole === 'mod' && (
              <button 
                onClick={handleEnterAdminMode}
                className="flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
                title="Enter Admin Mode"
              >
-               {lastAdminRole === 'admin' ? '👑' : '🧌'} Admin
+               🧌 Admin
              </button>
            )}
            <button
@@ -339,6 +358,9 @@ export default function App() {
         )}
         {currentPage === 'profile' && view === VIEWS.HOME && (
           <ProfilePage onBack={() => setCurrentPage('home')} />
+        )}
+        {currentPage === 'users' && view === VIEWS.HOME && (
+          <AdminUserManagement />
         )}
         {currentPage === 'home' && view === VIEWS.HOME && <HomePage courses={getMergedCourses()} onSelectCourse={navigateToSyllabus} />}
         {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => { navigateHome(); setCurrentPage('home'); }} onSelectModule={navigateToLearning} completedModules={completedModules} />}
