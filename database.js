@@ -44,7 +44,6 @@ const initDatabase = async () => {
 
     // === ONE-TIME MIGRATION: Move user ID 2 to ID 1 (for founder) ===
     // Check if ID 2 exists and ID 1 doesn't
-    const checkId1 = await client.query('SELECT id FROM users WHERE id = 1');
     const checkId2 = await client.query('SELECT id FROM users WHERE id = 2');
     
     if (checkId1.rows.length === 0 && checkId2.rows.length > 0) {
