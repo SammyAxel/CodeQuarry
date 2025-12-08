@@ -128,7 +128,7 @@ const HomePage = ({ courses, onSelectCourse }) => {
                 )}
               </div>
               <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-purple-900/50 to-purple-800/50 rounded-full text-purple-300 border border-purple-700/50 group-hover:border-purple-500/70 transition-all duration-300">
-                {course.level}
+                {course.level || course.difficulty || 'Copper'}
               </span>
             </div>
             

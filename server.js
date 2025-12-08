@@ -1196,6 +1196,20 @@ app.delete('/api/courses/:courseId/db', verifySession, requireAdmin, async (req,
   }
 });
 
+/**
+ * POST /api/admin/reseed-courses
+ * Force reseed all courses with comprehensive content (admin only)
+ */
+app.post('/api/admin/reseed-courses', verifySession, requireAdmin, async (req, res) => {
+  try {
+    const result = await db.reseedCourses();
+    res.json(result);
+  } catch (error) {
+    console.error('Error reseeding courses:', error);
+    res.status(500).json({ error: 'Failed to reseed courses' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`✅ CodeQuarry API server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
