@@ -233,7 +233,7 @@ export const createUser = async (username, email, password) => {
  */
 export const findUser = async (identifier) => {
   const result = await pool.query(
-    `SELECT id, username, email, password_hash, display_name, avatar_url, created_at, last_login_at
+    `SELECT id, username, email, password_hash, display_name, avatar_url, role, created_at, last_login_at
      FROM users 
      WHERE (username = $1 OR email = $2) AND is_active = true`,
     [identifier, identifier.toLowerCase()]

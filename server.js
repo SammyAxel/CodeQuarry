@@ -318,7 +318,8 @@ app.post('/api/user/register', async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        displayName: user.displayName
+        displayName: user.displayName,
+        role: 'user'
       }
     });
   } catch (err) {
@@ -370,7 +371,8 @@ app.post('/api/user/login', async (req, res) => {
       username: user.username,
       email: user.email,
       displayName: user.display_name,
-      avatarUrl: user.avatar_url
+      avatarUrl: user.avatar_url,
+      role: user.role || 'user'
     }
   });
 });
@@ -434,6 +436,7 @@ app.get('/api/user/me', verifyUserSession, async (req, res) => {
       email: user.email,
       displayName: user.display_name,
       avatarUrl: user.avatar_url,
+      role: user.role,
       createdAt: user.created_at,
       lastLoginAt: user.last_login_at
     },

@@ -300,23 +300,25 @@ export default function App() {
            >
              <BarChart3 className="w-4 h-4" /> {t('nav.dashboard')}
            </button>
+           {/* Show Users link only if user has admin role in database */}
+           {currentUser?.role === 'admin' && (
+             <button 
+               onClick={() => { navigateHome(); setCurrentPage('users'); window.history.pushState({}, '', '/admin/users'); }}
+               className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'users' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+               title="User Management"
+             >
+               👥 Users
+             </button>
+           )}
+           {/* Show Admin panel button if user has entered admin password before */}
            {lastAdminRole === 'admin' && (
-             <>
-               <button 
-                 onClick={() => { navigateHome(); setCurrentPage('users'); window.history.pushState({}, '', '/admin/users'); }}
-                 className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'users' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
-                 title="User Management"
-               >
-                 👥 Users
-               </button>
-               <button 
-                 onClick={handleEnterAdminMode}
-                 className="flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
-                 title="Enter Admin Mode"
-               >
-                 👑 Admin
-               </button>
-             </>
+             <button 
+               onClick={handleEnterAdminMode}
+               className="flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
+               title="Enter Admin Mode"
+             >
+               👑 Admin
+             </button>
            )}
            {lastAdminRole === 'mod' && (
              <button 
