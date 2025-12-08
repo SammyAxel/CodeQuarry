@@ -138,6 +138,19 @@ const initDatabase = async () => {
       )
     `);
 
+    // Course translations table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS course_translations (
+        id SERIAL PRIMARY KEY,
+        course_id TEXT NOT NULL,
+        language TEXT NOT NULL,
+        translation_data JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(course_id, language)
+      )
+    `);
+
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
   } catch (error) {
@@ -682,6 +695,102 @@ export const getCompletedModuleIds = async (userId) => {
   return result.rows.map(r => r.module_id);
 };
 
+// ============================================
+// COURSE TRANSLATIONS
+// ============================================
+
+/**
+ * Save course translation
+ * @param {string} courseId 
+ * @param {string} language - Language code (id, es, fr, etc.)
+ * @param {Object} translationData - Translation object with title, description, modules
+ * @returns {Object} Saved translation
+ */
+export const saveCourseTranslation = async (courseId, language, translationData) => {
+  const result = await pool.query(
+    `INSERT INTO course_translations (course_id, language, translation_data, updated_at)
+     VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+     ON CONFLICT (course_id, language) 
+     DO UPDATE SET 
+       translation_data = $3,
+       updated_at = CURRENT_TIMESTAMP
+     RETURNING id, course_id, language, created_at, updated_at`,
+    [courseId, language, JSON.stringify(translationData)]
+  );
+  
+  return result.rows[0];
+};
+
+/**
+ * Get course translation
+ * @param {string} courseId 
+ * @param {string} language 
+ * @returns {Object|null} Translation data or null
+ */
+export const getCourseTranslation = async (courseId, language) => {
+  const result = await pool.query(
+    `SELECT translation_data, updated_at
+     FROM course_translations
+     WHERE course_id = $1 AND language = $2`,
+    [courseId, language]
+  );
+  
+  return result.rows[0] ? {
+    ...result.rows[0].translation_data,
+    updatedAt: result.rows[0].updated_at
+  } : null;
+};
+
+/**
+ * Get all translations for a course
+ * @param {string} courseId 
+ * @returns {Object} Map of language -> translation data
+ */
+export const getAllCourseTranslations = async (courseId) => {
+  const result = await pool.query(
+    `SELECT language, translation_data, updated_at
+     FROM course_translations
+     WHERE course_id = $1`,
+    [courseId]
+  );
+  
+  const translations = {};
+  result.rows.forEach(row => {
+    translations[row.language] = {
+      ...row.translation_data,
+      updatedAt: row.updated_at
+    };
+  });
+  
+  return translations;
+};
+
+/**
+ * Get available languages for a course
+ * @param {string} courseId 
+ * @returns {string[]} Array of language codes
+ */
+export const getCourseLanguages = async (courseId) => {
+  const result = await pool.query(
+    `SELECT language FROM course_translations WHERE course_id = $1`,
+    [courseId]
+  );
+  
+  return result.rows.map(r => r.language);
+};
+
+/**
+ * Delete course translation
+ * @param {string} courseId 
+ * @param {string} language 
+ */
+export const deleteCourseTranslation = async (courseId, language) => {
+  await pool.query(
+    `DELETE FROM course_translations WHERE course_id = $1 AND language = $2`,
+    [courseId, language]
+  );
+};
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   pool.end(() => {
@@ -720,6 +829,13 @@ export default {
   logActivity,
   updateUserStats,
   getUserStats,
+  
+  // Course translations
+  saveCourseTranslation,
+  getCourseTranslation,
+  getAllCourseTranslations,
+  getCourseLanguages,
+  deleteCourseTranslation,
   
   // Pool for advanced queries
   pool

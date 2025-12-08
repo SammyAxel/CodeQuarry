@@ -45,29 +45,41 @@ export const CourseTranslationEditor = ({ course, onClose, onSave }) => {
     }
   }, [course, selectedLanguage]);
 
-  const handleSave = () => {
-    setCourseTranslation(course.id, selectedLanguage, translation);
-    setAvailableLanguages([...new Set([...availableLanguages, selectedLanguage])]);
-    setIsEditing(true);
-    if (onSave) onSave();
+  const handleSave = async () => {
+    try {
+      await setCourseTranslation(course.id, selectedLanguage, translation);
+      setAvailableLanguages([...new Set([...availableLanguages, selectedLanguage])]);
+      setIsEditing(true);
+      if (onSave) onSave();
+      alert('✅ Translation saved successfully!');
+    } catch (error) {
+      console.error('Error saving translation:', error);
+      alert('Failed to save translation. Changes saved locally as backup.');
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm(`Delete ${LANGUAGES.find(l => l.code === selectedLanguage)?.name} translation?`)) {
-      removeCourseTranslation(course.id, selectedLanguage);
-      setAvailableLanguages(availableLanguages.filter(l => l !== selectedLanguage));
-      setIsEditing(false);
-      // Reset to empty
-      setTranslation({
-        title: course.title,
-        description: course.description,
-        modules: course.modules.map(m => ({
-          title: m.title,
-          theory: m.theory || '',
-          instruction: m.instruction || '',
-          hints: m.hints || []
-        }))
-      });
+      try {
+        await removeCourseTranslation(course.id, selectedLanguage);
+        setAvailableLanguages(availableLanguages.filter(l => l !== selectedLanguage));
+        setIsEditing(false);
+        // Reset to empty
+        setTranslation({
+          title: course.title,
+          description: course.description,
+          modules: course.modules.map(m => ({
+            title: m.title,
+            theory: m.theory || '',
+            instruction: m.instruction || '',
+            hints: m.hints || []
+          }))
+        });
+        alert('✅ Translation deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting translation:', error);
+        alert('Failed to delete translation from server.');
+      }
     }
   };
 

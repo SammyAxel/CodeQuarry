@@ -827,6 +827,125 @@ function formatValue(value, key = '') {
   return JSON.stringify(value);
 }
 
+// ============================================
+// COURSE TRANSLATION ENDPOINTS
+// ============================================
+
+/**
+ * POST /api/translations/save
+ * Save course translation (admin only)
+ */
+app.post('/api/translations/save', authenticateSession, (req, res) => {
+  const { courseId, language, translation } = req.body;
+  
+  if (!courseId || !language || !translation) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  db.saveCourseTranslation(courseId, language, translation)
+    .then(result => {
+      res.json({ success: true, translation: result });
+    })
+    .catch(error => {
+      console.error('Error saving translation:', error);
+      res.status(500).json({ error: 'Failed to save translation' });
+    });
+});
+
+/**
+ * GET /api/translations/:courseId/:language
+ * Get translation for a specific course and language
+ */
+app.get('/api/translations/:courseId/:language', (req, res) => {
+  const { courseId, language } = req.params;
+  
+  db.getCourseTranslation(courseId, language)
+    .then(translation => {
+      if (!translation) {
+        return res.status(404).json({ error: 'Translation not found' });
+      }
+      res.json(translation);
+    })
+    .catch(error => {
+      console.error('Error fetching translation:', error);
+      res.status(500).json({ error: 'Failed to fetch translation' });
+    });
+});
+
+/**
+ * GET /api/translations/all
+ * Get all translations for all courses
+ */
+app.get('/api/translations/all', async (req, res) => {
+  try {
+    // Get all unique course IDs from database
+    const result = await db.pool.query('SELECT DISTINCT course_id FROM course_translations');
+    const courseIds = result.rows.map(r => r.course_id);
+    
+    // Fetch translations for each course
+    const allTranslations = {};
+    for (const courseId of courseIds) {
+      allTranslations[courseId] = await db.getAllCourseTranslations(courseId);
+    }
+    
+    res.json(allTranslations);
+  } catch (error) {
+    console.error('Error fetching all translations:', error);
+    res.status(500).json({ error: 'Failed to fetch translations' });
+  }
+});
+
+/**
+ * GET /api/translations/:courseId
+ * Get all translations for a course
+ */
+app.get('/api/translations/:courseId', (req, res) => {
+  const { courseId } = req.params;
+  
+  db.getAllCourseTranslations(courseId)
+    .then(translations => {
+      res.json(translations);
+    })
+    .catch(error => {
+      console.error('Error fetching translations:', error);
+      res.status(500).json({ error: 'Failed to fetch translations' });
+    });
+});
+
+/**
+ * GET /api/translations/:courseId/languages
+ * Get available languages for a course
+ */
+app.get('/api/translations/:courseId/languages', (req, res) => {
+  const { courseId } = req.params;
+  
+  db.getCourseLanguages(courseId)
+    .then(languages => {
+      res.json({ languages });
+    })
+    .catch(error => {
+      console.error('Error fetching languages:', error);
+      res.status(500).json({ error: 'Failed to fetch languages' });
+    });
+});
+
+/**
+ * DELETE /api/translations/:courseId/:language
+ * Delete a course translation (admin only)
+ */
+app.delete('/api/translations/:courseId/:language', authenticateSession, (req, res) => {
+  const { courseId, language } = req.params;
+  
+  db.deleteCourseTranslation(courseId, language)
+    .then(() => {
+      res.json({ success: true });
+    })
+    .catch(error => {
+      console.error('Error deleting translation:', error);
+      res.status(500).json({ error: 'Failed to delete translation' });
+    });
+});
+
 app.listen(PORT, () => {
   console.log(`✅ CodeQuarry API server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);

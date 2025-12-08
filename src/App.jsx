@@ -20,6 +20,7 @@ import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
 import { useRouting } from './hooks/useRouting';
+import { fetchCourseTranslations, getCourseTranslations } from './utils/courseTranslations';
 
 /**
  * Main Application Component
@@ -33,6 +34,26 @@ export default function App() {
   const [customCourses, setCustomCourses] = useState([]); // Drafts that have been published
   const [currentPage, setCurrentPage] = useState('home'); // 'home' | 'dashboard' | 'profile'
   const [lastAdminRole, setLastAdminRole] = useState(() => localStorage.getItem('lastAdminRole')); // Remember last admin role
+  
+  // Load translations cache on mount
+  useEffect(() => {
+    const loadTranslations = async () => {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      try {
+        const response = await fetch(`${API_URL}/api/translations/all`);
+        if (response.ok) {
+          const allTranslations = await response.json();
+          // Save to localStorage cache
+          localStorage.setItem('courseTranslations_cache', JSON.stringify(allTranslations));
+        }
+      } catch (error) {
+        // Silently fail - will use localStorage cache if available
+        console.log('Using cached translations');
+      }
+    };
+    
+    loadTranslations();
+  }, []);
   
   // Load published course edits and custom courses from localStorage on mount
   useEffect(() => {
