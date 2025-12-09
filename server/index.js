@@ -54,7 +54,7 @@ app.get('/api/health', (req, res) => {
 // Mount route modules
 app.use('/api/auth', authRoutes);
 app.use('/api/user', usersRoutes);
-app.use('/api/user/progress', progressRoutes);
+app.use('/api/progress', progressRoutes);
 app.use('/api/courses', coursesRoutes);
 app.use('/api/user/cosmetics', cosmeticsRoutes); // User cosmetics operations
 app.use('/api/cosmetics', cosmeticsRoutes); // Public shop endpoint
