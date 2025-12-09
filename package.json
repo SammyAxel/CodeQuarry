@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "node server.js",
-    "server": "node server.js",
+    "start": "node server/index.js",
+    "server": "node server/index.js",
+    "server:old": "node server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "vite build",
     "lint": "eslint .",
