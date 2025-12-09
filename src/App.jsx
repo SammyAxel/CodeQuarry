@@ -33,6 +33,8 @@ import { fetchCourseTranslations, getCourseTranslations } from './utils/courseTr
  * Uses Context API for state management
  */
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminRole, setAdminRole] = useState(null); // 'admin' or 'mod'
   const [publishedCourseEdits, setPublishedCourseEdits] = useState({});
@@ -258,7 +260,7 @@ export default function App() {
   }
 
   // Public profile route - accessible without login
-  const userProfileMatch = window.location.pathname.match(/^\/user\/(\d+)$/);
+  const userProfileMatch = location.pathname.match(/^\/user\/(\d+)$/);
   if (userProfileMatch) {
     return <PublicProfilePage />;
   }

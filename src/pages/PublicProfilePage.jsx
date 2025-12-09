@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Calendar, Clock, Gem, BookOpen, Target, ArrowLeft, Crown } from 'lucide-react';
 
 const PublicProfilePage = () => {
-  const { userId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Extract userId from URL pathname
+  const userId = location.pathname.match(/^\/user\/(\d+)$/)?.[1];
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
