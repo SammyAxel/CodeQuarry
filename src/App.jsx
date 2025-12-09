@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
   Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages
 } from 'lucide-react';
@@ -19,6 +20,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import CosmeticsShop from './components/CosmeticsShop';
 import Leaderboard from './components/Leaderboard';
+import PublicProfilePage from './pages/PublicProfilePage';
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
@@ -253,6 +255,12 @@ export default function App() {
         <div className="animate-pulse text-purple-400 text-2xl">Loading...</div>
       </div>
     );
+  }
+
+  // Public profile route - accessible without login
+  const userProfileMatch = window.location.pathname.match(/^\/user\/(\d+)$/);
+  if (userProfileMatch) {
+    return <PublicProfilePage />;
   }
 
   if (!currentUser) {
