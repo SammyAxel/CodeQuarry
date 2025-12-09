@@ -15,19 +15,25 @@ This guide walks you through deploying CodeQuarry on Railway with the new modula
 Go to your Railway project dashboard and add these environment variables:
 
 ```
-# Database
+# Database (Required - copy from PostgreSQL service in Railway)
 DATABASE_URL=postgresql://user:password@host:port/database
 
-# Authentication (from your .env)
+# Authentication (Required - app will crash if missing)
 ADMIN_PASSWORD=your_admin_password
 MOD_PASSWORD=your_mod_password
 
-# API Configuration
+# Server Configuration
 PORT=3000
 NODE_ENV=production
+
+# CORS Configuration (match your frontend URL)
 CORS_ORIGIN=https://your-frontend-url.up.railway.app
+
+# Code Compilation API
 API_ENDPOINT=https://emkc.org/api/v2/piston/execute
 ```
+
+**⚠️ CRITICAL:** If ADMIN_PASSWORD or MOD_PASSWORD are missing, the backend will crash immediately!
 
 ### 2. Configure Build & Start Commands
 
@@ -81,13 +87,17 @@ Check the Railway logs to ensure:
 
 ## Troubleshooting
 
-### 404 Errors on API Endpoints
+### Server Crashes on Startup
 
-**Problem:** Frontend getting 404s from backend
-**Solution:** 
-- Check that `CORS_ORIGIN` environment variable matches your frontend URL
-- Ensure `PORT=3000` (or appropriate port) is set
-- Check Railway logs for server startup errors
+**Problem:** Deployment succeeds but 404s on all API calls
+**Likely Cause:** ADMIN_PASSWORD or MOD_PASSWORD not set
+**Solution:**
+1. Go to Railway dashboard → your backend service
+2. Click "Variables" 
+3. Ensure ADMIN_PASSWORD and MOD_PASSWORD are set
+4. Click "Redeploy"
+
+The backend will exit with code 1 if these passwords are missing!
 
 ### Database Connection Error
 
