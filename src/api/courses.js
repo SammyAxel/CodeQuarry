@@ -16,7 +16,7 @@ export const fetchCourses = async (forceRefresh = false) => {
   const response = await fetch(`${API_BASE}/api/courses`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'X-User-Token': token })
+      ...(token && { 'x-user-token': token })
     }
   });
   
@@ -38,7 +38,7 @@ export const fetchCourse = async (courseId) => {
   const response = await fetch(`${API_BASE}/api/courses/${courseId}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'X-User-Token': token })
+      ...(token && { 'x-user-token': token })
     }
   });
   
@@ -64,7 +64,7 @@ export const createCourse = async (courseData) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': token
+      'x-user-token': token
     },
     body: JSON.stringify(courseData)
   });
@@ -90,8 +90,8 @@ export const updateCourse = async (courseId, updates) => {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'X-Session-Token': token,
-      'X-User-Token': token
+      'x-session-token': token,
+      'x-user-token': token
     },
     body: JSON.stringify(updates)
   });
@@ -116,7 +116,7 @@ export const deleteCourse = async (courseId) => {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': token
+      'x-user-token': token
     }
   });
   
@@ -138,7 +138,7 @@ export const resetCourseProgress = async (courseId) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': token
+      'x-user-token': token
     }
   });
   

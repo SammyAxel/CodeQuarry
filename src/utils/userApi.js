@@ -102,7 +102,7 @@ export const logoutUser = async () => {
     try {
       await fetch(`${API_BASE}/user/logout`, {
         method: 'POST',
-        headers: { 'X-User-Token': token }
+        headers: { 'x-user-token': token }
       });
     } catch (e) {
       // Ignore logout errors
@@ -123,7 +123,7 @@ export const getCurrentUser = async () => {
   }
   
   const response = await fetch(`${API_BASE}/user/me`, {
-    headers: { 'X-User-Token': token }
+    headers: { 'x-user-token': token }
   });
   
   if (!response.ok) {
@@ -151,7 +151,7 @@ export const updateProfile = async (updates) => {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': getUserToken()
+      'x-user-token': getUserToken()
     },
     body: JSON.stringify(updates)
   });
@@ -176,7 +176,7 @@ export const changePassword = async (currentPassword, newPassword) => {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': getUserToken()
+      'x-user-token': getUserToken()
     },
     body: JSON.stringify({ currentPassword, newPassword })
   });
@@ -206,7 +206,7 @@ export const getProgress = async () => {
   if (!token) return { progress: {}, completedModules: [] };
   
   const response = await fetch(`${API_BASE}/progress`, {
-    headers: { 'X-User-Token': token }
+    headers: { 'x-user-token': token }
   });
   
   if (!response.ok) {
@@ -226,7 +226,7 @@ export const getProgress = async () => {
  */
 export const getCourseProgress = async (courseId) => {
   const response = await fetch(`${API_BASE}/progress/${courseId}`, {
-    headers: { 'X-User-Token': getUserToken() }
+    headers: { 'x-user-token': getUserToken() }
   });
   
   if (!response.ok) {
@@ -250,7 +250,7 @@ export const saveModuleProgress = async (courseId, moduleId, data = {}) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': token
+      'x-user-token': token
     },
     body: JSON.stringify({ courseId, moduleId, ...data })
   });
@@ -271,7 +271,7 @@ export const saveStepProgress = async (courseId, moduleId, stepIndex, data = {})
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': token
+      'x-user-token': token
     },
     body: JSON.stringify({ courseId, moduleId, stepIndex, ...data })
   });
@@ -288,7 +288,7 @@ export const getSavedCode = async (courseId, moduleId) => {
   if (!token) return null;
   
   const response = await fetch(`${API_BASE}/progress/code/${courseId}/${moduleId}`, {
-    headers: { 'X-User-Token': token }
+    headers: { 'x-user-token': token }
   });
   
   if (!response.ok) return null;
@@ -302,8 +302,8 @@ export const getSavedCode = async (courseId, moduleId) => {
  * @returns {Promise<Object>}
  */
 export const getUserStats = async () => {
-  const response = await fetch(`${API_BASE}/user/stats`, {
-    headers: { 'X-User-Token': getUserToken() }
+  const response = await fetch(`${API_BASE}/progress/stats`, {
+    headers: { 'x-user-token': getUserToken() }
   });
   
   if (!response.ok) {
