@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X, Crown, User, Mail, Calendar, Clock, Gem, Shield, Trash2, RotateCcw, Settings } from 'lucide-react';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -6,7 +7,8 @@ const AdminUserManagement = () => {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'admin', 'user'
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingGems, setEditingGems] = useState(null); // { userId, value }
+  const [selectedUser, setSelectedUser] = useState(null); // User detail modal
+  const [editingGems, setEditingGems] = useState(false);
   const [gemInput, setGemInput] = useState('');
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -65,9 +67,7 @@ const AdminUserManagement = () => {
     }
   };
 
-  const handleToggleRole = async (userId, currentRole, username) => {
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
-    
+  const handleChangeRole = async (userId, newRole, username, currentRole) => {
     if (!confirm(`Change "${username}" role from ${currentRole} to ${newRole}?`)) {
       return;
     }
@@ -89,7 +89,8 @@ const AdminUserManagement = () => {
       }
 
       alert('✅ Role updated successfully');
-      fetchUsers(); // Refresh the list
+      setSelectedUser(prev => prev ? { ...prev, role: newRole } : null);
+      fetchUsers();
     } catch (err) {
       alert(`❌ Error: ${err.message}`);
     }
@@ -152,13 +153,13 @@ const AdminUserManagement = () => {
     }
   };
 
-  const handleEditGemsClick = (user) => {
-    setEditingGems({ userId: user.id, currentValue: user.total_gems || 0 });
-    setGemInput((user.total_gems || 0).toString());
+  const handleEditGemsClick = () => {
+    setEditingGems(true);
+    setGemInput((selectedUser.total_gems || 0).toString());
   };
 
   const handleSaveGems = async () => {
-    if (!editingGems) return;
+    if (!selectedUser) return;
 
     const amount = parseInt(gemInput, 10);
     if (isNaN(amount) || amount < 0) {
@@ -168,7 +169,7 @@ const AdminUserManagement = () => {
 
     try {
       const token = localStorage.getItem('userToken');
-      const response = await fetch(`${API_URL}/api/admin/users/${editingGems.userId}/gems`, {
+      const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}/gems`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -183,8 +184,9 @@ const AdminUserManagement = () => {
       }
 
       alert(`✅ Updated gems to ${amount}`);
-      setEditingGems(null);
+      setEditingGems(false);
       setGemInput('');
+      setSelectedUser({ ...selectedUser, total_gems: amount });
       fetchUsers(); // Refresh the list
     } catch (err) {
       alert(`❌ Error: ${err.message}`);
@@ -210,6 +212,22 @@ const AdminUserManagement = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatDateShort = (dateString) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   if (loading) {
@@ -244,72 +262,98 @@ const AdminUserManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">👥 User Management</h1>
-          <p className="text-gray-300">Manage users, roles, and permissions</p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
+            <Shield className="w-8 h-8 text-purple-400" />
+            User Management
+          </h1>
+          <p className="text-gray-400">Manage users, roles, and permissions</p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-            <p className="text-gray-300 text-sm">Total Users</p>
-            <p className="text-3xl font-bold">{users.length}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-xl p-6 border border-blue-500/30">
+            <p className="text-blue-200 text-sm font-medium mb-1">Total Users</p>
+            <p className="text-4xl font-bold text-white">{users.length}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-            <p className="text-gray-300 text-sm">Admins</p>
-            <p className="text-3xl font-bold">{users.filter(u => u.role === 'admin').length}</p>
+          <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-sm rounded-xl p-6 border border-purple-500/30">
+            <div className="flex items-center gap-2 mb-1">
+              <Crown className="w-4 h-4 text-purple-300" />
+              <p className="text-purple-200 text-sm font-medium">Admins</p>
+            </div>
+            <p className="text-4xl font-bold text-white">{users.filter(u => u.role === 'admin').length}</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-            <p className="text-gray-300 text-sm">Regular Users</p>
-            <p className="text-3xl font-bold">{users.filter(u => u.role === 'user').length}</p>
+          <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 backdrop-blur-sm rounded-xl p-6 border border-orange-500/30">
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className="w-4 h-4 text-orange-300" />
+              <p className="text-orange-200 text-sm font-medium">Moderators</p>
+            </div>
+            <p className="text-4xl font-bold text-white">{users.filter(u => u.role === 'mod').length}</p>
+          </div>
+          <div className="bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30">
+            <div className="flex items-center gap-2 mb-1">
+              <User className="w-4 h-4 text-green-300" />
+              <p className="text-green-200 text-sm font-medium">Regular Users</p>
+            </div>
+            <p className="text-4xl font-bold text-white">{users.filter(u => u.role === 'user').length}</p>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 mb-6">
+        {/* Search & Filters */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/10">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
-            <div className="flex-1">
+            <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="🔍 Search by username, email, or name..."
+                placeholder="Search by username, email, or name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-4 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
               />
             </div>
 
             {/* Role Filter */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg transition ${
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   filter === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white/10 hover:bg-white/20'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50' 
+                    : 'bg-white/10 hover:bg-white/20 text-gray-300'
                 }`}
               >
                 All ({users.length})
               </button>
               <button
                 onClick={() => setFilter('admin')}
-                className={`px-4 py-2 rounded-lg transition ${
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   filter === 'admin' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-white/10 hover:bg-white/20'
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/50' 
+                    : 'bg-white/10 hover:bg-white/20 text-gray-300'
                 }`}
               >
                 Admins ({users.filter(u => u.role === 'admin').length})
               </button>
               <button
+                onClick={() => setFilter('mod')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  filter === 'mod' 
+                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/50' 
+                    : 'bg-white/10 hover:bg-white/20 text-gray-300'
+                }`}
+              >
+                Mods ({users.filter(u => u.role === 'mod').length})
+              </button>
+              <button
                 onClick={() => setFilter('user')}
-                className={`px-4 py-2 rounded-lg transition ${
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   filter === 'user' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-white/10 hover:bg-white/20'
+                    ? 'bg-green-600 text-white shadow-lg shadow-green-500/50' 
+                    : 'bg-white/10 hover:bg-white/20 text-gray-300'
                 }`}
               >
                 Users ({users.filter(u => u.role === 'user').length})
@@ -318,152 +362,297 @@ const AdminUserManagement = () => {
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-white/10">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">User</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Email</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Role</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold">💎 Gems</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Joined</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Last Login</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-white/5 transition">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {user.avatar_url ? (
-                          <img 
-                            src={user.avatar_url} 
-                            alt={user.username}
-                            className="w-10 h-10 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                            {user.username[0].toUpperCase()}
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-semibold">{user.username}</p>
-                          <p className="text-sm text-gray-400">{user.display_name || 'No display name'}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">
-                      {user.email}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        user.role === 'admin' 
-                          ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50' 
-                          : 'bg-green-600/30 text-green-200 border border-green-500/50'
-                      }`}>
-                        {user.role === 'admin' ? '👑 Admin' : '👤 User'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {editingGems?.userId === user.id ? (
-                        <div className="flex gap-2 items-center justify-center">
-                          <input
-                            type="number"
-                            min="0"
-                            value={gemInput}
-                            onChange={(e) => setGemInput(e.target.value)}
-                            className="w-20 px-2 py-1 bg-white/20 border border-white/30 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            autoFocus
-                          />
-                          <button
-                            onClick={handleSaveGems}
-                            className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs transition"
-                            title="Save gems"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={() => setEditingGems(null)}
-                            className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition"
-                            title="Cancel"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ) : (
+        {/* User Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {filteredUsers.map((user) => (
+            <div
+              key={user.id}
+              onClick={() => setSelectedUser(user)}
+              className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all cursor-pointer group"
+            >
+              {/* User Avatar & Info */}
+              <div className="flex items-start gap-4 mb-4">
+                {user.avatar_url ? (
+                  <img 
+                    src={user.avatar_url} 
+                    alt={user.username}
+                    className="w-16 h-16 rounded-full ring-2 ring-white/20 group-hover:ring-blue-500/50 transition"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl ring-2 ring-white/20 group-hover:ring-blue-500/50 transition">
+                    {user.username[0].toUpperCase()}
+                  </div>
+                )}
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-lg text-white truncate group-hover:text-blue-300 transition">
+                    {user.username}
+                  </h3>
+                  <p className="text-sm text-gray-400 truncate">{user.display_name || 'No display name'}</p>
+                  
+                  {/* Role Badge */}
+                  <div className="mt-2">
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                      user.role === 'admin' 
+                        ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50' 
+                        : user.role === 'mod'
+                        ? 'bg-orange-600/30 text-orange-200 border border-orange-500/50'
+                        : 'bg-green-600/30 text-green-200 border border-green-500/50'
+                    }`}>
+                      {user.role === 'admin' ? <Crown className="w-3 h-3" /> : user.role === 'mod' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                      {user.role === 'admin' ? 'Admin' : user.role === 'mod' ? 'Mod' : 'User'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Gems</p>
+                  <p className="text-lg font-bold text-yellow-400 flex items-center gap-1">
+                    <Gem className="w-4 h-4" />
+                    {user.total_gems || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Last Active</p>
+                  <p className="text-sm font-semibold text-white flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {formatDateShort(user.last_login_at)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Click hint */}
+              <div className="mt-4 text-center">
+                <span className="text-xs text-gray-500 group-hover:text-blue-400 transition">
+                  Click to manage →
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredUsers.length === 0 && (
+          <div className="text-center py-20 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+            <div className="text-6xl mb-4">🔍</div>
+            <p className="text-xl text-gray-300 mb-2">No users found</p>
+            <p className="text-sm text-gray-500">Try adjusting your search or filters</p>
+          </div>
+        )}
+
+        {/* Count */}
+        {filteredUsers.length > 0 && (
+          <div className="text-center text-gray-400 text-sm">
+            Showing {filteredUsers.length} of {users.length} users
+          </div>
+        )}
+      </div>
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedUser(null)}>
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 p-6 flex items-center justify-between border-b border-white/10">
+              <div className="flex items-center gap-4">
+                {selectedUser.avatar_url ? (
+                  <img 
+                    src={selectedUser.avatar_url} 
+                    alt={selectedUser.username}
+                    className="w-16 h-16 rounded-full ring-4 ring-white/30"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-2xl ring-4 ring-white/30">
+                    {selectedUser.username[0].toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-2xl font-bold text-white">{selectedUser.username}</h2>
+                  <p className="text-blue-100">{selectedUser.display_name || 'No display name'}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="p-2 hover:bg-white/20 rounded-lg transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              {/* User Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white/5 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <Mail className="w-4 h-4" />
+                    <span className="text-sm">Email</span>
+                  </div>
+                  <p className="text-white font-medium">{selectedUser.email}</p>
+                </div>
+
+                <div className="bg-white/5 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <Shield className="w-4 h-4" />
+                    <span className="text-sm">Role</span>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
+                    selectedUser.role === 'admin' 
+                      ? 'bg-purple-600/30 text-purple-200 border border-purple-500/50' 
+                      : selectedUser.role === 'mod'
+                      ? 'bg-orange-600/30 text-orange-200 border border-orange-500/50'
+                      : 'bg-green-600/30 text-green-200 border border-green-500/50'
+                  }`}>
+                    {selectedUser.role === 'admin' ? <Crown className="w-4 h-4" /> : selectedUser.role === 'mod' ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                    {selectedUser.role === 'admin' ? 'Admin' : selectedUser.role === 'mod' ? 'Moderator' : 'User'}
+                  </span>
+                </div>
+
+                <div className="bg-white/5 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <Gem className="w-4 h-4" />
+                    <span className="text-sm">Gems Balance</span>
+                  </div>
+                  {editingGems ? (
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value={gemInput}
+                        onChange={(e) => setGemInput(e.target.value)}
+                        className="w-24 px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleSaveGems}
+                        className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold transition"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingGems(false)}
+                        className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm font-semibold transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleEditGemsClick}
+                      className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-white font-bold transition group"
+                    >
+                      <Gem className="w-5 h-5" />
+                      {selectedUser.total_gems || 0}
+                      <Settings className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="bg-white/5 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <Calendar className="w-4 h-4" />
+                    <span className="text-sm">Joined</span>
+                  </div>
+                  <p className="text-white font-medium">{formatDate(selectedUser.created_at)}</p>
+                </div>
+
+                <div className="bg-white/5 rounded-lg p-4 md:col-span-2">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm">Last Login</span>
+                  </div>
+                  <p className="text-white font-medium">{formatDate(selectedUser.last_login_at)}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="border-t border-white/10 pt-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  User Actions
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Role Change Buttons */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-400 mb-2">Change Role</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedUser.role !== 'user' && (
                         <button
-                          onClick={() => handleEditGemsClick(user)}
-                          className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 rounded text-sm transition font-semibold"
-                          title="Edit gems"
+                          onClick={() => handleChangeRole(selectedUser.id, 'user', selectedUser.username, selectedUser.role)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition text-sm"
                         >
-                          💎 {user.total_gems || 0}
+                          <User className="w-4 h-4" />
+                          User
                         </button>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-300">
-                      {formatDate(user.created_at)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-300">
-                      {formatDate(user.last_login_at)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleToggleRole(user.id, user.role, user.username)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs transition"
-                            title={`Change role to ${user.role === 'admin' ? 'user' : 'admin'}`}
-                          >
-                            {user.role === 'admin' ? '↓ Demote' : '↑ Promote'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.username)}
-                            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition"
-                            title="Delete user"
-                          >
-                            🗑️ Delete
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleResetCourseProgress(user.id, user.username)}
-                            className="px-3 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs transition"
-                            title="Reset progress for specific course"
-                          >
-                            🔄 Reset Course
-                          </button>
-                          <button
-                            onClick={() => handleResetUserProgress(user.id, user.username)}
-                            className="px-3 py-1 bg-red-700 hover:bg-red-800 rounded text-xs transition"
-                            title="Reset all progress"
-                          >
-                            ⚠️ Reset All
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {selectedUser.role !== 'mod' && (
+                        <button
+                          onClick={() => handleChangeRole(selectedUser.id, 'mod', selectedUser.username, selectedUser.role)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition text-sm"
+                        >
+                          <Shield className="w-4 h-4" />
+                          Mod
+                        </button>
+                      )}
+                      {selectedUser.role !== 'admin' && (
+                        <button
+                          onClick={() => handleChangeRole(selectedUser.id, 'admin', selectedUser.username, selectedUser.role)}
+                          className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition text-sm"
+                        >
+                          <Crown className="w-4 h-4" />
+                          Admin
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <p className="text-xl mb-2">🔍 No users found</p>
-              <p className="text-sm">Try adjusting your search or filters</p>
+                  {/* Other Actions */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-400 mb-2">Other Actions</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button
+                        onClick={() => {
+                          handleResetCourseProgress(selectedUser.id, selectedUser.username);
+                          setSelectedUser(null);
+                        }}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Reset Course Progress
+                      </button>
+
+                  <button
+                    onClick={() => {
+                      handleResetUserProgress(selectedUser.id, selectedUser.username);
+                      setSelectedUser(null);
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-red-700 hover:bg-red-800 rounded-lg font-semibold transition"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset All Progress
+                  </button>
+
+                      <button
+                        onClick={() => {
+                          handleDeleteUser(selectedUser.id, selectedUser.username);
+                          setSelectedUser(null);
+                        }}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete User
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </div>
-
-        {/* Showing count */}
-        <div className="mt-4 text-center text-gray-400 text-sm">
-          Showing {filteredUsers.length} of {users.length} users
-        </div>
-      </div>
+      )}
     </div>
   );
 };

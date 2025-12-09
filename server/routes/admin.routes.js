@@ -97,8 +97,8 @@ router.patch('/users/:id/role', verifyUserSession, async (req, res) => {
     const userId = parseInt(req.params.id);
     const { role } = req.body;
 
-    if (!role || !['user', 'admin'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role. Must be "user" or "admin"' });
+    if (!role || !['user', 'mod', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role. Must be "user", "mod", or "admin"' });
     }
 
     // Prevent admin from changing their own role
