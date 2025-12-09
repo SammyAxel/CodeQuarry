@@ -99,6 +99,7 @@ const initDatabase = async () => {
         current_streak_days INTEGER DEFAULT 0,
         longest_streak_days INTEGER DEFAULT 0,
         last_activity_date DATE,
+        total_gems INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
@@ -112,6 +113,23 @@ const initDatabase = async () => {
         course_id TEXT,
         module_id TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Refinery progress table (for optimization challenges)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS refinery_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        course_id TEXT NOT NULL,
+        module_id TEXT NOT NULL,
+        best_score INTEGER NOT NULL,
+        best_rank TEXT NOT NULL,
+        gems_earned INTEGER DEFAULT 0,
+        metrics JSONB,
+        achieved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, course_id, module_id),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
@@ -159,6 +177,19 @@ const initDatabase = async () => {
           WHERE table_name = 'users' AND column_name = 'role'
         ) THEN
           ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user';
+        END IF;
+      END $$;
+    `);
+
+    // Migration: Add total_gems column to user_stats if it doesn't exist
+    await client.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'user_stats' AND column_name = 'total_gems'
+        ) THEN
+          ALTER TABLE user_stats ADD COLUMN total_gems INTEGER DEFAULT 0;
         END IF;
       END $$;
     `);
@@ -995,6 +1026,168 @@ export const resetCourseProgress = async (courseId) => {
   );
 };
 
+/**
+ * Reset all progress for a specific user
+ * @param {number} userId 
+ */
+export const resetUserProgress = async (userId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Delete all module progress
+    await client.query(
+      `DELETE FROM module_progress WHERE user_id = $1`,
+      [userId]
+    );
+    
+    // Reset user stats
+    await client.query(
+      `UPDATE user_stats SET 
+        total_modules_completed = 0,
+        total_courses_completed = 0,
+        total_steps_completed = 0,
+        total_time_spent_seconds = 0,
+        current_streak_days = 0
+       WHERE user_id = $1`,
+      [userId]
+    );
+    
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Reset progress for a specific user in a specific course
+ * @param {number} userId 
+ * @param {string} courseId 
+ */
+export const resetUserCourseProgress = async (userId, courseId) => {
+  await pool.query(
+    `DELETE FROM module_progress WHERE user_id = $1 AND course_id = $2`,
+    [userId, courseId]
+  );
+};
+
+// ============================================
+// GEM SYSTEM
+// ============================================
+
+/**
+ * Award gems to a user
+ * @param {number} userId 
+ * @param {number} amount 
+ * @param {string} reason 
+ */
+export const awardGems = async (userId, amount, reason = 'reward') => {
+  // Ensure user_stats row exists
+  await pool.query(
+    `INSERT INTO user_stats (user_id, total_gems) 
+     VALUES ($1, $2) 
+     ON CONFLICT (user_id) DO UPDATE SET 
+       total_gems = user_stats.total_gems + $2`,
+    [userId, amount]
+  );
+  
+  // Log activity
+  await logActivity(userId, 'gems_earned', null, null);
+  
+  return amount;
+};
+
+/**
+ * Get user's total gems
+ * @param {number} userId 
+ */
+export const getUserGems = async (userId) => {
+  const result = await pool.query(
+    `SELECT total_gems FROM user_stats WHERE user_id = $1`,
+    [userId]
+  );
+  return result.rows[0]?.total_gems || 0;
+};
+
+/**
+ * Deduct gems from a user
+ * @param {number} userId 
+ * @param {number} amount 
+ */
+export const deductGems = async (userId, amount) => {
+  const result = await pool.query(
+    `UPDATE user_stats SET total_gems = GREATEST(0, total_gems - $2)
+     WHERE user_id = $1
+     RETURNING total_gems`,
+    [userId, amount]
+  );
+  return result.rows[0]?.total_gems || 0;
+};
+
+// ============================================
+// REFINERY PROGRESS
+// ============================================
+
+/**
+ * Save or update refinery progress
+ * @param {number} userId 
+ * @param {string} courseId 
+ * @param {string} moduleId 
+ * @param {Object} data 
+ */
+export const saveRefineryProgress = async (userId, courseId, moduleId, data) => {
+  const { score, rank, metrics, gemsEarned } = data;
+  
+  const result = await pool.query(
+    `INSERT INTO refinery_progress (user_id, course_id, module_id, best_score, best_rank, gems_earned, metrics)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (user_id, course_id, module_id) DO UPDATE SET
+       best_score = CASE WHEN $4 > refinery_progress.best_score THEN $4 ELSE refinery_progress.best_score END,
+       best_rank = CASE WHEN $4 > refinery_progress.best_score THEN $5 ELSE refinery_progress.best_rank END,
+       gems_earned = refinery_progress.gems_earned + $6,
+       metrics = CASE WHEN $4 > refinery_progress.best_score THEN $7 ELSE refinery_progress.metrics END,
+       achieved_at = CASE WHEN $4 > refinery_progress.best_score THEN CURRENT_TIMESTAMP ELSE refinery_progress.achieved_at END
+     RETURNING *`,
+    [userId, courseId, moduleId, score, rank, gemsEarned || 0, JSON.stringify(metrics)]
+  );
+  
+  // Award gems if earned
+  if (gemsEarned > 0) {
+    await awardGems(userId, gemsEarned, 'refinery');
+  }
+  
+  return result.rows[0];
+};
+
+/**
+ * Get refinery progress for a user and module
+ * @param {number} userId 
+ * @param {string} courseId 
+ * @param {string} moduleId 
+ */
+export const getRefineryProgress = async (userId, courseId, moduleId) => {
+  const result = await pool.query(
+    `SELECT * FROM refinery_progress WHERE user_id = $1 AND course_id = $2 AND module_id = $3`,
+    [userId, courseId, moduleId]
+  );
+  return result.rows[0];
+};
+
+/**
+ * Get all refinery progress for a user
+ * @param {number} userId 
+ */
+export const getAllRefineryProgress = async (userId) => {
+  const result = await pool.query(
+    `SELECT * FROM refinery_progress WHERE user_id = $1 ORDER BY achieved_at DESC`,
+    [userId]
+  );
+  return result.rows;
+};
+
 // ============================================
 // COURSE MANAGEMENT
 // ============================================
@@ -1153,7 +1346,21 @@ export default {
   getAllCourseTranslations,
   getCourseLanguages,
   deleteCourseTranslation,
+  
+  // Progress management
   resetCourseProgress,
+  resetUserProgress,
+  resetUserCourseProgress,
+  
+  // Gem system
+  awardGems,
+  getUserGems,
+  deductGems,
+  
+  // Refinery progress
+  saveRefineryProgress,
+  getRefineryProgress,
+  getAllRefineryProgress,
   
   // Pool for advanced queries
   pool

@@ -205,7 +205,7 @@ export const ProfilePage = ({ onBack }) => {
           <div className="p-6 space-y-6">
             {/* Display Name */}
             <div>
-              <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+              <label className="text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 {t('profile.displayName')}
               </label>
@@ -254,7 +254,7 @@ export const ProfilePage = ({ onBack }) => {
 
             {/* Email */}
             <div>
-              <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+              <label className="text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 {t('profile.email')}
               </label>
@@ -269,7 +269,7 @@ export const ProfilePage = ({ onBack }) => {
 
             {/* Username */}
             <div>
-              <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+              <label className="text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <Gem className="w-4 h-4" />
                 {t('profile.username')}
               </label>
@@ -278,7 +278,7 @@ export const ProfilePage = ({ onBack }) => {
 
             {/* Member Since */}
             <div>
-              <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+              <label className="text-sm text-gray-400 mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 {t('profile.memberSince')}
               </label>

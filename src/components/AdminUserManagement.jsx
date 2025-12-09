@@ -93,6 +93,63 @@ const AdminUserManagement = () => {
     }
   };
 
+  const handleResetUserProgress = async (userId, username) => {
+    if (!confirm(`⚠️ Reset ALL progress for user "${username}"?\n\nThis will delete:\n- All completed modules\n- All saved code\n- All course progress\n- All stats\n\nThis action cannot be undone!`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/api/admin/users/${userId}/reset-progress`, {
+        method: 'POST',
+        headers: {
+          'x-user-token': token
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to reset progress');
+      }
+
+      alert('✅ User progress reset successfully');
+      fetchUsers(); // Refresh the list
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`);
+    }
+  };
+
+  const handleResetCourseProgress = async (userId, username) => {
+    const courseId = prompt(`Enter course ID to reset for "${username}":\n\nExamples:\n- js-101\n- py-101\n- c-101`);
+    
+    if (!courseId || !courseId.trim()) {
+      return;
+    }
+
+    if (!confirm(`Reset progress for course "${courseId}" for user "${username}"?\n\nThis will delete:\n- All completed modules in this course\n- All saved code for this course\n- Course stats\n\nThis action cannot be undone!`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/api/admin/users/${userId}/reset-course/${courseId.trim()}`, {
+        method: 'POST',
+        headers: {
+          'x-user-token': token
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to reset course progress');
+      }
+
+      alert(`✅ Course "${courseId}" progress reset successfully`);
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesFilter = filter === 'all' || user.role === filter;
     const matchesSearch = 
@@ -275,21 +332,39 @@ const AdminUserManagement = () => {
                       {formatDate(user.last_login_at)}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleToggleRole(user.id, user.role, user.username)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition"
-                          title={`Change role to ${user.role === 'admin' ? 'user' : 'admin'}`}
-                        >
-                          {user.role === 'admin' ? '↓ Demote' : '↑ Promote'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user.id, user.username)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition"
-                          title="Delete user"
-                        >
-                          🗑️ Delete
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleToggleRole(user.id, user.role, user.username)}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs transition"
+                            title={`Change role to ${user.role === 'admin' ? 'user' : 'admin'}`}
+                          >
+                            {user.role === 'admin' ? '↓ Demote' : '↑ Promote'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id, user.username)}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition"
+                            title="Delete user"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleResetCourseProgress(user.id, user.username)}
+                            className="px-3 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs transition"
+                            title="Reset progress for specific course"
+                          >
+                            🔄 Reset Course
+                          </button>
+                          <button
+                            onClick={() => handleResetUserProgress(user.id, user.username)}
+                            className="px-3 py-1 bg-red-700 hover:bg-red-800 rounded text-xs transition"
+                            title="Reset all progress"
+                          >
+                            ⚠️ Reset All
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Plus, X, Copy, AlertCircle, Server, ServerOff, Save, Upload, Download, FileJson } from 'lucide-react';
+import { ChevronLeft, Plus, X, Copy, AlertCircle, Server, ServerOff, Save, Upload, Download, FileJson, GripVertical } from 'lucide-react';
 import { ModuleFormEditor } from './ModuleFormEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, sanitizeInput } from '../utils/securityUtils';
 
@@ -12,6 +12,8 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
   const [customIconPreview, setCustomIconPreview] = useState(course.customIconUrl || null);
   const [csrfToken, setCSRFToken] = useState('');
   const fileInputRef = useRef(null);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   // Generate CSRF token on component mount
   useEffect(() => {
@@ -61,6 +63,58 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
   const handleDuplicateModule = (index) => {
     const module = { ...data.modules[index], id: `mod-${Date.now()}` };
     setData({ ...data, modules: [...data.modules, module] });
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const newModules = [...data.modules];
+    const draggedModule = newModules[draggedIndex];
+    
+    // Remove from old position
+    newModules.splice(draggedIndex, 1);
+    
+    // Insert at new position
+    newModules.splice(dropIndex, 0, draggedModule);
+    
+    // Renumber module IDs to match new order
+    const coursePrefix = data.id || 'course';
+    const renumberedModules = newModules.map((module, idx) => ({
+      ...module,
+      id: `${coursePrefix}-m${idx}`
+    }));
+    
+    setData({ ...data, modules: renumberedModules });
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   // Export modules as JSON
@@ -391,18 +445,47 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
 
           <div className="space-y-3">
             {data.modules.map((module, idx) => (
-              <div key={module.id} className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 hover:border-purple-600/50 transition-all">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h4 className="font-bold">{module.title}</h4>
-                    <p className="text-sm text-gray-400">Type: {module.type}</p>
+              <div 
+                key={module.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, idx)}
+                onDragEnd={handleDragEnd}
+                className={`bg-gray-900/50 border rounded-lg p-4 transition-all ${
+                  draggedIndex === idx 
+                    ? 'opacity-50 border-purple-500' 
+                    : dragOverIndex === idx
+                    ? 'border-purple-400 border-2 scale-[1.02]'
+                    : 'border-gray-800 hover:border-purple-600/50'
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-2">
+                  {/* Drag handle */}
+                  <div className="cursor-move pt-1 text-gray-500 hover:text-purple-400 transition-colors">
+                    <GripVertical className="w-5 h-5" />
                   </div>
-                  <span className="text-xs px-2 py-1 bg-blue-600/20 text-blue-300 rounded">
-                    {module.language || 'N/A'}
-                  </span>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded font-mono">
+                            #{idx + 1}
+                          </span>
+                          <h4 className="font-bold truncate">{module.title}</h4>
+                        </div>
+                        <p className="text-sm text-gray-400 mt-1">Type: {module.type}</p>
+                      </div>
+                      <span className="text-xs px-2 py-1 bg-blue-600/20 text-blue-300 rounded flex-shrink-0">
+                        {module.language || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 ml-8">
                   <button
                     onClick={() => handleEditModule(idx)}
                     className="flex items-center gap-1 px-2 py-1 bg-yellow-600/20 text-yellow-300 hover:bg-yellow-600/30 rounded text-xs font-bold transition-colors"

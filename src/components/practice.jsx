@@ -2,12 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Trophy, ChevronRight, ChevronLeft, PanelLeftOpen, Code2, RotateCcw,
   Play, PanelLeftClose, BookOpen, FileCode, AlertCircle, Gem, CheckCircle2,
-  Terminal, Map as MapIcon, Trash2, Loader2, RefreshCw, Lightbulb
+  Terminal, Map as MapIcon, Trash2, Loader2, RefreshCw, Lightbulb, Sparkles
 } from 'lucide-react'; 
 
 import NavigationControls from './NavControl'; 
 import { CodeEditor } from './CodeEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { RefineryModal } from './RefineryModal';
 import { useCodeEngine } from '../hooks/useCodeEngine';
 import { getSavedCode, saveModuleProgress } from '../utils/userApi';
 import { useLanguage } from '../context/LanguageContext';
@@ -18,6 +19,8 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showRefineryModal, setShowRefineryModal] = useState(false);
+  const [refineryBest, setRefineryBest] = useState(null);
   const [syntaxError, setSyntaxError] = useState(null);
   const [activeTab, setActiveTab] = useState('theory');
   const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -137,7 +140,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
     setSyntaxError(null);
   }, [code, module.requiredCode, module.stepRequirements, module.requiredSyntax, module.stepSyntax, steps.length, hasUserModifiedCode]);
 
-  // Sync state on module change and load saved code
+  // Sync state on module change and load saved code + refinery best
   useEffect(() => {
     const loadSavedCode = async () => {
       setIsLoadingCode(true);
@@ -152,7 +155,23 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
       }
     };
     
+    // Load refinery best score from localStorage
+    const loadRefineryBest = () => {
+      const key = `refinery_${courseId}_${module.id}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try {
+          setRefineryBest(JSON.parse(saved));
+        } catch (err) {
+          console.error('Failed to load refinery best:', err);
+        }
+      } else {
+        setRefineryBest(null);
+      }
+    };
+    
     loadSavedCode();
+    loadRefineryBest();
     setOutput(['> Terminal ready...']);
     setShowSuccessModal(false);
     setSyntaxError(null);
@@ -249,6 +268,27 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
     // Only show success modal if ALL steps are complete
     if (success && !hasSyntaxError) {
       setShowSuccessModal(true);
+      
+      // Award gems for completing the module
+      const gemReward = module.gemReward || 10;
+      try {
+        const token = localStorage.getItem('userToken');
+        if (token) {
+          await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/gems/award`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-token': token
+            },
+            body: JSON.stringify({ 
+              amount: gemReward, 
+              reason: 'module_completion' 
+            })
+          });
+        }
+      } catch (err) {
+        console.error('Failed to award gems:', err);
+      }
     }
   }
 
@@ -286,8 +326,36 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
                   <Trophy className="w-10 h-10 text-purple-300" />
                 </div>
                 <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Gem Unearthed!</h2>
-                <p className="text-purple-300/80 mb-8">This piece of code is flawless. Well done.</p>
-                <div className="flex flex-col gap-3 mt-8">
+                <p className="text-purple-300/80 mb-4">This piece of code is flawless. Well done.</p>
+                
+                {/* Gem Reward Display */}
+                <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/50 rounded-xl mb-6">
+                  <span className="text-3xl">💎</span>
+                  <div className="text-left">
+                    <div className="text-2xl font-black text-yellow-400">+{module.gemReward || 10} Gems</div>
+                    <div className="text-xs text-gray-300">Module Reward</div>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-3 mt-4">
+                  {/* Refinery Challenge Button - Only show if module has refinery criteria */}
+                  {module.refineryCriteria && (
+                    <button 
+                      onClick={() => {
+                        setShowSuccessModal(false);
+                        setShowRefineryModal(true);
+                      }}
+                      className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 transform hover:scale-105"
+                    >
+                      <Sparkles className="w-5 h-5" />
+                      Enter The Refinery
+                      {refineryBest && (
+                        <span className="ml-2 px-2 py-1 bg-yellow-500/20 rounded text-xs">
+                          Best: {refineryBest.score}
+                        </span>
+                      )}
+                    </button>
+                  )}
                   <button onClick={() => {
                       if (onMarkComplete) {
                         onMarkComplete(code);
@@ -296,7 +364,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
                     }}
                     className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 transform hover:scale-105"
                   >Mine Next Vein <ChevronRight className="w-5 h-5" /></button>
-                  <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-xl">Polish This Gem</button>
+                  <button onClick={() => setShowSuccessModal(false)} className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-xl">Keep Coding</button>
                 </div>
               </div>
             </div>
@@ -529,6 +597,23 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
            </div>
          </div>
          </div>
+
+         {/* Refinery Modal */}
+         {showRefineryModal && (
+           <RefineryModal
+             module={module}
+             userCode={code}
+             courseId={courseId}
+             previousBest={refineryBest}
+             onClose={() => setShowRefineryModal(false)}
+             onAttempt={(result) => {
+               setRefineryBest(result);
+               // Save to localStorage
+               const key = `refinery_${courseId}_${module.id}`;
+               localStorage.setItem(key, JSON.stringify(result));
+             }}
+           />
+         )}
       </div>
     </div>
   );

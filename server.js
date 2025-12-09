@@ -1062,6 +1062,142 @@ app.post('/api/admin/courses/:courseId/reset-progress', verifySession, requireAd
   }
 });
 
+/**
+ * POST /api/admin/users/:userId/reset-progress
+ * Reset all progress for a specific user
+ */
+app.post('/api/admin/users/:userId/reset-progress', verifySession, requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await db.resetUserProgress(userId);
+    res.json({ success: true, message: `All progress reset for user ${userId}` });
+  } catch (error) {
+    console.error('Error resetting user progress:', error);
+    res.status(500).json({ error: 'Failed to reset user progress' });
+  }
+});
+
+/**
+ * POST /api/admin/users/:userId/reset-course/:courseId
+ * Reset progress for a specific user in a specific course
+ */
+app.post('/api/admin/users/:userId/reset-course/:courseId', verifySession, requireAdmin, async (req, res) => {
+  try {
+    const { userId, courseId } = req.params;
+    await db.resetUserCourseProgress(userId, courseId);
+    res.json({ success: true, message: `Progress reset for user ${userId} in course ${courseId}` });
+  } catch (error) {
+    console.error('Error resetting user course progress:', error);
+    res.status(500).json({ error: 'Failed to reset user course progress' });
+  }
+});
+
+// ============================================
+// GEM SYSTEM ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/user/gems
+ * Get current user's gem balance
+ */
+app.get('/api/user/gems', verifySession, async (req, res) => {
+  try {
+    const gems = await db.getUserGems(req.user.id);
+    res.json({ gems });
+  } catch (error) {
+    console.error('Error fetching gems:', error);
+    res.status(500).json({ error: 'Failed to fetch gems' });
+  }
+});
+
+/**
+ * POST /api/user/gems/award
+ * Award gems for completing a module (called by frontend)
+ */
+app.post('/api/user/gems/award', verifySession, async (req, res) => {
+  try {
+    const { amount, reason } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid gem amount' });
+    }
+    
+    await db.awardGems(req.user.id, amount, reason || 'module_completion');
+    const totalGems = await db.getUserGems(req.user.id);
+    
+    res.json({ success: true, gemsAwarded: amount, totalGems });
+  } catch (error) {
+    console.error('Error awarding gems:', error);
+    res.status(500).json({ error: 'Failed to award gems' });
+  }
+});
+
+// ============================================
+// REFINERY PROGRESS ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/user/refinery/:courseId/:moduleId
+ * Get refinery progress for a specific module
+ */
+app.get('/api/user/refinery/:courseId/:moduleId', verifySession, async (req, res) => {
+  try {
+    const { courseId, moduleId } = req.params;
+    const progress = await db.getRefineryProgress(req.user.id, courseId, moduleId);
+    res.json(progress || { best_score: 0, best_rank: null });
+  } catch (error) {
+    console.error('Error fetching refinery progress:', error);
+    res.status(500).json({ error: 'Failed to fetch refinery progress' });
+  }
+});
+
+/**
+ * POST /api/user/refinery/save
+ * Save refinery progress and award gems
+ */
+app.post('/api/user/refinery/save', verifySession, async (req, res) => {
+  try {
+    const { courseId, moduleId, score, rank, metrics, gemsEarned } = req.body;
+    
+    if (!courseId || !moduleId || score === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const progress = await db.saveRefineryProgress(req.user.id, courseId, moduleId, {
+      score,
+      rank,
+      metrics,
+      gemsEarned: gemsEarned || 0
+    });
+    
+    const totalGems = await db.getUserGems(req.user.id);
+    
+    res.json({ 
+      success: true, 
+      progress,
+      totalGems,
+      gemsEarned: gemsEarned || 0
+    });
+  } catch (error) {
+    console.error('Error saving refinery progress:', error);
+    res.status(500).json({ error: 'Failed to save refinery progress' });
+  }
+});
+
+/**
+ * GET /api/user/refinery/all
+ * Get all refinery achievements for current user
+ */
+app.get('/api/user/refinery/all', verifySession, async (req, res) => {
+  try {
+    const progress = await db.getAllRefineryProgress(req.user.id);
+    res.json(progress);
+  } catch (error) {
+    console.error('Error fetching all refinery progress:', error);
+    res.status(500).json({ error: 'Failed to fetch refinery progress' });
+  }
+});
+
 // ============================================
 // DATABASE COURSE API (New - replaces file-based)
 // ============================================
