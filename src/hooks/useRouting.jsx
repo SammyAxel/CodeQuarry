@@ -99,6 +99,11 @@ export const useRouting = (courses) => {
     // Don't update URL during restoration
     if (isNavigatingRef.current) return;
     
+    // Don't interfere with public routes (user profiles, leaderboard)
+    if (location.pathname.startsWith('/user/') || location.pathname === '/leaderboard') {
+      return;
+    }
+    
     let expectedPath = '/';
     
     if (view === VIEWS.HOME) {

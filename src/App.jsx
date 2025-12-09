@@ -265,10 +265,19 @@ export default function App() {
     return <PublicProfilePage />;
   }
 
+  // Leaderboard is also public
+  if (location.pathname === '/leaderboard') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+        <Leaderboard />
+      </div>
+    );
+  }
+
   if (!currentUser) {
     if (showAuthPage === 'register') {
       // Update URL to /register
-      if (window.location.pathname !== '/register') {
+      if (location.pathname !== '/register' && !location.pathname.startsWith('/user/')) {
         window.history.pushState({}, '', '/register');
       }
       return (
@@ -281,8 +290,8 @@ export default function App() {
         />
       );
     }
-    // Update URL to /login
-    if (window.location.pathname !== '/login') {
+    // Update URL to /login (but not if we're on a public route)
+    if (location.pathname !== '/login' && !location.pathname.startsWith('/user/') && location.pathname !== '/leaderboard') {
       window.history.pushState({}, '', '/login');
     }
     return (
