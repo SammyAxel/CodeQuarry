@@ -31,6 +31,7 @@ export const UserProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminRole, setAdminRole] = useState(null);
   const [showAuthPage, setShowAuthPage] = useState('login'); // 'login' | 'register'
+  const [equippedCosmetics, setEquippedCosmetics] = useState({});
 
   /**
    * Initialize user session from stored token
@@ -50,6 +51,21 @@ export const UserProvider = ({ children }) => {
             steps: progress.progress.steps || [],
             completedModules: progress.completedModules || []
           });
+
+          // Load equipped cosmetics
+          try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('userToken');
+            const res = await fetch(`${API_URL}/api/user/cosmetics/equipped`, {
+              headers: token ? { 'x-user-token': token } : {}
+            });
+            if (res.ok) {
+              const cosmeticData = await res.json();
+              setEquippedCosmetics(cosmeticData.equipped || {});
+            }
+          } catch (err) {
+            console.log('Failed to load equipped cosmetics');
+          }
         }
       } catch (error) {
         console.log('Session expired or invalid');
@@ -233,6 +249,7 @@ export const UserProvider = ({ children }) => {
     adminRole,
     showAuthPage,
     setShowAuthPage,
+    equippedCosmetics,
     login,
     adminLogin,
     logout,

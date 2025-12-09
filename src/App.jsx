@@ -17,6 +17,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
+import CosmeticsShop from './components/CosmeticsShop';
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
@@ -333,6 +334,13 @@ export default function App() {
            </button>
            <div className="flex items-center gap-3">
              <button 
+               onClick={() => { navigateHome(); setCurrentPage('shop'); window.history.pushState({}, '', '/shop'); }}
+               className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'shop' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+               title="Cosmetics Shop"
+             >
+              🛒 Shop
+             </button>
+             <button 
                onClick={() => { navigateHome(); setCurrentPage('profile'); window.history.pushState({}, '', '/profile'); }}
                className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'profile' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
              >
@@ -354,6 +362,9 @@ export default function App() {
         )}
         {currentPage === 'profile' && view === VIEWS.HOME && (
           <ProfilePage onBack={() => setCurrentPage('home')} />
+        )}
+        {currentPage === 'shop' && view === VIEWS.HOME && (
+          <CosmeticsShop />
         )}
         {currentPage === 'users' && view === VIEWS.HOME && (
           <AdminUserManagement />

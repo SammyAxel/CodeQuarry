@@ -1,0 +1,442 @@
+/* Cosmetics Shop Styles */
+
+.cosmetics-shop {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  min-height: 100vh;
+}
+
+.cosmetics-shop.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c9d1d9;
+  font-size: 18px;
+}
+
+/* Header */
+.shop-header {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.shop-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.shop-title h1 {
+  color: #c9d1d9;
+  font-size: 32px;
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.gem-balance {
+  background: linear-gradient(135deg, #ff006e 0%, #ffbe0b 100%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(255, 0, 110, 0.3);
+}
+
+.message {
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: rgba(139, 148, 158, 0.1);
+  color: #c9d1d9;
+  border-left: 4px solid #58a6ff;
+  margin-top: 10px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Equipped Items Display */
+.equipped-display {
+  background: linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(121, 192, 255, 0.05) 100%);
+  border: 2px solid #58a6ff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.equipped-display h2 {
+  color: #c9d1d9;
+  font-size: 18px;
+  margin: 0 0 15px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.equipped-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.equipped-item {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-label {
+  color: #8b949e;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.item-name {
+  color: #c9d1d9;
+  font-size: 14px;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* Tabs */
+.shop-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tab {
+  padding: 12px 24px;
+  border: 2px solid #30363d;
+  background: #0d1117;
+  color: #8b949e;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+.tab.active {
+  background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%);
+  border-color: transparent;
+  color: #0d1117;
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+/* Grid */
+.cosmetics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+  .cosmetics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card */
+.cosmetic-card {
+  background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+  border: 2px solid #30363d;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.cosmetic-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--theme-color, #58a6ff), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cosmetic-card:hover {
+  border-color: #58a6ff;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(88, 166, 255, 0.2);
+}
+
+.cosmetic-card:hover::before {
+  opacity: 1;
+}
+
+/* Rarity styling */
+.cosmetic-card.rarity-default {
+  opacity: 0.7;
+}
+
+.cosmetic-card.rarity-ssr {
+  border-color: #ff006e;
+}
+
+.cosmetic-card.rarity-ssr:hover {
+  border-color: #ff006e;
+  box-shadow: 0 8px 24px rgba(255, 0, 110, 0.2);
+}
+
+.cosmetic-card.rarity-sr {
+  border-color: #ffbe0b;
+}
+
+.cosmetic-card.rarity-sr:hover {
+  border-color: #ffbe0b;
+  box-shadow: 0 8px 24px rgba(255, 190, 11, 0.2);
+}
+
+.cosmetic-card.rarity-r {
+  border-color: #79c0ff;
+}
+
+.cosmetic-card.rarity-r:hover {
+  border-color: #79c0ff;
+  box-shadow: 0 8px 24px rgba(121, 192, 255, 0.2);
+}
+
+.cosmetic-card.equipped {
+  border-color: #79c0ff;
+  background: linear-gradient(135deg, rgba(121, 192, 255, 0.1) 0%, rgba(88, 166, 255, 0.05) 100%);
+}
+
+/* Card Header */
+.cosmetic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.cosmetic-name-rarity h3 {
+  color: #c9d1d9;
+  font-size: 20px;
+  margin: 0 0 8px 0;
+}
+
+.rarity-badge {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.equipped-badge {
+  background: linear-gradient(135deg, #79c0ff 0%, #58a6ff 100%);
+  color: #0d1117;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* Description */
+.cosmetic-description {
+  color: #8b949e;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  flex-grow: 1;
+}
+
+/* Preview */
+.cosmetic-preview {
+  background: #0d1117;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.theme-preview {
+  background: #1e2139;
+  padding: 12px;
+  border-radius: 6px;
+  color: #c9d1d9;
+  line-height: 1.6;
+  font-size: 11px;
+}
+
+.theme-preview div {
+  font-family: 'Courier New', monospace;
+}
+
+.title-preview {
+  color: #c9d1d9;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  padding: 12px;
+}
+
+.color-preview {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  padding: 12px;
+}
+
+/* Footer */
+.cosmetic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.gem-cost {
+  color: #ffbe0b;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.free-badge {
+  color: #79c0ff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Buttons */
+.purchase-btn,
+.equip-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.purchase-btn {
+  background: linear-gradient(135deg, #ff006e 0%, #ff3d6f 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 0, 110, 0.3);
+}
+
+.purchase-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 0, 110, 0.4);
+}
+
+.purchase-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.equip-btn {
+  background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%);
+  color: #0d1117;
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+}
+
+.equip-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(88, 166, 255, 0.4);
+}
+
+.equip-btn.equipped {
+  background: linear-gradient(135deg, #79c0ff 0%, #a5d6ff 100%);
+  opacity: 0.8;
+}
+
+.equip-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Equip Buttons Container */
+.equip-buttons {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.equip-buttons .equip-btn {
+  flex: 1;
+  margin: 0;
+}
+
+.unequip-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.unequip-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 68, 68, 0.4);
+}
+
+.unequip-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.cosmetic-card.equipped {
+  animation: pulse 2s ease-in-out infinite;
+}

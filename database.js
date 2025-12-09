@@ -134,6 +134,29 @@ const initDatabase = async () => {
       )
     `);
 
+    // Cosmetics inventory table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cosmetics_inventory (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        cosmetic_id TEXT NOT NULL,
+        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, cosmetic_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // User cosmetics preferences (equipped items)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_cosmetics (
+        user_id INTEGER PRIMARY KEY,
+        equipped_theme TEXT,
+        equipped_title TEXT,
+        equipped_name_color TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     // Courses table - stores full course data as JSONB
     await client.query(`
       CREATE TABLE IF NOT EXISTS courses (
@@ -549,9 +572,11 @@ export const changePassword = async (userId, newPassword) => {
  */
 export const getAllUsers = async () => {
   const result = await pool.query(
-    `SELECT id, username, email, display_name, avatar_url, role, created_at, last_login_at, updated_at
-     FROM users
-     ORDER BY created_at DESC`
+    `SELECT u.id, u.username, u.email, u.display_name, u.avatar_url, u.role, u.created_at, u.last_login_at, u.updated_at,
+            COALESCE(s.total_gems, 0) as total_gems
+     FROM users u
+     LEFT JOIN user_stats s ON u.id = s.user_id
+     ORDER BY u.created_at DESC`
   );
   return result.rows;
 };
@@ -1189,6 +1214,86 @@ export const getAllRefineryProgress = async (userId) => {
 };
 
 // ============================================
+// COSMETICS SYSTEM
+// ============================================
+
+/**
+ * Purchase a cosmetic item
+ * @param {number} userId 
+ * @param {string} cosmeticId 
+ */
+export const purchaseCosmetic = async (userId, cosmeticId) => {
+  const result = await pool.query(
+    `INSERT INTO cosmetics_inventory (user_id, cosmetic_id)
+     VALUES ($1, $2)
+     ON CONFLICT (user_id, cosmetic_id) DO NOTHING
+     RETURNING *`,
+    [userId, cosmeticId]
+  );
+  return result.rows[0];
+};
+
+/**
+ * Get user's owned cosmetics
+ * @param {number} userId 
+ */
+export const getUserCosmetics = async (userId) => {
+  const result = await pool.query(
+    `SELECT cosmetic_id FROM cosmetics_inventory WHERE user_id = $1`,
+    [userId]
+  );
+  return result.rows.map(r => r.cosmetic_id);
+};
+
+/**
+ * Equip a cosmetic item
+ * @param {number} userId 
+ * @param {string} type - 'theme', 'title', or 'name_color'
+ * @param {string} cosmeticId 
+ */
+export const equipCosmetic = async (userId, type, cosmeticId) => {
+  const columnName = `equipped_${type}`;
+  const result = await pool.query(
+    `INSERT INTO user_cosmetics (user_id, ${columnName})
+     VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET
+       ${columnName} = $2
+     RETURNING *`,
+    [userId, cosmeticId]
+  );
+  return result.rows[0];
+};
+
+/**
+ * Set user gems to a specific amount (admin function)
+ * @param {number} userId 
+ * @param {number} amount 
+ */
+export const setUserGems = async (userId, amount) => {
+  const result = await pool.query(
+    `INSERT INTO user_stats (user_id, total_gems)
+     VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET
+       total_gems = $2
+     RETURNING total_gems`,
+    [userId, Math.max(0, amount)]
+  );
+  return result.rows[0]?.total_gems || 0;
+};
+
+/**
+ * Get user's equipped cosmetics
+ * @param {number} userId 
+ */
+export const getEquippedCosmetics = async (userId) => {
+  const result = await pool.query(
+    `SELECT equipped_theme, equipped_title, equipped_name_color FROM user_cosmetics WHERE user_id = $1`,
+    [userId]
+  );
+  return result.rows[0] || { equipped_theme: null, equipped_title: null, equipped_name_color: null };
+};
+
+// ============================================
 // COURSE MANAGEMENT
 // ============================================
 
@@ -1362,6 +1467,15 @@ export default {
   getRefineryProgress,
   getAllRefineryProgress,
   
+  // Cosmetics system
+  purchaseCosmetic,
+  getUserCosmetics,
+  equipCosmetic,
+  getEquippedCosmetics,
+  
+  // Admin gem management
+  setUserGems,
+
   // Pool for advanced queries
   pool
 };

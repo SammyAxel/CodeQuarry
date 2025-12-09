@@ -1,0 +1,240 @@
+/**
+ * Cosmetics Catalog - Editor Themes, Profile Items
+ */
+
+export const COSMETICS = {
+  // ============================================
+  // EDITOR THEMES (SSR - Super Super Rare)
+  // ============================================
+  themes: [
+    {
+      id: 'default',
+      name: 'Default',
+      description: 'The classic CodeQuarry theme',
+      rarity: 'default',
+      cost: 0,
+      colors: {
+        bg: '#0d1117',
+        text: '#c9d1d9',
+        keyword: '#ff7b72',
+        string: '#a5d6ff',
+        comment: '#8b949e',
+        number: '#79c0ff',
+        bracket: '#c9d1d9'
+      }
+    },
+    {
+      id: 'cyberpunk-neon',
+      name: 'Cyberpunk Neon',
+      description: 'Glowing text with dark purple background. Maximum vibes.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#0a0e27',
+        text: '#00ff88',
+        keyword: '#ff006e',
+        string: '#00f0ff',
+        comment: '#7209b7',
+        number: '#f72585',
+        bracket: '#00ff88'
+      },
+      editorStyles: {
+        textShadow: '0 0 10px rgba(0, 255, 136, 0.5)',
+        letterSpacing: '0.5px'
+      }
+    },
+    {
+      id: 'retro-terminal',
+      name: 'Retro Terminal',
+      description: 'Green CRT monitor with flicker effect. Vintage computing vibes.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#1a1a1a',
+        text: '#00dd00',
+        keyword: '#00ff00',
+        string: '#00cc00',
+        comment: '#008800',
+        number: '#00ff00',
+        bracket: '#00dd00'
+      },
+      editorStyles: {
+        fontFamily: '"Courier New", monospace',
+        textShadow: '0 0 8px rgba(0, 221, 0, 0.8)',
+        animation: 'flicker 0.15s infinite'
+      }
+    },
+    {
+      id: 'synthwave',
+      name: 'Synthwave',
+      description: 'Neon pink and blue retro-futuristic aesthetic.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#0d0221',
+        text: '#ff006e',
+        keyword: '#ff006e',
+        string: '#00f5ff',
+        comment: '#8338ec',
+        number: '#ffbe0b',
+        bracket: '#00f5ff'
+      },
+      editorStyles: {
+        textShadow: '0 0 15px rgba(255, 0, 110, 0.6)',
+        letterSpacing: '1px'
+      }
+    },
+    {
+      id: 'dracula',
+      name: 'Dracula',
+      description: 'Dark elegant theme with vibrant colors.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#282a36',
+        text: '#f8f8f2',
+        keyword: '#ff79c6',
+        string: '#f1fa8c',
+        comment: '#6272a4',
+        number: '#bd93f9',
+        bracket: '#f8f8f2'
+      }
+    }
+  ],
+
+  // ============================================
+  // PROFILE TITLES (SR - Super Rare)
+  // ============================================
+  titles: [
+    {
+      id: 'null-pointer-survivor',
+      name: 'Null Pointer Survivor',
+      description: 'You survived the dreaded NullPointerException',
+      rarity: 'sr',
+      cost: 75,
+      display: '⚔️ Null Pointer Survivor'
+    },
+    {
+      id: 'recursion-king',
+      name: 'Recursion King',
+      description: 'Master of recursive algorithms',
+      rarity: 'sr',
+      cost: 75,
+      display: '👑 Recursion King'
+    },
+    {
+      id: 'o1-god',
+      name: 'O(1) God',
+      description: 'Your algorithms are optimized perfection',
+      rarity: 'sr',
+      cost: 75,
+      display: '⚡ O(1) God'
+    },
+    {
+      id: 'bug-buster',
+      name: 'Bug Buster',
+      description: 'Legendary debugger extraordinaire',
+      rarity: 'sr',
+      cost: 75,
+      display: '🔍 Bug Buster'
+    },
+    {
+      id: 'loop-master',
+      name: 'Loop Master',
+      description: 'Expert in control flow and iterations',
+      rarity: 'sr',
+      cost: 75,
+      display: '🔄 Loop Master'
+    },
+    {
+      id: 'array-architect',
+      name: 'Array Architect',
+      description: 'Builder of complex data structures',
+      rarity: 'sr',
+      cost: 75,
+      display: '🏗️ Array Architect'
+    }
+  ],
+
+  // ============================================
+  // NAME COLORS (R - Rare)
+  // ============================================
+  nameColors: [
+    {
+      id: 'gold',
+      name: 'Gold',
+      description: 'Prestigious golden glow',
+      rarity: 'r',
+      cost: 50,
+      color: '#ffd700',
+      textShadow: '0 0 10px rgba(255, 215, 0, 0.6)'
+    },
+    {
+      id: 'rainbow',
+      name: 'Rainbow',
+      description: 'Prismatic multi-color effect',
+      rarity: 'r',
+      cost: 50,
+      gradient: 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3)'
+    },
+    {
+      id: 'glitched',
+      name: 'Glitched',
+      description: 'Corrupted digital aesthetic',
+      rarity: 'r',
+      cost: 50,
+      color: '#00ff88',
+      textShadow: '2px 2px 0 #ff006e, -2px -2px 0 #00f5ff'
+    },
+    {
+      id: 'neon-pink',
+      name: 'Neon Pink',
+      description: 'Vibrant hot pink with glow',
+      rarity: 'r',
+      cost: 50,
+      color: '#ff006e',
+      textShadow: '0 0 10px rgba(255, 0, 110, 0.8)'
+    },
+    {
+      id: 'ice-blue',
+      name: 'Ice Blue',
+      description: 'Cool crystalline blue',
+      rarity: 'r',
+      cost: 50,
+      color: '#00f5ff',
+      textShadow: '0 0 10px rgba(0, 245, 255, 0.6)'
+    },
+    {
+      id: 'matrix-green',
+      name: 'Matrix Green',
+      description: 'That classic hacker aesthetic',
+      rarity: 'r',
+      cost: 50,
+      color: '#00dd00',
+      textShadow: '0 0 10px rgba(0, 221, 0, 0.8)'
+    }
+  ]
+};
+
+// Helper to get all cosmetics flattened
+export const getAllCosmetics = () => [
+  ...COSMETICS.themes,
+  ...COSMETICS.titles,
+  ...COSMETICS.nameColors
+];
+
+// Helper to get cosmetic by ID
+export const getCosmeticById = (id) => {
+  return getAllCosmetics().find(c => c.id === id);
+};
+
+// Helper to get rarity display
+export const getRarityInfo = (rarity) => {
+  const rarityMap = {
+    default: { emoji: '📦', color: '#8b949e', label: 'Default' },
+    ssr: { emoji: '⭐⭐⭐', color: '#ff006e', label: 'Super Super Rare' },
+    sr: { emoji: '⭐⭐', color: '#ffbe0b', label: 'Super Rare' },
+    r: { emoji: '⭐', color: '#79c0ff', label: 'Rare' }
+  };
+  return rarityMap[rarity] || rarityMap.default;
+};

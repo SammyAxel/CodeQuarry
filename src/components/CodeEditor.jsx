@@ -1,14 +1,122 @@
 import React, { useRef, useEffect } from 'react';
 import { highlightSyntax } from '../utils/SyntaxHighlighter';
+import { useUser } from '../context/UserContext';
+import { getCosmeticById } from '../data/cosmetics';
 
 export const CodeEditor = ({ code, setCode, language }) => {
   const lineNumbersRef = useRef(null);
   const editorRef = useRef(null);
   const highlightRef = useRef(null);
+  const styleRef = useRef(null);
+  
+  const { equippedCosmetics } = useUser();
 
   // Generate line numbers
   const lineCount = code ? code.split('\n').length : 1;
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
+
+  // Get the equipped theme colors
+  const getThemeColors = () => {
+    if (equippedCosmetics?.equipped_theme) {
+      const theme = getCosmeticById(equippedCosmetics.equipped_theme);
+      if (theme?.colors) {
+        return theme.colors;
+      }
+    }
+    // Default colors
+    return {
+      bg: '#0d1117',
+      text: '#c9d1d9',
+      keyword: '#ff7b72',
+      string: '#a5d6ff',
+      comment: '#8b949e',
+      number: '#79c0ff',
+      bracket: '#c9d1d9'
+    };
+  };
+
+  const themeColors = getThemeColors();
+
+  // Inject theme colors into a style tag
+  useEffect(() => {
+    if (!styleRef.current) {
+      styleRef.current = document.createElement('style');
+      document.head.appendChild(styleRef.current);
+    }
+
+    // Update the style tag with current theme colors
+    // Map highlight.js classes to theme colors
+    const css = `
+      .code-editor-wrapper {
+        background-color: ${themeColors.bg} !important;
+        color: ${themeColors.text} !important;
+      }
+      
+      /* Keywords - red/pink */
+      .code-editor-wrapper .hljs-keyword,
+      .code-editor-wrapper .hljs-selector-tag,
+      .code-editor-wrapper .hljs-literal,
+      .code-editor-wrapper .hljs-section,
+      .code-editor-wrapper .hljs-link {
+        color: ${themeColors.keyword} !important;
+      }
+      
+      /* Strings - blue/cyan */
+      .code-editor-wrapper .hljs-string,
+      .code-editor-wrapper .hljs-title,
+      .code-editor-wrapper .hljs-name,
+      .code-editor-wrapper .hljs-type,
+      .code-editor-wrapper .hljs-attr,
+      .code-editor-wrapper .hljs-variable,
+      .code-editor-wrapper .hljs-template-variable,
+      .code-editor-wrapper .hljs-class .hljs-title,
+      .code-editor-wrapper .hljs-class .hljs-inheritance > .hljs-parent {
+        color: ${themeColors.string} !important;
+      }
+      
+      /* Comments - gray */
+      .code-editor-wrapper .hljs-comment,
+      .code-editor-wrapper .hljs-quote {
+        color: ${themeColors.comment} !important;
+      }
+      
+      /* Numbers - light blue/yellow */
+      .code-editor-wrapper .hljs-number,
+      .code-editor-wrapper .hljs-literal,
+      .code-editor-wrapper .hljs-symbol,
+      .code-editor-wrapper .hljs-bullet {
+        color: ${themeColors.number} !important;
+      }
+      
+      /* Built-ins and functions */
+      .code-editor-wrapper .hljs-built_in,
+      .code-editor-wrapper .hljs-builtin-name,
+      .code-editor-wrapper .hljs-function {
+        color: ${themeColors.keyword} !important;
+      }
+      
+      /* Punctuation and brackets */
+      .code-editor-wrapper .hljs-punctuation,
+      .code-editor-wrapper .hljs-operator {
+        color: ${themeColors.bracket} !important;
+      }
+      
+      /* Meta and tags */
+      .code-editor-wrapper .hljs-meta,
+      .code-editor-wrapper .hljs-tag {
+        color: ${themeColors.bracket} !important;
+      }
+    `;
+    styleRef.current.textContent = css;
+
+    return () => {
+      // Cleanup on unmount
+      if (styleRef.current && styleRef.current.parentNode) {
+        styleRef.current.parentNode.removeChild(styleRef.current);
+        styleRef.current = null;
+      }
+    };
+  }, [themeColors]);
 
   const handleScroll = () => {
     if (editorRef.current && highlightRef.current && lineNumbersRef.current) {
@@ -183,12 +291,12 @@ export const CodeEditor = ({ code, setCode, language }) => {
   };
 
   return (
-    <div className="flex h-full w-full bg-[#0d1117] font-mono text-sm relative group overflow-hidden">
+    <div className="code-editor-wrapper flex h-full w-full font-mono text-sm relative group overflow-hidden" style={{ backgroundColor: themeColors.bg }}>
         {/* Line Numbers Gutter */}
         <div 
             ref={lineNumbersRef}
-            className="bg-[#0d1117] text-gray-600 text-right py-6 pl-3 pr-4 select-none border-r border-gray-800 w-16 flex-shrink-0 overflow-hidden"
-            style={{ lineHeight: '1.5rem' }} 
+            className="text-right py-6 pl-3 pr-4 select-none border-r border-gray-800 w-16 flex-shrink-0 overflow-hidden"
+            style={{ lineHeight: '1.5rem', backgroundColor: themeColors.bg, color: themeColors.comment }} 
         >
             {lineNumbers.map(num => <div key={num}>{num}</div>)}
         </div>

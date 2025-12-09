@@ -6,6 +6,8 @@ const AdminUserManagement = () => {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'admin', 'user'
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingGems, setEditingGems] = useState(null); // { userId, value }
+  const [gemInput, setGemInput] = useState('');
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -150,6 +152,45 @@ const AdminUserManagement = () => {
     }
   };
 
+  const handleEditGemsClick = (user) => {
+    setEditingGems({ userId: user.id, currentValue: user.total_gems || 0 });
+    setGemInput((user.total_gems || 0).toString());
+  };
+
+  const handleSaveGems = async () => {
+    if (!editingGems) return;
+
+    const amount = parseInt(gemInput, 10);
+    if (isNaN(amount) || amount < 0) {
+      alert('❌ Please enter a valid non-negative number');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/api/admin/users/${editingGems.userId}/gems`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-token': token
+        },
+        body: JSON.stringify({ amount })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update gems');
+      }
+
+      alert(`✅ Updated gems to ${amount}`);
+      setEditingGems(null);
+      setGemInput('');
+      fetchUsers(); // Refresh the list
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesFilter = filter === 'all' || user.role === filter;
     const matchesSearch = 
@@ -286,6 +327,7 @@ const AdminUserManagement = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold">User</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Email</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Role</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold">💎 Gems</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Joined</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold">Last Login</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
@@ -324,6 +366,42 @@ const AdminUserManagement = () => {
                       }`}>
                         {user.role === 'admin' ? '👑 Admin' : '👤 User'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {editingGems?.userId === user.id ? (
+                        <div className="flex gap-2 items-center justify-center">
+                          <input
+                            type="number"
+                            min="0"
+                            value={gemInput}
+                            onChange={(e) => setGemInput(e.target.value)}
+                            className="w-20 px-2 py-1 bg-white/20 border border-white/30 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveGems}
+                            className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs transition"
+                            title="Save gems"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => setEditingGems(null)}
+                            className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition"
+                            title="Cancel"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleEditGemsClick(user)}
+                          className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 rounded text-sm transition font-semibold"
+                          title="Edit gems"
+                        >
+                          💎 {user.total_gems || 0}
+                        </button>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-300">
                       {formatDate(user.created_at)}
