@@ -17,9 +17,13 @@ export const ProfilePage = ({ onBack }) => {
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [bio, setBio] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isEditingBio, setIsEditingBio] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [bioSaving, setBioSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
+  const [bioMessage, setBioMessage] = useState(null);
   
   // Password changing
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -39,6 +43,7 @@ export const ProfilePage = ({ onBack }) => {
         setDisplayName(data.user.displayName || data.user.username);
         setAvatarUrl(data.user.avatarUrl || '');
         setAvatarPreview(data.user.avatarUrl || null);
+        setBio(data.user.bio || '');
       } catch (err) {
         console.error('Failed to load user data:', err);
       } finally {
@@ -127,6 +132,46 @@ export const ProfilePage = ({ onBack }) => {
       setPasswordMessage({ type: 'error', text: err.message || 'Failed to change password' });
     } finally {
       setPasswordSaving(false);
+    }
+  };
+
+  const handleSaveBio = async () => {
+    if (bio.length > 500) {
+      setBioMessage({ type: 'error', text: 'Bio must be 500 characters or less' });
+      return;
+    }
+
+    setBioSaving(true);
+    setBioMessage(null);
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('userToken');
+      
+      const response = await fetch(`${API_URL}/api/user/bio`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-token': token
+        },
+        body: JSON.stringify({ bio })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update bio');
+      }
+
+      setUserData(prev => ({ 
+        ...prev, 
+        user: { ...prev.user, bio } 
+      }));
+      setIsEditingBio(false);
+      setBioMessage({ type: 'success', text: 'Bio updated successfully!' });
+    } catch (err) {
+      setBioMessage({ type: 'error', text: err.message || 'Failed to update bio' });
+    } finally {
+      setBioSaving(false);
     }
   };
 
@@ -290,6 +335,71 @@ export const ProfilePage = ({ onBack }) => {
                 }) : 'Unknown'}
               </span>
             </div>
+
+            {/* Bio */}
+            <div>
+              <label className="text-sm text-gray-400 mb-2 flex items-center gap-2">
+                💬 Bio
+              </label>
+              {isEditingBio ? (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value.slice(0, 500))}
+                    placeholder="Tell us about yourself (max 500 characters)"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 focus:border-purple-500 rounded-lg text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all resize-none h-24"
+                  />
+                  <div className="text-xs text-gray-500">{bio.length}/500</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveBio}
+                      disabled={bioSaving}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {bioSaving ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingBio(false);
+                        setBio(user?.bio || '');
+                      }}
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between">
+                  <span className="text-white whitespace-pre-wrap break-words">
+                    {bio || <span className="text-gray-500 italic">No bio yet...</span>}
+                  </span>
+                  <button
+                    onClick={() => setIsEditingBio(true)}
+                    className="text-sm text-purple-400 hover:text-purple-300 transition-colors ml-2 flex-shrink-0"
+                  >
+                    {t('profile.edit')}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Bio Message */}
+            {bioMessage && (
+              <div className={`p-3 rounded-lg flex items-center gap-2 ${
+                bioMessage.type === 'success' 
+                  ? 'bg-emerald-900/30 border border-emerald-500/50 text-emerald-400'
+                  : 'bg-red-900/30 border border-red-500/50 text-red-400'
+              }`}>
+                {bioMessage.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                {bioMessage.text}
+              </div>
+            )}
 
             {/* Profile Message */}
             {profileMessage && (
