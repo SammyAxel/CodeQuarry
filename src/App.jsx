@@ -18,6 +18,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import CosmeticsShop from './components/CosmeticsShop';
+import Leaderboard from './components/Leaderboard';
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
@@ -334,6 +335,13 @@ export default function App() {
            </button>
            <div className="flex items-center gap-3">
              <button 
+               onClick={() => { navigateHome(); setCurrentPage('leaderboard'); window.history.pushState({}, '', '/leaderboard'); }}
+               className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'leaderboard' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
+               title="Leaderboard"
+             >
+              🏆 Leaderboard
+             </button>
+             <button 
                onClick={() => { navigateHome(); setCurrentPage('shop'); window.history.pushState({}, '', '/shop'); }}
                className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'shop' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
                title="Cosmetics Shop"
@@ -365,6 +373,9 @@ export default function App() {
         )}
         {currentPage === 'shop' && view === VIEWS.HOME && (
           <CosmeticsShop />
+        )}
+        {currentPage === 'leaderboard' && view === VIEWS.HOME && (
+          <Leaderboard />
         )}
         {currentPage === 'users' && view === VIEWS.HOME && (
           <AdminUserManagement />

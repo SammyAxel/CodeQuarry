@@ -145,6 +145,36 @@ router.patch('/users/:userId/gems', verifyUserSession, async (req, res) => {
 });
 
 /**
+ * PATCH /api/admin/users/:userId/custom-role
+ * Set custom role for a user (admin only)
+ */
+router.patch('/users/:userId/custom-role', verifyUserSession, async (req, res) => {
+  try {
+    const fullUser = await db.getUserById(req.user.id);
+    if (fullUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { userId } = req.params;
+    const { customRole } = req.body;
+
+    if (customRole && customRole.length > 50) {
+      return res.status(400).json({ error: 'Custom role must be 50 characters or less' });
+    }
+
+    await db.updateUserCustomRole(userId, customRole || null);
+    res.json({ 
+      success: true, 
+      message: `Updated custom role for user ${userId}`,
+      customRole 
+    });
+  } catch (error) {
+    console.error('Error updating custom role:', error);
+    res.status(500).json({ error: 'Failed to update custom role' });
+  }
+});
+
+/**
  * POST /api/admin/courses/:courseId/reset-progress
  * Reset all student progress for a course (use when updating course structure)
  */

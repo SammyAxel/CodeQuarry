@@ -28,6 +28,7 @@ import progressRoutes from './routes/progress.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import translationsRoutes from './routes/translations.routes.js';
 import compileRoutes from './routes/compile.routes.js';
+import leaderboardRoutes from './routes/leaderboard.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,6 +61,7 @@ app.use('/api/user/cosmetics', cosmeticsRoutes); // User cosmetics operations
 app.use('/api/cosmetics', cosmeticsRoutes); // Public shop endpoint
 app.use('/api/admin', adminRoutes);
 app.use('/api/translations', translationsRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api', compileRoutes); // Compile endpoints at root level
 
 // Start server (database initializes on import)

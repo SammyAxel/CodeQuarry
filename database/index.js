@@ -36,12 +36,22 @@ const initDatabase = async () => {
         password_hash TEXT NOT NULL,
         display_name TEXT,
         avatar_url TEXT,
+        bio TEXT,
         role TEXT DEFAULT 'user',
+        custom_role VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login_at TIMESTAMP,
         is_active BOOLEAN DEFAULT true
       )
+    `);
+    
+    // Add bio, custom_role, and total_gems columns if they don't exist (migration)
+    await client.query(`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS bio TEXT,
+      ADD COLUMN IF NOT EXISTS custom_role VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS total_gems INTEGER DEFAULT 0
     `);
 
     // User sessions table

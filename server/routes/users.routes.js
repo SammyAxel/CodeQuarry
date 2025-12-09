@@ -322,4 +322,44 @@ router.get('/refinery/all', verifyUserSession, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/user/profile/:userId
+ * Get public user profile
+ */
+router.get('/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const profile = await db.getUserProfile(userId);
+    
+    if (!profile) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json(profile);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
+/**
+ * PUT /api/user/bio
+ * Update user bio
+ */
+router.put('/bio', verifyUserSession, async (req, res) => {
+  try {
+    const { bio } = req.body;
+    
+    if (bio && bio.length > 500) {
+      return res.status(400).json({ error: 'Bio must be 500 characters or less' });
+    }
+    
+    await db.updateUserBio(req.user.id, bio || '');
+    res.json({ success: true, bio });
+  } catch (error) {
+    console.error('Error updating bio:', error);
+    res.status(500).json({ error: 'Failed to update bio' });
+  }
+});
+
 export default router;

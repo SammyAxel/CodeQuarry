@@ -10,12 +10,21 @@ import { logActivity } from './Progress.js';
  * Award gems to a user
  */
 export const awardGems = async (userId, amount, reason = 'reward') => {
+  // Update user_stats
   await pool.query(
     `INSERT INTO user_stats (user_id, total_gems) 
      VALUES ($1, $2) 
      ON CONFLICT (user_id) DO UPDATE SET 
        total_gems = user_stats.total_gems + $2`,
     [userId, amount]
+  );
+  
+  // Sync to users table
+  await pool.query(
+    `UPDATE users SET total_gems = (
+      SELECT total_gems FROM user_stats WHERE user_id = $1
+     ) WHERE id = $1`,
+    [userId]
   );
   
   await logActivity(userId, 'gems_earned', null, null);
@@ -44,6 +53,15 @@ export const deductGems = async (userId, amount) => {
      RETURNING total_gems`,
     [userId, amount]
   );
+  
+  // Sync to users table
+  await pool.query(
+    `UPDATE users SET total_gems = (
+      SELECT total_gems FROM user_stats WHERE user_id = $1
+     ) WHERE id = $1`,
+    [userId]
+  );
+  
   return result.rows[0]?.total_gems || 0;
 };
 
@@ -59,6 +77,13 @@ export const setUserGems = async (userId, amount) => {
      RETURNING total_gems`,
     [userId, Math.max(0, amount)]
   );
+  
+  // Sync to users table
+  await pool.query(
+    `UPDATE users SET total_gems = $1 WHERE id = $2`,
+    [Math.max(0, amount), userId]
+  );
+  
   return result.rows[0]?.total_gems || 0;
 };
 

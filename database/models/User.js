@@ -171,3 +171,123 @@ export const cleanupExpiredSessions = async () => {
   const result = await pool.query("DELETE FROM user_sessions WHERE expires_at < NOW()");
   return result.rowCount;
 };
+
+/**
+ * Get leaderboard rankings (excludes admins and mods)
+ */
+export const getLeaderboard = async (orderBy = 'total_gems') => {
+  const result = await pool.query(
+    `SELECT 
+      u.id, 
+      u.username, 
+      u.display_name, 
+      u.avatar_url,
+      u.custom_role,
+      u.total_gems,
+      COALESCE(COUNT(DISTINCT mp.module_id) FILTER (WHERE mp.completed_at IS NOT NULL), 0) as completed_modules,
+      COALESCE((SELECT COUNT(DISTINCT course_id) 
+                FROM module_progress 
+                WHERE user_id = u.id 
+                AND completed_at IS NOT NULL
+                GROUP BY course_id
+                HAVING COUNT(DISTINCT module_id) >= 3), 0) as completed_courses
+     FROM users u
+     LEFT JOIN module_progress mp ON u.id = mp.user_id
+     WHERE u.role = 'user'
+     GROUP BY u.id
+     ORDER BY ${orderBy} DESC
+     LIMIT 100`,
+    []
+  );
+  
+  return result.rows.map((row, index) => ({
+    rank: index + 1,
+    userId: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    customRole: row.custom_role,
+    gems: parseInt(row.total_gems || 0),
+    modulesCompleted: parseInt(row.completed_modules),
+    coursesCompleted: parseInt(row.completed_courses)
+  }));
+};
+
+/**
+ * Get public user profile
+ */
+export const getUserProfile = async (userId) => {
+  const result = await pool.query(
+    `SELECT 
+      u.id, 
+      u.username, 
+      u.display_name, 
+      u.avatar_url,
+      u.bio,
+      u.role,
+      u.custom_role,
+      u.total_gems,
+      u.created_at,
+      u.last_login_at,
+      COALESCE(COUNT(DISTINCT mp.module_id) FILTER (WHERE mp.completed_at IS NOT NULL), 0) as completed_modules
+     FROM users u
+     LEFT JOIN module_progress mp ON u.id = mp.user_id
+     WHERE u.id = $1
+     GROUP BY u.id`,
+    [userId]
+  );
+  
+  if (!result.rows[0]) return null;
+  
+  const row = result.rows[0];
+  
+  // Count completed courses (courses with at least 3 completed modules)
+  const coursesResult = await pool.query(
+    `SELECT COUNT(DISTINCT course_id) as count
+     FROM (
+       SELECT course_id, COUNT(DISTINCT module_id) as module_count
+       FROM module_progress
+       WHERE user_id = $1 AND completed_at IS NOT NULL
+       GROUP BY course_id
+       HAVING COUNT(DISTINCT module_id) >= 3
+     ) as completed`,
+    [userId]
+  );
+  
+  return {
+    userId: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    bio: row.bio,
+    role: row.role,
+    customRole: row.custom_role,
+    gems: parseInt(row.total_gems || 0),
+    modulesCompleted: parseInt(row.completed_modules),
+    coursesCompleted: parseInt(coursesResult.rows[0]?.count || 0),
+    joinedAt: row.created_at,
+    lastActive: row.last_login_at
+  };
+};
+
+/**
+ * Update user bio
+ */
+export const updateUserBio = async (userId, bio) => {
+  const result = await pool.query(
+    'UPDATE users SET bio = $1 WHERE id = $2 RETURNING bio',
+    [bio, userId]
+  );
+  return result.rows[0];
+};
+
+/**
+ * Update user custom role (admin only)
+ */
+export const updateUserCustomRole = async (userId, customRole) => {
+  const result = await pool.query(
+    'UPDATE users SET custom_role = $1 WHERE id = $2 RETURNING custom_role',
+    [customRole, userId]
+  );
+  return result.rows[0];
+};

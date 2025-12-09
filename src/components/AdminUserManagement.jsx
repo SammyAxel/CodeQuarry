@@ -10,6 +10,8 @@ const AdminUserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null); // User detail modal
   const [editingGems, setEditingGems] = useState(false);
   const [gemInput, setGemInput] = useState('');
+  const [editingCustomRole, setEditingCustomRole] = useState(false);
+  const [customRoleInput, setCustomRoleInput] = useState('');
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -187,6 +189,46 @@ const AdminUserManagement = () => {
       setEditingGems(false);
       setGemInput('');
       setSelectedUser({ ...selectedUser, total_gems: amount });
+      fetchUsers(); // Refresh the list
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`);
+    }
+  };
+
+  const handleEditCustomRoleClick = () => {
+    setEditingCustomRole(true);
+    setCustomRoleInput(selectedUser.custom_role || '');
+  };
+
+  const handleSaveCustomRole = async () => {
+    if (!selectedUser) return;
+
+    const customRole = customRoleInput.trim();
+    if (customRole.length > 50) {
+      alert('❌ Custom role must be 50 characters or less');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}/custom-role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-token': token
+        },
+        body: JSON.stringify({ customRole: customRole || null })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update custom role');
+      }
+
+      alert(`✅ Updated custom role`);
+      setEditingCustomRole(false);
+      setCustomRoleInput('');
+      setSelectedUser({ ...selectedUser, custom_role: customRole });
       fetchUsers(); // Refresh the list
     } catch (err) {
       alert(`❌ Error: ${err.message}`);
@@ -546,6 +588,57 @@ const AdminUserManagement = () => {
                       <Gem className="w-5 h-5" />
                       {selectedUser.total_gems || 0}
                       <Settings className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="bg-white/5 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-gray-400 mb-2">
+                    <Crown className="w-4 h-4" />
+                    <span className="text-sm">Custom Role</span>
+                  </div>
+                  {editingCustomRole ? (
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        maxLength="50"
+                        value={customRoleInput}
+                        onChange={(e) => setCustomRoleInput(e.target.value)}
+                        placeholder="e.g., QUARRY LORD"
+                        className="flex-1 px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleSaveCustomRole}
+                        className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold transition"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingCustomRole(false)}
+                        className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm font-semibold transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleEditCustomRoleClick}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-semibold transition group"
+                    >
+                      {selectedUser.custom_role ? (
+                        <>
+                          <span className="bg-gradient-to-r from-yellow-400 to-purple-400 bg-clip-text text-transparent font-bold">
+                            {selectedUser.custom_role}
+                          </span>
+                          <Settings className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" />
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-white/60">No custom role</span>
+                          <Settings className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" />
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
