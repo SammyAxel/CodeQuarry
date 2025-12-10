@@ -128,7 +128,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
                 setError('');
               }} 
               placeholder={t('auth.username')} 
-              className="w-full px-5 py-4 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-center text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
+              className="w-full px-5 py-4 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-left text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
               autoComplete="username"
             />
           </div>
@@ -142,7 +142,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
                 setError('');
               }} 
               placeholder={t('auth.password')} 
-              className="w-full px-5 py-4 pr-12 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-center text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
+              className="w-full px-5 py-4 pr-12 text-purple-300 placeholder-gray-600 bg-[#161b22] border border-gray-700 hover:border-purple-500/50 focus:border-purple-500 rounded-xl text-left text-lg font-medium focus:ring-2 focus:ring-purple-500/50 outline-none transition-all duration-300 backdrop-blur-sm" 
               autoComplete="current-password"
             />
             <button

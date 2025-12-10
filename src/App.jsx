@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
   Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages
@@ -16,11 +16,13 @@ import HomePage from './pages/HomePage';
 import { SyllabusPage } from './pages/SyllabusPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ProfilePage } from './pages/ProfilePage';
-import CosmeticsShop from './components/CosmeticsShop';
-import Leaderboard from './components/Leaderboard';
-import PublicProfilePage from './pages/PublicProfilePage';
+
+// Lazy load non-critical pages
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const CosmeticsShop = lazy(() => import('./components/CosmeticsShop'));
+const Leaderboard = lazy(() => import('./components/Leaderboard'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
@@ -262,15 +264,21 @@ export default function App() {
   // Public profile route - accessible without login
   const userProfileMatch = location.pathname.match(/^\/user\/(\d+)$/);
   if (userProfileMatch) {
-    return <PublicProfilePage />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#0d1117] flex items-center justify-center text-purple-400">Loading...</div>}>
+        <PublicProfilePage />
+      </Suspense>
+    );
   }
 
   // Leaderboard is also public
   if (location.pathname === '/leaderboard') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
-        <Leaderboard />
-      </div>
+      <Suspense fallback={<div className="min-h-screen bg-[#0d1117] flex items-center justify-center text-purple-400">Loading...</div>}>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+          <Leaderboard />
+        </div>
+      </Suspense>
     );
   }
 
@@ -381,20 +389,28 @@ export default function App() {
       
       <main>
         {currentPage === 'dashboard' && view === VIEWS.HOME && (
-          <DashboardPage 
-            courses={getMergedCourses()} 
-            onSelectCourse={(course) => { setCurrentPage('home'); navigateToSyllabus(course); }}
-            onBack={() => setCurrentPage('home')}
-          />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+            <DashboardPage 
+              courses={getMergedCourses()} 
+              onSelectCourse={(course) => { setCurrentPage('home'); navigateToSyllabus(course); }}
+              onBack={() => setCurrentPage('home')}
+            />
+          </Suspense>
         )}
         {currentPage === 'profile' && view === VIEWS.HOME && (
-          <ProfilePage onBack={() => setCurrentPage('home')} />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+            <ProfilePage onBack={() => setCurrentPage('home')} />
+          </Suspense>
         )}
         {currentPage === 'shop' && view === VIEWS.HOME && (
-          <CosmeticsShop />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+            <CosmeticsShop />
+          </Suspense>
         )}
         {currentPage === 'leaderboard' && view === VIEWS.HOME && (
-          <Leaderboard />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+            <Leaderboard />
+          </Suspense>
         )}
         {currentPage === 'users' && view === VIEWS.HOME && (
           <AdminUserManagement />
