@@ -1,0 +1,14 @@
+[env]
+# Environment variables
+  NODE_VERSION = "20"
+
+[build]
+# Build command
+command = "npm run build"
+# Output directory
+cwd = ""
+# Install command
+install_command = "npm ci"
+
+[env.production]
+  ENVIRONMENT = "production"

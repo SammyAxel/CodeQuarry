@@ -13,5 +13,31 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
+  },
+  build: {
+    // Optimize chunk sizes
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor code into separate chunks for better caching
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react'],
+        }
+      }
+    },
+    // Improved chunk size warnings
+    chunkSizeWarningLimit: 1000,
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
+  },
+  // Optimize CSS
+  css: {
+    postcss: './postcss.config.js'
   }
 })
