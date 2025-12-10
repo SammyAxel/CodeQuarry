@@ -78,7 +78,7 @@ export const RegisterPage = ({ onRegisterSuccess, onBackToLogin }) => {
   );
 
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] bg-[url('/noise.png')] p-4 relative overflow-hidden">
+    <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] p-4 relative overflow-hidden">
       {/* Animated background gradient */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-emerald-900/20 rounded-full blur-3xl animate-pulse" />

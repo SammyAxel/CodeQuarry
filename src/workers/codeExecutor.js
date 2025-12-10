@@ -61,6 +61,7 @@ const executeCode = (code, timeout = 5000) => {
     `;
 
     // Execute the code
+    // eslint-disable-next-line no-eval
     const fn = eval(wrappedCode);
     fn(safeConsole);
     
