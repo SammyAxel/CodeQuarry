@@ -18,17 +18,29 @@ export default defineConfig({
     // Optimize chunk sizes
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Split vendor code into separate chunks for better caching
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['lucide-react'],
+          if (id.includes('node_modules/react')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/react-router-dom')) {
+            return 'vendor-react-router';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-ui';
+          }
+          if (id.includes('node_modules')) {
+            return 'vendor-other';
+          }
         }
       }
     },
     // Improved chunk size warnings
     chunkSizeWarningLimit: 1000,
     // Use built-in minification (esbuild) instead of terser to avoid dependency issues
-    minify: 'esbuild'
+    minify: 'esbuild',
+    // Optimize how code is split
+    target: 'es2020'
   },
   // Optimize CSS
   css: {
