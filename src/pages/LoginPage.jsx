@@ -120,7 +120,9 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
+            <label htmlFor="username-input" className="sr-only">Username or Email</label>
             <input 
+              id="username-input"
               type="text" 
               value={identifier} 
               onChange={(e) => {
@@ -134,7 +136,9 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
           </div>
           
           <div className="relative">
+            <label htmlFor="password-input" className="sr-only">Password</label>
             <input 
+              id="password-input"
               type={showPassword ? 'text' : 'password'}
               value={password} 
               onChange={(e) => {
@@ -149,13 +153,15 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              title={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
           
           {error && (
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-red-400 text-sm" role="alert">{error}</p>
           )}
           
           <button 
@@ -221,7 +227,9 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
 
             <form onSubmit={handleAdminSubmit} className="space-y-4">
               <div>
+                <label htmlFor="admin-password-input" className="sr-only">Admin Password</label>
                 <input
+                  id="admin-password-input"
                   type="password"
                   value={adminPassword}
                   onChange={(e) => {
@@ -235,7 +243,7 @@ export const LoginPage = ({ onLogin, onAdminLogin, onShowRegister }) => {
               </div>
 
               {adminError && (
-                <p className="text-red-400 text-sm text-center">{adminError}</p>
+                <p className="text-red-400 text-sm text-center" role="alert">{adminError}</p>
               )}
 
               <div className="flex gap-2">

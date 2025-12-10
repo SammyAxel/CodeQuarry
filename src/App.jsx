@@ -323,8 +323,8 @@ export default function App() {
       </div>
 
       <div className="relative z-10">
-      <nav className="h-16 border-b border-gray-800 bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-40 px-6 flex items-center justify-between">
-         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { navigateHome(); setCurrentPage('home'); window.history.pushState({}, '', '/'); }}><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
+      <nav className="h-16 border-b border-gray-800 bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-40 px-6 flex items-center justify-between" role="navigation" aria-label="Main navigation">
+         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { navigateHome(); setCurrentPage('home'); window.history.pushState({}, '', '/'); }} role="button" tabIndex="0" onKeyDown={(e) => e.key === 'Enter' && (navigateHome(), setCurrentPage('home'), window.history.pushState({}, '', '/'))} aria-label="CodeQuarry Home"><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
          <div className="flex items-center gap-6">
            {view === VIEWS.LEARNING && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> {t('map.title')}</button>}
            <button 
@@ -356,6 +356,7 @@ export default function App() {
              onClick={toggleLanguage}
              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors text-sm font-bold"
              title={language === 'en' ? 'Switch to Indonesian' : 'Ganti ke Bahasa Inggris'}
+             aria-label={language === 'en' ? 'Switch to Indonesian' : 'Switch to English'}
            >
              <Languages className="w-4 h-4" />
              {language === 'en' ? 'ID' : 'EN'}
@@ -382,7 +383,7 @@ export default function App() {
                <User className="w-4 h-4" />
                {currentUser?.displayName || currentUser?.username || 'User'}
              </button>
-             <button onClick={handleLogout} className="p-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors" title={t('nav.logout')}><LogOut className="w-4 h-4" /></button>
+             <button onClick={handleLogout} className="p-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors" title={t('nav.logout')} aria-label="Logout"><LogOut className="w-4 h-4" /></button>
            </div>
          </div>
       </nav>
