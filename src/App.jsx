@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages
+  Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages, Users, Crown, Trophy, ShoppingCart
 } from 'lucide-react';
 
 import { COURSES, useCourses } from './data/courses';
@@ -181,7 +181,10 @@ export default function App() {
         <div className="flex items-center justify-between h-16 border-b border-gray-800 px-6 bg-gradient-to-r from-amber-950/50 to-yellow-950/30">
           <div className="flex items-center gap-2 font-black text-xl">
             <Gem className="w-6 h-6 text-yellow-500" />
-            {adminRole === 'admin' ? '👑 Admin Panel' : '🧌 Mod Panel'}
+            <div className="flex items-center gap-2">
+              {adminRole === 'admin' ? <Crown className="w-5 h-5 text-yellow-500" /> : <Crown className="w-5 h-5 text-purple-500" />}
+              <span>{adminRole === 'admin' ? 'Admin Panel' : 'Mod Panel'}</span>
+            </div>
           </div>
           <button
             onClick={() => {
@@ -323,69 +326,128 @@ export default function App() {
       </div>
 
       <div className="relative z-10">
-      <nav className="h-16 border-b border-gray-800 bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-40 px-6 flex items-center justify-between" role="navigation" aria-label="Main navigation">
-         <div className="flex items-center gap-2 font-black text-xl tracking-tight cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { navigateHome(); setCurrentPage('home'); window.history.pushState({}, '', '/'); }} role="button" tabIndex="0" onKeyDown={(e) => e.key === 'Enter' && (navigateHome(), setCurrentPage('home'), window.history.pushState({}, '', '/'))} aria-label="CodeQuarry Home"><Gem className="w-6 h-6 text-purple-500" /><span>CodeQuarry<span className="text-purple-500">.</span></span></div>
-         <div className="flex items-center gap-6">
-           {view === VIEWS.LEARNING && <button onClick={() => setIsMapOpen(true)} className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-white transition-colors"><MapIcon className="w-4 h-4" /> {t('map.title')}</button>}
-           <button 
-             onClick={() => { navigateHome(); setCurrentPage('dashboard'); window.history.pushState({}, '', '/dashboard'); }}
-             className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'dashboard' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
-           >
-             <BarChart3 className="w-4 h-4" /> {t('nav.dashboard')}
-           </button>
-           {/* Show admin features only if user has admin role in database */}
-           {currentUser?.role === 'admin' && (
-             <>
-               <button 
-                 onClick={() => { navigateHome(); setCurrentPage('users'); window.history.pushState({}, '', '/admin/users'); }}
-                 className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'users' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
-                 title="User Management"
-               >
-                 👥 Users
-               </button>
-               <button 
-                 onClick={handleEnterAdminMode}
-                 className="flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
-                 title="Enter Admin Mode"
-               >
-                 👑 Admin
-               </button>
-             </>
-           )}
-           <button
-             onClick={toggleLanguage}
-             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors text-sm font-bold"
-             title={language === 'en' ? 'Switch to Indonesian' : 'Ganti ke Bahasa Inggris'}
-             aria-label={language === 'en' ? 'Switch to Indonesian' : 'Switch to English'}
-           >
-             <Languages className="w-4 h-4" />
-             {language === 'en' ? 'ID' : 'EN'}
-           </button>
-           <div className="flex items-center gap-3">
-             <button 
-               onClick={() => { navigateHome(); setCurrentPage('leaderboard'); window.history.pushState({}, '', '/leaderboard'); }}
-               className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'leaderboard' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
-               title="Leaderboard"
-             >
-              🏆 Leaderboard
-             </button>
-             <button 
-               onClick={() => { navigateHome(); setCurrentPage('shop'); window.history.pushState({}, '', '/shop'); }}
-               className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'shop' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
-               title="Cosmetics Shop"
-             >
-              🛒 Shop
-             </button>
-             <button 
-               onClick={() => { navigateHome(); setCurrentPage('profile'); window.history.pushState({}, '', '/profile'); }}
-               className={`flex items-center gap-2 text-sm font-bold transition-colors ${currentPage === 'profile' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}
-             >
-               <User className="w-4 h-4" />
-               {currentUser?.displayName || currentUser?.username || 'User'}
-             </button>
-             <button onClick={handleLogout} className="p-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-colors" title={t('nav.logout')} aria-label="Logout"><LogOut className="w-4 h-4" /></button>
-           </div>
-         </div>
+      <nav className="h-20 border-b border-purple-500/20 bg-gradient-to-r from-[#0d1117] via-purple-950/20 to-[#0d1117] backdrop-blur-xl sticky top-0 z-40 px-8 flex items-center justify-between shadow-2xl shadow-black/50" role="navigation" aria-label="Main navigation">
+        
+        {/* Left: Logo and Brand */}
+        <div 
+          className="flex items-center gap-3 cursor-pointer group" 
+          onClick={() => { navigateHome(); setCurrentPage('home'); window.history.pushState({}, '', '/'); }} 
+          role="button" 
+          tabIndex="0" 
+          onKeyDown={(e) => e.key === 'Enter' && (navigateHome(), setCurrentPage('home'), window.history.pushState({}, '', '/'))}
+          aria-label="CodeQuarry Home"
+        >
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:shadow-purple-400/50 transition-shadow">
+            <Gem className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex flex-col">
+            <div className="font-black text-lg tracking-tight text-white group-hover:text-purple-300 transition-colors">CodeQuarry<span className="text-purple-400">.</span></div>
+            <div className="text-xs text-purple-300/60 font-semibold">Learn • Build • Master</div>
+          </div>
+        </div>
+
+        {/* Center: Navigation Links */}
+        <div className="flex items-center gap-2">
+          {view === VIEWS.LEARNING && (
+            <button 
+              onClick={() => setIsMapOpen(true)} 
+              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+              title="Course Map"
+            >
+              <MapIcon className="w-4 h-4" /> {t('map.title')}
+            </button>
+          )}
+          <button 
+            onClick={() => { navigateHome(); setCurrentPage('dashboard'); window.history.pushState({}, '', '/dashboard'); }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+              currentPage === 'dashboard' 
+                ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="Dashboard"
+          >
+            <BarChart3 className="w-4 h-4" /> {t('nav.dashboard')}
+          </button>
+          {/* Show admin features only if user has admin role in database */}
+          {currentUser?.role === 'admin' && (
+            <>
+              <button 
+                onClick={() => { navigateHome(); setCurrentPage('users'); window.history.pushState({}, '', '/admin/users'); }}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+                  currentPage === 'users' 
+                    ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+                title="User Management"
+              >
+                <Users className="w-4 h-4" /> Users
+              </button>
+              <button 
+                onClick={handleEnterAdminMode}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20 rounded-lg transition-all"
+                title="Enter Admin Mode"
+              >
+                <Crown className="w-4 h-4" /> Admin
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => { navigateHome(); setCurrentPage('leaderboard'); window.history.pushState({}, '', '/leaderboard'); }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+              currentPage === 'leaderboard' 
+                ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="Leaderboard"
+          >
+            <Trophy className="w-4 h-4" /> Leaderboard
+          </button>
+          <button 
+            onClick={() => { navigateHome(); setCurrentPage('shop'); window.history.pushState({}, '', '/shop'); }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+              currentPage === 'shop' 
+                ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="Cosmetics Shop"
+          >
+            <ShoppingCart className="w-4 h-4" /> Shop
+          </button>
+        </div>
+
+        {/* Right: Language, Profile, Logout */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 hover:text-white transition-all text-sm font-bold border border-gray-700/50 hover:border-purple-500/30"
+            title={language === 'en' ? 'Switch to Indonesian' : 'Switch to English'}
+            aria-label={language === 'en' ? 'Switch to Indonesian' : 'Switch to English'}
+          >
+            <Languages className="w-4 h-4" />
+            {language === 'en' ? 'ID' : 'EN'}
+          </button>
+          <div className="w-px h-6 bg-gray-700/50"></div>
+          <button 
+            onClick={() => { navigateHome(); setCurrentPage('profile'); window.history.pushState({}, '', '/profile'); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              currentPage === 'profile' 
+                ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="Profile"
+          >
+            <User className="w-4 h-4" />
+            <span className="max-w-[120px] truncate">{currentUser?.displayName || currentUser?.username || 'User'}</span>
+          </button>
+          <button 
+            onClick={handleLogout} 
+            className="p-2.5 rounded-lg bg-gray-800/50 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-all border border-gray-700/50 hover:border-red-600/50" 
+            title={t('nav.logout')}
+            aria-label="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </nav>
       
       <main>
@@ -440,7 +502,8 @@ export default function App() {
                 currentIndex: activeCourse.modules.findIndex(m => m.id === activeModule.id),
                 total: activeCourse.modules.length,
                 onNext: handleNextLesson,
-                onPrev: handlePrevLesson
+                onPrev: handlePrevLesson,
+                goBack: () => { setView(VIEWS.SYLLABUS); }
               };
               const type = activeModule.type || 'practice';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircle, ChevronLeft, CheckCircle2 } from 'lucide-react'; // <--- Added icons
+import { PlayCircle, ChevronLeft, CheckCircle2, Code2, Loader2, RefreshCw, Zap, AlertTriangle } from 'lucide-react';
 
 import NavigationControls from './NavControl.jsx'; // <--- Import the component!
 
@@ -10,27 +10,58 @@ import NavigationControls from './NavControl.jsx'; // <--- Import the component!
 export const VideoEssay = ({ module, navProps, onMarkComplete, isCompleted }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-[#050505] overflow-y-auto">
-      {/* Header */}
-      <div className="h-16 border-b border-gray-800 flex items-center justify-between px-8 shrink-0 bg-[#0a0a0a]">
-        <div className="flex items-center gap-3">
+      {/* Professional Header */}
+      <div className="h-20 bg-gradient-to-r from-[#0d1117] via-purple-950/30 to-[#0d1117] backdrop-blur-md border-b border-purple-500/20 flex items-center justify-between px-8 shrink-0 shadow-lg shadow-black/50">
+        {/* Left: Back button and breadcrumb */}
+        <div className="flex items-center gap-4 flex-1">
           <button 
-            onClick={navProps.goBack} 
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
-            title="Back to Syllabus"
+            onClick={() => navProps.goBack?.()} 
+            className="p-2.5 text-gray-400 hover:text-white hover:bg-purple-900/30 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/20 group" 
+            title="Back to Course (Esc)"
+            aria-label="Go back to course"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </button>
-          <div className="p-2 bg-red-500/10 rounded-lg text-red-500">
-            <PlayCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-gray-200">Video Essay</h2>
-            <p className="text-xs text-gray-500">{module.title}</p>
+          
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/30">
+              <PlayCircle className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <div className="text-xs text-red-400/80 font-semibold uppercase tracking-widest">Video</div>
+              <div className="text-sm font-bold text-white">{module.title || 'Video Essay'}</div>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+
+        {/* Center: Module Info */}
+        <div className="flex items-center gap-4 text-sm">
+          {module.duration && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
+              <span className="text-gray-400">Duration:</span>
+              <span className="font-bold text-cyan-400">{module.duration}</span>
+            </div>
+          )}
+          
+          {module.difficulty && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-bold text-xs uppercase tracking-wider ${
+              module.difficulty === 'easy' ? 'bg-green-900/30 text-green-400 border-green-600/50' :
+              module.difficulty === 'medium' ? 'bg-yellow-900/30 text-yellow-400 border-yellow-600/50' :
+              'bg-red-900/30 text-red-400 border-red-600/50'
+            }`}>
+              {module.difficulty === 'easy' ? <Zap className="w-4 h-4" /> : module.difficulty === 'medium' ? <AlertTriangle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              {module.difficulty.charAt(0).toUpperCase() + module.difficulty.slice(1)}
+            </div>
+          )}
+        </div>
+
+        {/* Right: Status and Navigation */}
+        <div className="flex items-center gap-3 flex-1 justify-end">
           {isCompleted && (
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/50 px-3 py-1.5 rounded-full"><CheckCircle2 className="w-4 h-4" /> Completed</div>
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/30 px-4 py-2 rounded-lg border border-emerald-600/50 animate-pulse">
+              <CheckCircle2 className="w-4 h-4" /> Completed
+            </div>
           )}
           <NavigationControls {...navProps} dark />
         </div>

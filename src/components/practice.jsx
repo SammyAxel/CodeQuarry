@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Trophy, ChevronRight, ChevronLeft, PanelLeftOpen, Code2, RotateCcw,
   Play, PanelLeftClose, BookOpen, FileCode, AlertCircle, Gem, CheckCircle2,
-  Terminal, Map as MapIcon, Trash2, Loader2, RefreshCw, Lightbulb, Sparkles
+  Terminal, Map as MapIcon, Trash2, Loader2, RefreshCw, Lightbulb, Sparkles, Zap, AlertTriangle
 } from 'lucide-react'; 
 
 import NavigationControls from './NavControl'; 
@@ -330,7 +330,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
                 
                 {/* Gem Reward Display */}
                 <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/50 rounded-xl mb-6">
-                  <span className="text-3xl">💎</span>
+                  <Gem className="w-8 h-8 text-yellow-400" />
                   <div className="text-left">
                     <div className="text-2xl font-black text-yellow-400">+{module.gemReward || 10} Gems</div>
                     <div className="text-xs text-gray-300">Module Reward</div>
@@ -371,55 +371,82 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
           </div>
        )}
       
-       {/* Toolbar */}
-       <div className="h-16 bg-[#0d1117]/80 backdrop-blur-sm border-b border-white/5 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-3">
+       {/* Professional Header */}
+       <div className="h-20 bg-gradient-to-r from-[#0d1117] via-purple-950/30 to-[#0d1117] backdrop-blur-md border-b border-purple-500/20 flex items-center justify-between px-8 shrink-0 shadow-lg shadow-black/50">
+        {/* Left: Back button and breadcrumb */}
+        <div className="flex items-center gap-4 flex-1">
            <button 
-             onClick={navProps.goBack} 
-             className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
-             title="Back to Syllabus (Esc)"
+             onClick={() => navProps.goBack?.()} 
+             className="p-2.5 text-gray-400 hover:text-white hover:bg-purple-900/30 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/20 group" 
+             title="Back to Course (Esc)"
+             aria-label="Go back to course"
            >
-             <ChevronLeft className="w-5 h-5" />
+             <ChevronLeft className="w-5 h-5 group-hover:scale-110 transition-transform" />
            </button>
-           <div className="w-8 h-8 rounded-lg bg-purple-900/50 flex items-center justify-center text-purple-300 ring-1 ring-inset ring-purple-500/20">
-              <Gem className="w-4 h-4" />
-           </div>
-           <div>
-             <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Editor</div>
-             <div className="text-sm font-mono text-gray-300">main.{module.language === 'c' ? 'c' : module.language === 'python' ? 'py' : 'js'}</div>
-             {module.estimatedTime && (
-               <div className="text-xs text-gray-500 mt-1">⏱️ ~{module.estimatedTime} min</div>
-             )}
+           
+           {/* Breadcrumb */}
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
+              <Code2 className="w-5 h-5" />
+             </div>
+             <div className="flex flex-col">
+               <div className="text-xs text-purple-400/80 font-semibold uppercase tracking-widest">Module</div>
+               <div className="text-sm font-bold text-white">{module.title || 'Code Challenge'}</div>
+             </div>
            </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {module.difficulty && (
-            <div className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full ${
-              module.difficulty === 'easy' ? 'bg-green-900/50 text-green-400' :
-              module.difficulty === 'medium' ? 'bg-yellow-900/50 text-yellow-400' :
-              'bg-red-900/50 text-red-400'
-            }`}>
-              {module.difficulty === 'easy' ? '🟢' : module.difficulty === 'medium' ? '🟡' : '🔴'} {module.difficulty.charAt(0).toUpperCase() + module.difficulty.slice(1)}
+        {/* Center: Module Info */}
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
+            <span className="text-gray-400">Language:</span>
+            <span className="font-mono font-bold text-purple-300 text-xs uppercase tracking-wider">
+              {module.language === 'c' ? 'C' : module.language === 'python' ? 'Python' : 'JavaScript'}
+            </span>
+          </div>
+          
+          {module.estimatedTime && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
+              <span className="text-gray-400">Time:</span>
+              <span className="font-bold text-cyan-400">~{module.estimatedTime} min</span>
             </div>
           )}
-          {isCompleted && (
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/50 px-3 py-1.5 rounded-full"><CheckCircle2 className="w-4 h-4" /> Completed</div>
+          
+          {module.difficulty && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-bold text-xs uppercase tracking-wider ${
+              module.difficulty === 'easy' ? 'bg-green-900/30 text-green-400 border-green-600/50' :
+              module.difficulty === 'medium' ? 'bg-yellow-900/30 text-yellow-400 border-yellow-600/50' :
+              'bg-red-900/30 text-red-400 border-red-600/50'
+            }`}>
+              {module.difficulty === 'easy' ? <Zap className="w-4 h-4" /> : module.difficulty === 'medium' ? <AlertTriangle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              {module.difficulty.charAt(0).toUpperCase() + module.difficulty.slice(1)}
+            </div>
           )}
-          <NavigationControls {...navProps} dark />
         </div>
 
-        <div className="flex items-center gap-3">
-           {isEngineLoading && <span className="text-xs text-yellow-500 flex gap-2"><Loader2 className="w-3 h-3 animate-spin"/> {t('practice.loading')}</span>}
-           {engineError && <button onClick={initializeEngines} className="text-red-400 hover:text-red-300 p-2"><RefreshCw className="w-4 h-4" /></button>}
-           <button onClick={() => { setCode(module.initialCode); setHasUserModifiedCode(false); setSyntaxError(null); setCompletedSteps(new Set()); }} className="p-2 text-gray-400 hover:text-white"><RotateCcw className="w-4 h-4" /></button>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3 flex-1 justify-end">
+           {isCompleted && (
+             <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-900/30 px-4 py-2 rounded-lg border border-emerald-600/50 animate-pulse">
+               <CheckCircle2 className="w-4 h-4" /> Completed
+             </div>
+           )}
+           {isEngineLoading && <span className="text-xs text-yellow-500 flex gap-2 px-4 py-2 bg-yellow-900/20 rounded-lg border border-yellow-600/30"><Loader2 className="w-3 h-3 animate-spin"/> Loading...</span>}
+           {engineError && <button onClick={initializeEngines} className="text-red-400 hover:text-red-300 p-2.5 hover:bg-red-900/20 rounded-lg transition-all" title="Retry"><RefreshCw className="w-4 h-4" /></button>}
+           <button 
+             onClick={() => { setCode(module.initialCode); setHasUserModifiedCode(false); setSyntaxError(null); setCompletedSteps(new Set()); }} 
+             className="p-2.5 text-gray-400 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all" 
+             title="Reset Code"
+           >
+             <RotateCcw className="w-4 h-4" />
+           </button>
            <button 
              onClick={handleRunCode} 
              disabled={isEngineLoading && (module.language === 'python' || module.language === 'c')}
              title="Run Code (Ctrl+Enter)"
-             className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-green-900/20 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+             className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-green-900/30 hover:shadow-green-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
            >
-             <Play className="w-4 h-4 fill-current" /> {t('practice.run')}
+             <Play className="w-4 h-4 fill-current" /> Run
            </button>
         </div>
       </div>
