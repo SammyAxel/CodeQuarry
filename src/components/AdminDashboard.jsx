@@ -7,13 +7,14 @@ import { CourseTranslationEditor } from './CourseTranslationEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
 import { publishCourse, saveCourse, checkServerHealth, getSessionToken, login as adminLogin } from '../utils/courseApi';
 import { updateCourse } from '../api/courses';
+import { useDrafts } from '../hooks/useDrafts';
 import { COURSES, useCourses } from '../data/courses';
 import { getCourseLanguages } from '../utils/courseTranslations';
 
 export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
   const [view, setView] = useState('list'); // list, editor, preview, review, security, translate
   const [activeTab, setActiveTab] = useState('published'); // 'drafts' or 'published' or 'translations'
-  const [drafts, setDrafts] = useState([]);
+  const { drafts, createDraft, updateDraft, deleteDraft, publishDraft } = useDrafts(adminRole);
   const [publishedEdits, setPublishedEdits] = useState({}); // Stores local edits to published courses
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -72,12 +73,6 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
       }
     });
   }, []);
-
-  // Save drafts to localStorage
-  const saveDrafts = (updatedDrafts) => {
-    setDrafts(updatedDrafts);
-    localStorage.setItem('courseDrafts', JSON.stringify(updatedDrafts));
-  };
 
   // Save published course edits to localStorage
   const savePublishedEdits = (updatedEdits) => {
@@ -273,23 +268,51 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
         
         setEditingPublishedId(null);
       } else {
-        // Save as a draft
-        const existingIndex = drafts.findIndex(d => d.id === course.id);
-        let updated;
-        
-        if (existingIndex >= 0) {
-          updated = [...drafts];
-          updated[existingIndex] = { ...course, updatedAt: new Date().toISOString() };
-        } else {
-          updated = [...drafts, { ...course, createdAt: new Date().toISOString() }];
+        // Save as a draft to database
+        try {
+          const existingDraft = drafts.find(d => d.id === course.id);
+          
+          if (existingDraft) {
+            // Update existing draft
+            await updateDraft(existingDraft.id, {
+              title: course.title,
+              description: course.description,
+              icon: course.icon,
+              customIconUrl: course.customIconUrl,
+              language: course.language,
+              difficulty: course.difficulty,
+              tier: course.tier,
+              modules: course.modules,
+              completionPercentage: course.completionPercentage || 0
+            });
+          } else {
+            // Create new draft
+            await createDraft({
+              title: course.title,
+              description: course.description,
+              icon: course.icon,
+              customIconUrl: course.customIconUrl,
+              language: course.language,
+              difficulty: course.difficulty,
+              tier: course.tier,
+              modules: course.modules,
+              commission: 0
+            });
+          }
+          
+          logSecurityEvent('draft_saved', {
+            courseId: course.id,
+            modules: course.modules?.length
+          });
+          alert('✅ Draft saved successfully to database!');
+        } catch (error) {
+          console.error('Draft save error:', error);
+          alert('❌ Failed to save draft: ' + error.message);
+          logSecurityEvent('draft_save_failed', {
+            courseId: course.id,
+            error: error.message
+          });
         }
-        
-        saveDrafts(updated);
-        logSecurityEvent('draft_saved', {
-          courseId: course.id,
-          modules: course.modules?.length
-        });
-        alert('✅ Draft saved successfully!');
       }
       
       setView('list');

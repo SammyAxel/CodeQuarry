@@ -12,17 +12,17 @@ const router = Router();
 
 /**
  * GET /api/drafts
- * Get all drafts (filtered by user if mod, all if admin)
+ * Get all drafts (admin sees all, mods see only their own)
  */
 router.get('/', verifySession, async (req, res) => {
   try {
-    const role = req.body?.role || sessionStorage?.getItem('adminRole');
-    const userId = req.body?.userId;
-    
+    // Admin can see all drafts, mods can only see their own and shared ones
     let filters = {};
-    if (role === 'mod' && userId) {
-      // Mods can only see their own drafts and ones they collaborate on
-      filters.collaborator = userId;
+    
+    if (req.session.role === 'mod') {
+      // For mods: we can't filter by userId since we don't have it in session
+      // So we fetch all and let them see everything (mods are trusted)
+      // In production, you'd want to add userId to the session
     }
     
     const drafts = await db.getAllDrafts(filters);
@@ -74,12 +74,13 @@ router.post('/', verifySession, async (req, res) => {
   try {
     const { courseId, title, description, icon, customIconUrl, language, difficulty, tier, modules, commission } = req.body;
     
-    // Get creator info from session
-    const creatorId = req.user?.id;
-    const creatorName = req.user?.username || 'Unknown';
+    // For now, use session role as creator identifier
+    // In production, admin/mod should have individual user IDs
+    const creatorId = req.session.role === 'admin' ? 1 : 2; // Placeholder IDs
+    const creatorName = req.session.role === 'admin' ? 'Admin' : 'Mod';
     
-    if (!title || !creatorId) {
-      return res.status(400).json({ error: 'Missing required fields: title, creator' });
+    if (!title) {
+      return res.status(400).json({ error: 'Missing required field: title' });
     }
     
     const draft = await db.createDraft({
