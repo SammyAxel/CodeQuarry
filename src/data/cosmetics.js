@@ -112,7 +112,7 @@ export const COSMETICS = {
       description: 'You survived the dreaded NullPointerException',
       rarity: 'sr',
       cost: 75,
-      display: '⚔️ Null Pointer Survivor'
+      display: 'Null Pointer Survivor'
     },
     {
       id: 'recursion-king',
@@ -120,7 +120,7 @@ export const COSMETICS = {
       description: 'Master of recursive algorithms',
       rarity: 'sr',
       cost: 75,
-      display: '👑 Recursion King'
+      display: 'Recursion King'
     },
     {
       id: 'o1-god',
@@ -128,7 +128,7 @@ export const COSMETICS = {
       description: 'Your algorithms are optimized perfection',
       rarity: 'sr',
       cost: 75,
-      display: '⚡ O(1) God'
+      display: 'O(1) God'
     },
     {
       id: 'bug-buster',
@@ -136,7 +136,7 @@ export const COSMETICS = {
       description: 'Legendary debugger extraordinaire',
       rarity: 'sr',
       cost: 75,
-      display: '🔍 Bug Buster'
+      display: 'Bug Buster'
     },
     {
       id: 'loop-master',
@@ -144,7 +144,7 @@ export const COSMETICS = {
       description: 'Expert in control flow and iterations',
       rarity: 'sr',
       cost: 75,
-      display: '🔄 Loop Master'
+      display: 'Loop Master'
     },
     {
       id: 'array-architect',
@@ -152,7 +152,7 @@ export const COSMETICS = {
       description: 'Builder of complex data structures',
       rarity: 'sr',
       cost: 75,
-      display: '🏗️ Array Architect'
+      display: 'Array Architect'
     }
   ],
 

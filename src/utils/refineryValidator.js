@@ -217,12 +217,12 @@ const calculateRefineryScore = (metrics, criteria, passed) => {
  * Get refinery rank based on score
  */
 export const getRefineryRank = (score) => {
-  if (score >= 95) return { name: 'Diamond', emoji: '💎', color: '#60A5FA' };
-  if (score >= 85) return { name: 'Ruby', emoji: '🔴', color: '#EF4444' };
-  if (score >= 75) return { name: 'Emerald', emoji: '💚', color: '#10B981' };
-  if (score >= 65) return { name: 'Sapphire', emoji: '🔵', color: '#3B82F6' };
-  if (score >= 50) return { name: 'Amethyst', emoji: '💜', color: '#A855F7' };
-  return { name: 'Quartz', emoji: '⚪', color: '#9CA3AF' };
+  if (score >= 95) return { name: 'Diamond', emoji: '💎', color: '#60A5FA', icon: 'Gem' };
+  if (score >= 85) return { name: 'Ruby', emoji: '🔴', color: '#EF4444', icon: 'AlertTriangle' };
+  if (score >= 75) return { name: 'Emerald', emoji: '💚', color: '#10B981', icon: 'Leaf' };
+  if (score >= 65) return { name: 'Sapphire', emoji: '🔵', color: '#3B82F6', icon: 'Zap' };
+  if (score >= 50) return { name: 'Amethyst', emoji: '💜', color: '#A855F7', icon: 'Sparkles' };
+  return { name: 'Quartz', emoji: '⚪', color: '#9CA3AF', icon: 'Circle' };
 };
 
 /**

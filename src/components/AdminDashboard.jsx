@@ -552,7 +552,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
                       course.level === 'Gold' ? 'bg-yellow-600/20 text-yellow-300' :
                       'bg-purple-600/20 text-purple-300'
                     }`}>
-                      {course.level === 'Copper' ? '🥉' : course.level === 'Silver' ? '⚪' : course.level === 'Gold' ? '🟡' : '💎'} {course.level}
+                      {course.level}
                     </span>
                     <span className="text-xs px-2 py-1 bg-purple-600/20 text-purple-300 rounded">
                       {course.modules?.length || 0} modules
@@ -665,7 +665,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
                       course.level === 'Gold' ? 'bg-yellow-600/20 text-yellow-300' :
                       'bg-purple-600/20 text-purple-300'
                     }`}>
-                      {course.level === 'Copper' ? '🥉' : course.level === 'Silver' ? '⚪' : course.level === 'Gold' ? '🟡' : '💎'} {course.level}
+                      {course.level}
                     </span>
                     <span className="text-xs px-2 py-1 bg-purple-600/20 text-purple-300 rounded">
                       {course.modules?.length || 0} modules

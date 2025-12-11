@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Gem, Crown, Palette, Sparkles } from 'lucide-react';
 import { COSMETICS, getCosmeticById, getRarityInfo } from '../data/cosmetics';
 import '../styles/CosmeticsShop.css';
 
@@ -219,11 +220,11 @@ export default function CosmeticsShop() {
         {/* Cost / Button */}
         <div className="cosmetic-footer">
           {cosmetic.rarity === 'default' ? (
-            <span className="free-badge">✨ Default</span>
+            <span className="free-badge"><Sparkles className="w-4 h-4 inline mr-1" />Default</span>
           ) : (
             <>
               <span className="gem-cost">
-                💎 {cosmetic.cost}
+                <Gem className="w-4 h-4 inline mr-1" /> {cosmetic.cost}
               </span>
               {isOwned ? (
                 equipped ? (
@@ -273,9 +274,9 @@ export default function CosmeticsShop() {
     <div className="cosmetics-shop">
       <div className="shop-header">
         <div className="shop-title">
-          <h1>✨ Cosmetics Shop</h1>
+          <h1><Sparkles className="w-6 h-6 inline mr-2" />Cosmetics Shop</h1>
           <div className="gem-balance">
-            💎 {userGems} Gems
+            <Gem className="w-5 h-5 inline mr-1" /> {userGems} Gems
           </div>
         </div>
         {message && <div className="message">{message}</div>}
@@ -283,10 +284,10 @@ export default function CosmeticsShop() {
 
       {/* Currently Equipped Display */}
       <div className="equipped-display">
-        <h2>👗 Currently Equipped</h2>
+        <h2><Sparkles className="w-5 h-5 inline mr-2" />Currently Equipped</h2>
         <div className="equipped-items">
           <div className="equipped-item">
-            <span className="item-label">🎨 Theme:</span>
+            <span className="item-label"><Palette className="w-4 h-4 inline mr-1" />Theme:</span>
             <span className="item-name">
               {equippedCosmetics.equipped_theme ? 
                 getCosmeticById(equippedCosmetics.equipped_theme)?.name || 'Unknown' 
@@ -294,7 +295,7 @@ export default function CosmeticsShop() {
             </span>
           </div>
           <div className="equipped-item">
-            <span className="item-label">👑 Title:</span>
+            <span className="item-label"><Crown className="w-4 h-4 inline mr-1" />Title:</span>
             <span className="item-name">
               {equippedCosmetics.equipped_title ? 
                 getCosmeticById(equippedCosmetics.equipped_title)?.display || 'Unknown' 
@@ -302,7 +303,7 @@ export default function CosmeticsShop() {
             </span>
           </div>
           <div className="equipped-item">
-            <span className="item-label">🎨 Name Color:</span>
+            <span className="item-label"><Palette className="w-4 h-4 inline mr-1" />Name Color:</span>
             <span className="item-name">
               {equippedCosmetics.equipped_name_color ? 
                 getCosmeticById(equippedCosmetics.equipped_name_color)?.name || 'Unknown' 
@@ -318,19 +319,19 @@ export default function CosmeticsShop() {
           className={`tab ${activeTab === 'themes' ? 'active' : ''}`}
           onClick={() => setActiveTab('themes')}
         >
-          🎨 Editor Themes
+          <Palette className="w-4 h-4 inline mr-1" />Editor Themes
         </button>
         <button
           className={`tab ${activeTab === 'titles' ? 'active' : ''}`}
           onClick={() => setActiveTab('titles')}
         >
-          👑 Titles
+          <Crown className="w-4 h-4 inline mr-1" />Titles
         </button>
         <button
           className={`tab ${activeTab === 'colors' ? 'active' : ''}`}
           onClick={() => setActiveTab('colors')}
         >
-          🎨 Name Colors
+          <Palette className="w-4 h-4 inline mr-1" />Name Colors
         </button>
       </div>
 

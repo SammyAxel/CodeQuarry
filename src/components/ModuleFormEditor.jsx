@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, Plus, X, Info, Sparkles } from 'lucide-react';
+import { ChevronLeft, Plus, X, Info, Sparkles, Gem, Zap, AlertTriangle } from 'lucide-react';
 
 export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
   const textareaRef = useRef(null);
@@ -207,9 +207,9 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                 onChange={(e) => setData({ ...data, difficulty: e.target.value })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               >
-                <option value="easy">🟢 Easy</option>
-                <option value="medium">🟡 Medium</option>
-                <option value="hard">🔴 Hard</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
               </select>
             </div>
             <div>
@@ -224,7 +224,7 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
             </div>
             {data.type === 'practice' && (
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">💎 Gem Reward</label>
+                <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1"><Gem className="w-4 h-4" /> Gem Reward</label>
                 <input
                   type="number"
                   value={data.gemReward || 10}
@@ -559,8 +559,8 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">
-                        💎 Bonus Gems
+                      <label className="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1">
+                        <Gem className="w-4 h-4" /> Bonus Gems
                       </label>
                       <input
                         type="number"

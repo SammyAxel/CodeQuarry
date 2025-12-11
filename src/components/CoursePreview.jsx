@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Download, Check, Play, X, Server, ServerOff, Loader } from 'lucide-react';
+import { ChevronLeft, Download, Check, Play, X, Server, ServerOff, Loader, Zap, AlertTriangle } from 'lucide-react';
 import { PracticeMode } from './practice';
 import { ArticleEssay } from './ArticleEssay';
 import { VideoEssay } from './VideoEssay';
@@ -188,7 +188,7 @@ export const CoursePreview = ({ course, adminRole = 'mod', serverOnline = false,
                   course.level === 'Gold' ? 'bg-yellow-600/20 text-yellow-300' :
                   'bg-purple-600/20 text-purple-300'
                 }`}>
-                  {course.level === 'Copper' ? '🥉' : course.level === 'Silver' ? '⚪' : course.level === 'Gold' ? '🟡' : '💎'} {course.level}
+                  {course.level}
                 </span>
                 <span className="px-3 py-1 bg-purple-600/20 text-purple-300 rounded-full text-sm font-bold">
                   {course.modules?.length || 0} Modules
@@ -237,12 +237,13 @@ export const CoursePreview = ({ course, adminRole = 'mod', serverOnline = false,
                       </button>
                       
                       {module.difficulty && (
-                        <span className={`text-xs px-2 py-1 rounded font-bold ${
+                        <span className={`text-xs px-2 py-1 rounded font-bold flex items-center gap-1 ${
                           module.difficulty === 'easy' ? 'bg-green-900/30 text-green-400' :
                           module.difficulty === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
                           'bg-red-900/30 text-red-400'
                         }`}>
-                          {module.difficulty === 'easy' ? '🟢 Easy' : module.difficulty === 'medium' ? '🟡 Medium' : '🔴 Hard'}
+                          {module.difficulty === 'easy' ? <Zap className="w-3 h-3" /> : module.difficulty === 'medium' ? <AlertTriangle className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                          {module.difficulty.charAt(0).toUpperCase() + module.difficulty.slice(1)}
                         </span>
                       )}
                       <span className="text-xs px-2 py-1 bg-gray-800 text-gray-300 rounded">

@@ -295,10 +295,10 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
                 onChange={(e) => setData({ ...data, level: e.target.value })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               >
-                <option value="Copper">🥉 Copper - Foundational</option>
-                <option value="Silver">⚪ Silver - Intermediate</option>
-                <option value="Gold">🟡 Gold - Advanced</option>
-                <option value="Platinum">💎 Platinum - Expert</option>
+                <option value="Copper">Copper - Foundational</option>
+                <option value="Silver">Silver - Intermediate</option>
+                <option value="Gold">Gold - Advanced</option>
+                <option value="Platinum">Platinum - Expert</option>
               </select>
               <p className="text-xs text-gray-500 mt-2">Choose the difficulty tier for this course</p>
             </div>

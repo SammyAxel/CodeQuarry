@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Target, TrendingUp, Award, ChevronRight, RotateCcw } from 'lucide-react';
+import { X, Sparkles, Target, TrendingUp, Award, ChevronRight, RotateCcw, Gem, Zap, Layers } from 'lucide-react';
 import { validateRefinery, getRefineryRank } from '../utils/refineryValidator';
 
 /**
@@ -98,7 +98,7 @@ export const RefineryModal = ({
                 <h2 className="text-2xl font-black text-white">The Refinery</h2>
               </div>
               <p className="text-gray-300 text-sm">
-                Polish your code to earn a purer gem 💎
+                Polish your code to earn a purer gem <Gem className="w-4 h-4 inline text-purple-400" />
               </p>
             </div>
             <button
@@ -139,7 +139,7 @@ export const RefineryModal = ({
               )}
               {criteria.noNestedLoops && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-2xl">⚡</span>
+                  <Zap className="w-5 h-5 text-yellow-400" />
                   <span className="text-gray-300">
                     No nested loops allowed
                   </span>
@@ -211,7 +211,7 @@ export const RefineryModal = ({
                     {/* Gem Reward */}
                     {result.gemsEarned > 0 && (
                       <div className="mt-3 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600/30 to-blue-600/30 border border-purple-500/50 rounded-xl">
-                        <span className="text-2xl">💎</span>
+                        <Gem className="w-6 h-6 text-purple-400" />
                         <div className="text-left">
                           <div className="text-lg font-black text-white">+{result.gemsEarned} Gems</div>
                           <div className="text-xs text-gray-300">Optimization Bonus</div>

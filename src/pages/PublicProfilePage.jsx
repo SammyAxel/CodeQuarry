@@ -142,8 +142,9 @@ const PublicProfilePage = () => {
               {/* Custom Role */}
               {profile.customRole && (
                 <div className="inline-block px-4 py-2 rounded-full bg-gradient-to-r from-yellow-400/20 to-purple-400/20 border border-yellow-400/50 mb-3">
-                  <span className="bg-gradient-to-r from-yellow-400 to-purple-400 bg-clip-text text-transparent font-bold text-lg">
-                    👑 {profile.customRole}
+                  <span className="flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-purple-400 bg-clip-text text-transparent font-bold text-lg">
+                    <Crown className="w-5 h-5" style={{WebkitBackgroundClip: 'unset', color: '#facc15'}} />
+                    {profile.customRole}
                   </span>
                 </div>
               )}
