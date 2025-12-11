@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light Mode Color Scheme */
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  
+  .light {
+    color-scheme: light;
+  }
+  
+  .dark {
+    color-scheme: dark;
+  }
+}
+
+/* Light Mode Overrides */
+@layer components {
+  .light {
+    @apply bg-quarry-light-bg text-quarry-light-text;
+  }
+  
+  .light .bg-\[\#0d1117\] {
+    @apply bg-quarry-light-bg;
+  }
+  
+  .light .bg-\[\#161b22\] {
+    @apply bg-quarry-light-card border-quarry-light-border;
+  }
+  
+  .light .text-gray-400,
+  .light .text-gray-500 {
+    @apply text-quarry-light-text-secondary;
+  }
+  
+  .light .border-gray-700,
+  .light .border-gray-800,
+  .light .border-purple-500\/20 {
+    @apply border-quarry-light-border;
+  }
+}
+
 /* Force highlight.js to have a transparent background to prevent style conflicts */
 .hljs {
   background: transparent !important;

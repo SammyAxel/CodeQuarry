@@ -1,8 +1,9 @@
-import React, { memo, useState, useMemo } from 'react';
-import { ChevronRight, Gem, Pickaxe, Coins, Search, X, AlertCircle, Globe } from 'lucide-react';
+import React, { memo, useState, useMemo, useEffect } from 'react';
+import { ChevronRight, Gem, Pickaxe, Coins, Search, X, AlertCircle, Globe, HelpCircle } from 'lucide-react';
 import { sanitizeInput } from '../utils/securityUtils';
 import { getCourseLanguages } from '../utils/courseTranslations';
 import { useLanguage } from '../context/LanguageContext';
+import { OnboardingTutorial } from '../components/OnboardingTutorial';
 
 /**
  * Home page showing available courses
@@ -17,6 +18,17 @@ import { useLanguage } from '../context/LanguageContext';
 const HomePage = ({ courses, onSelectCourse }) => {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Show tutorial on first visit
+  useEffect(() => {
+    const tutorialCompleted = localStorage.getItem('tutorialCompleted');
+    if (!tutorialCompleted) {
+      // Show tutorial after a brief delay for better UX
+      const timer = setTimeout(() => setShowTutorial(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Filter courses based on search query
   const filteredCourses = useMemo(() => {
@@ -162,6 +174,20 @@ const HomePage = ({ courses, onSelectCourse }) => {
           ))
         )}
       </div>
+
+      {/* Help/Tutorial Button */}
+      <div className="fixed bottom-6 right-6 z-30">
+        <button
+          onClick={() => setShowTutorial(true)}
+          className="p-3 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"
+          title="View Tutorial"
+        >
+          <HelpCircle className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Onboarding Tutorial Modal */}
+      <OnboardingTutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
     </div>
   );
 };

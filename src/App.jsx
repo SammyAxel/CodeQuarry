@@ -12,6 +12,7 @@ import { PracticeMode } from './components/practice';
 import { CourseMap } from './components/CourseMap';
 import { AdminDashboard } from './components/AdminDashboard';
 import AdminUserManagement from './components/AdminUserManagement';
+import { ThemeToggle } from './components/ThemeToggle';
 import HomePage from './pages/HomePage';
 import { SyllabusPage } from './pages/SyllabusPage';
 import { LoginPage } from './pages/LoginPage';
@@ -415,8 +416,9 @@ export default function App() {
           </button>
         </div>
 
-        {/* Right: Language, Profile, Logout */}
+        {/* Right: Theme Toggle, Language, Profile, Logout */}
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <button
             onClick={toggleLanguage}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 text-gray-300 hover:text-white transition-all text-sm font-bold border border-gray-700/50 hover:border-purple-500/30"
