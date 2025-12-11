@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { verifySession, requireCreator } from '../middleware/auth.middleware.js';
+import { verifySession } from '../middleware/auth.middleware.js';
 import db from '../../database/index.js';
 
 const router = Router();
