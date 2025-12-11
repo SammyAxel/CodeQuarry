@@ -1,9 +1,11 @@
 /**
- * useTheme Hook
- * Manages light/dark theme preference with localStorage persistence
+ * ThemeContext
+ * Provides global theme state management
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+const ThemeContext = createContext();
 
 // Apply theme to DOM
 const applyTheme = (dark) => {
@@ -17,7 +19,7 @@ const applyTheme = (dark) => {
   }
 };
 
-export const useTheme = () => {
+export const ThemeProvider = ({ children }) => {
   const [isDark, setIsDark] = useState(() => {
     // Initialize from localStorage or default to dark
     const savedTheme = localStorage.getItem('codeQuarryTheme');
@@ -29,16 +31,25 @@ export const useTheme = () => {
     applyTheme(isDark);
   }, [isDark]);
 
-  // Toggle theme and persist to localStorage
-  const toggleTheme = useCallback(() => {
+  const toggleTheme = () => {
     setIsDark(prev => {
       const newIsDark = !prev;
       localStorage.setItem('codeQuarryTheme', newIsDark ? 'dark' : 'light');
       return newIsDark;
     });
-  }, []);
+  };
 
-  return { isDark, toggleTheme };
+  return (
+    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 };
 
-export default useTheme;
+export const useThemeContext = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useThemeContext must be used within ThemeProvider');
+  }
+  return context;
+};

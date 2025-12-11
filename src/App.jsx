@@ -13,6 +13,7 @@ import { CourseMap } from './components/CourseMap';
 import { AdminDashboard } from './components/AdminDashboard';
 import AdminUserManagement from './components/AdminUserManagement';
 import { ThemeToggle } from './components/ThemeToggle';
+import { useThemeContext } from './context/ThemeContext';
 import HomePage from './pages/HomePage';
 import { SyllabusPage } from './pages/SyllabusPage';
 import { LoginPage } from './pages/LoginPage';
@@ -38,6 +39,7 @@ import { fetchCourseTranslations, getCourseTranslations } from './utils/courseTr
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDark } = useThemeContext();
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminRole, setAdminRole] = useState(null); // 'admin' or 'mod'
   const [publishedCourseEdits, setPublishedCourseEdits] = useState({});
@@ -441,14 +443,6 @@ export default function App() {
             <User className="w-4 h-4" />
             <span className="max-w-[120px] truncate">{currentUser?.displayName || currentUser?.username || 'User'}</span>
           </button>
-          <button 
-            onClick={handleLogout} 
-            className="p-2.5 rounded-lg bg-gray-800/50 hover:bg-red-900/50 text-gray-400 hover:text-red-400 transition-all border border-gray-700/50 hover:border-red-600/50" 
-            title={t('nav.logout')}
-            aria-label="Logout"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </nav>
       
@@ -527,6 +521,15 @@ export default function App() {
           </div>
         )}
       </main>
+      
+      {/* Sarcastic Light Mode Footer */}
+      {!isDark && (
+        <div className="fixed bottom-0 left-0 right-0 bg-yellow-50 border-t-2 border-yellow-400 px-4 py-3 text-center text-sm text-gray-800 z-50 shadow-xl">
+          <span className="font-mono font-bold">⚠️ Warning: You're using light mode. Your retinas called - they want their melanin back. 🕶️</span>
+          <br />
+          <span className="text-xs text-gray-600 mt-1">Pro tip: Toggle dark mode to unlock the premium UI experience™</span>
+        </div>
+      )}
       </div>
     </div>
   );

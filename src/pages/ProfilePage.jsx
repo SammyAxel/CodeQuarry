@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, Mail, Lock, Camera, ArrowLeft, Save, Eye, EyeOff,
-  Check, X, Calendar, Shield, Gem
+  Check, X, Calendar, Shield, Gem, LogOut, Sparkles
 } from 'lucide-react';
 import { getCurrentUser, updateProfile, changePassword } from '../utils/userApi';
 import { useUser } from '../context/UserContext';
 import { useLanguage } from '../context/LanguageContext';
+import { COSMETICS } from '../data/cosmetics.js';
 
 export const ProfilePage = ({ onBack }) => {
-  const { currentUser, login } = useUser();
+  const { currentUser, login, logout } = useUser();
   const { t } = useLanguage();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +25,23 @@ export const ProfilePage = ({ onBack }) => {
   const [bioSaving, setBioSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
   const [bioMessage, setBioMessage] = useState(null);
+  
+  // Cosmetics
+  const [equippedTitle, setEquippedTitle] = useState('');
+  const [equippedNameColor, setEquippedNameColor] = useState('');
+  const [isEditingCosmetics, setIsEditingCosmetics] = useState(false);
+  const [cosmeticsSaving, setCosmeticsSaving] = useState(false);
+  const [cosmeticsMessage, setCosmeticsMessage] = useState(null);
+  
+  // Available cosmetics
+  const titles = COSMETICS.titles;
+  const nameColors = COSMETICS.nameColors;
+  
+  // Create color map from nameColors
+  const colorMap = nameColors.reduce((map, item) => {
+    map[item.id] = item.color || item.id;
+    return map;
+  }, {});
   
   // Password changing
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -44,6 +62,20 @@ export const ProfilePage = ({ onBack }) => {
         setAvatarUrl(data.user.avatarUrl || '');
         setAvatarPreview(data.user.avatarUrl || null);
         setBio(data.user.bio || '');
+        
+        // Fetch equipped cosmetics
+        const token = localStorage.getItem('userToken');
+        const cosmeticsResponse = await fetch('/api/cosmetics/equipped', {
+          headers: { 'X-User-Token': token }
+        });
+        
+        if (cosmeticsResponse.ok) {
+          const cosmeticsData = await cosmeticsResponse.json();
+          if (cosmeticsData.equipped) {
+            setEquippedTitle(cosmeticsData.equipped.equipped_title || '');
+            setEquippedNameColor(cosmeticsData.equipped.equipped_name_color || '');
+          }
+        }
       } catch (err) {
         console.error('Failed to load user data:', err);
       } finally {
@@ -172,6 +204,65 @@ export const ProfilePage = ({ onBack }) => {
       setBioMessage({ type: 'error', text: err.message || 'Failed to update bio' });
     } finally {
       setBioSaving(false);
+    }
+  };
+
+  const handleSaveCosmetics = async () => {
+    setCosmeticsSaving(true);
+    setCosmeticsMessage(null);
+    
+    try {
+      const token = localStorage.getItem('userToken');
+      
+      // Save title
+      const titleResponse = await fetch('/api/cosmetics/equip', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Token': token
+        },
+        body: JSON.stringify({
+          type: 'title',
+          cosmeticId: equippedTitle || null
+        })
+      });
+
+      if (!titleResponse.ok) {
+        const data = await titleResponse.json();
+        throw new Error(data.error || 'Failed to update title');
+      }
+
+      // Save name color
+      const colorResponse = await fetch('/api/cosmetics/equip', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Token': token
+        },
+        body: JSON.stringify({
+          type: 'nameColor',
+          cosmeticId: equippedNameColor || null
+        })
+      });
+
+      if (!colorResponse.ok) {
+        const data = await colorResponse.json();
+        throw new Error(data.error || 'Failed to update name color');
+      }
+
+      setIsEditingCosmetics(false);
+      setCosmeticsMessage({ type: 'success', text: 'Profile customization updated!' });
+    } catch (err) {
+      setCosmeticsMessage({ type: 'error', text: err.message || 'Failed to update cosmetics' });
+    } finally {
+      setCosmeticsSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      logout();
+      onBack(); // Go back to home
     }
   };
 
@@ -414,6 +505,129 @@ export const ProfilePage = ({ onBack }) => {
             )}
           </div>
 
+          {/* Cosmetics Section */}
+          <div className="border-t border-gray-800 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-gray-400">
+                <Sparkles className="w-4 h-4" />
+                <span className="font-bold">Profile Customization</span>
+              </div>
+              {!isEditingCosmetics && (
+                <button
+                  onClick={() => setIsEditingCosmetics(true)}
+                  className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  {t('profile.edit')}
+                </button>
+              )}
+            </div>
+
+            {isEditingCosmetics ? (
+              <div className="space-y-4">
+                {/* Title Selection */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Select Title</label>
+                  <select
+                    value={equippedTitle}
+                    onChange={(e) => setEquippedTitle(e.target.value)}
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 focus:border-purple-500 rounded-lg text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all"
+                  >
+                    <option value="">None</option>
+                    {titles.map(title => (
+                      <option key={title.id} value={title.id}>{title.display || title.name}</option>
+                    ))}
+                  </select>
+                  {equippedTitle && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Preview: <span className="text-purple-400">{titles.find(t => t.id === equippedTitle)?.display || titles.find(t => t.id === equippedTitle)?.name}</span> {userData?.user?.displayName || userData?.user?.username}
+                    </p>
+                  )}
+                </div>
+
+                {/* Name Color Selection */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Username Color</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {nameColors.map(color => (
+                      <button
+                        key={color.id}
+                        onClick={() => setEquippedNameColor(color.id)}
+                        className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 ${
+                          equippedNameColor === color.id 
+                            ? 'border-white ring-2 ring-offset-2 ring-offset-gray-900 ring-purple-500' 
+                            : 'border-gray-700 hover:border-gray-600'
+                        }`}
+                        style={{ backgroundColor: (colorMap[color.id] || color.color || '#ffffff') + '20' }}
+                        title={color.name}
+                      >
+                        <div className="w-6 h-6 rounded" style={{ backgroundColor: colorMap[color.id] || color.color || '#ffffff' }}></div>
+                        <span className="text-xs text-gray-400 text-center">{color.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {equippedNameColor && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Preview: <span style={{ color: colorMap[equippedNameColor] || nameColors.find(c => c.id === equippedNameColor)?.color }}>@{userData?.user?.username}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Cosmetics Message */}
+                {cosmeticsMessage && (
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${
+                    cosmeticsMessage.type === 'success' 
+                      ? 'bg-emerald-900/30 border border-emerald-500/50 text-emerald-400'
+                      : 'bg-red-900/30 border border-red-500/50 text-red-400'
+                  }`}>
+                    {cosmeticsMessage.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                    {cosmeticsMessage.text}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveCosmetics}
+                    disabled={cosmeticsSaving}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {cosmeticsSaving ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Customization
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditingCosmetics(false);
+                      // Reload original equipped values from userData
+                      // For now, just close - they'll see the saved values
+                      setCosmeticsMessage(null);
+                    }}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                  >
+                    {t('profile.cancel')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-400">
+                  <span className="text-gray-300 font-semibold">Title:</span> {equippedTitle ? titles.find(t => t.id === equippedTitle)?.display || titles.find(t => t.id === equippedTitle)?.name : 'None'}
+                </p>
+                <p className="text-sm text-gray-400">
+                  <span className="text-gray-300 font-semibold">Username Color:</span> 
+                  <span 
+                    className="ml-2 font-bold" 
+                    style={{ color: colorMap[equippedNameColor] || nameColors.find(c => c.id === equippedNameColor)?.color || '#ffffff' }}
+                  >
+                    {equippedNameColor ? nameColors.find(c => c.id === equippedNameColor)?.name : 'Default'}
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Password Section */}
           <div className="border-t border-gray-800 p-6">
             <button
@@ -513,6 +727,18 @@ export const ProfilePage = ({ onBack }) => {
                 </div>
               </form>
             )}
+          </div>
+
+          {/* Logout Section */}
+          <div className="border-t border-gray-800 p-6">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-900/50 hover:bg-red-900 text-red-400 hover:text-red-300 border border-red-700/50 hover:border-red-600 rounded-lg font-bold transition-colors"
+              title="Logout from your account"
+            >
+              <LogOut className="w-5 h-5" />
+              Logout
+            </button>
           </div>
         </div>
       </div>

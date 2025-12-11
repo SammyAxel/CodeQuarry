@@ -19,27 +19,341 @@
 
 /* Light Mode Overrides */
 @layer components {
-  .light {
-    @apply bg-quarry-light-bg text-quarry-light-text;
+  /* Base light mode styles */
+  html.light,
+  html.light body {
+    background-color: #fafbfc !important;
+    color: #24292f !important;
   }
   
-  .light .bg-\[\#0d1117\] {
-    @apply bg-quarry-light-bg;
+  /* Background colors */
+  html.light .bg-\[\#0d1117\],
+  html.light .bg-gray-900,
+  html.light .bg-gray-950 {
+    background-color: #fafbfc !important;
   }
   
-  .light .bg-\[\#161b22\] {
-    @apply bg-quarry-light-card border-quarry-light-border;
+  html.light .bg-\[\#161b22\],
+  html.light .bg-gray-800,
+  html.light .bg-gray-900\/50 {
+    background-color: #ffffff !important;
+    border-color: #d0d7de !important;
+    box-shadow: 0 1px 3px rgba(140, 149, 159, 0.15);
   }
   
-  .light .text-gray-400,
-  .light .text-gray-500 {
-    @apply text-quarry-light-text-secondary;
+  html.light .bg-gray-700 {
+    background-color: #f6f8fa !important;
   }
   
-  .light .border-gray-700,
-  .light .border-gray-800,
-  .light .border-purple-500\/20 {
-    @apply border-quarry-light-border;
+  html.light .bg-gray-600 {
+    background-color: #eaeef2 !important;
+  }
+  
+  /* Text colors */
+  html.light .text-white {
+    color: #24292f !important;
+  }
+  
+  html.light .text-gray-100,
+  html.light .text-gray-200,
+  html.light .text-gray-300 {
+    color: #24292f !important;
+  }
+  
+  html.light .text-gray-400,
+  html.light .text-gray-500,
+  html.light .text-gray-600 {
+    color: #57606a !important;
+  }
+  
+  /* Border colors */
+  html.light .border-gray-700,
+  html.light .border-gray-800,
+  html.light .border-gray-900,
+  html.light .border-purple-500\/20 {
+    border-color: #d0d7de !important;
+  }
+  
+  /* Hover states */
+  html.light .hover\:bg-gray-800:hover {
+    background-color: #f6f8fa !important;
+  }
+  
+  html.light .hover\:bg-gray-700:hover {
+    background-color: #eaeef2 !important;
+  }
+  
+  html.light .hover\:bg-gray-600:hover {
+    background-color: #dfe3e8 !important;
+  }
+  
+  html.light .hover\:text-white:hover {
+    color: #24292f !important;
+  }
+  
+  html.light .hover\:border-purple-500:hover,
+  html.light .hover\:border-purple-500\/50:hover,
+  html.light .hover\:border-purple-500\/70:hover {
+    border-color: #8b5cf6 !important;
+  }
+  
+  /* Gradients */
+  html.light .from-purple-900\/50 {
+    --tw-gradient-from: #f5f3ff;
+    --tw-gradient-to: rgb(245 243 255 / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  
+  html.light .to-pink-900\/50 {
+    --tw-gradient-to: #fdf2f8;
+  }
+  
+  /* Ring colors for focus states */
+  html.light .ring-offset-gray-900 {
+    --tw-ring-offset-color: #ffffff;
+  }
+  
+  /* Input fields */
+  html.light input,
+  html.light textarea,
+  html.light select {
+    background-color: #ffffff !important;
+    color: #24292f !important;
+    border-color: #d0d7de !important;
+  }
+  
+  html.light input:focus,
+  html.light textarea:focus,
+  html.light select:focus {
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  }
+  
+  html.light input::placeholder,
+  html.light textarea::placeholder {
+    color: #6e7781 !important;
+  }
+  
+  /* Cards and containers with opacity */
+  html.light .bg-gray-900\/60 {
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(140, 149, 159, 0.15);
+  }
+  
+  html.light .bg-gray-900\/30,
+  html.light .bg-purple-900\/30,
+  html.light .bg-emerald-900\/30,
+  html.light .bg-pink-900\/30,
+  html.light .bg-red-900\/50 {
+    background-color: #ffffff !important;
+    border-color: #d0d7de !important;
+  }
+  
+  /* Specific component overrides */
+  html.light .group:hover .group-hover\:bg-gray-800 {
+    background-color: #f6f8fa !important;
+  }
+  
+  /* Ring colors */
+  html.light .ring-gray-700 {
+    --tw-ring-color: #d0d7de;
+  }
+  
+  html.light .group-hover\:ring-purple-500\/50 {
+    --tw-ring-color: rgb(139 92 246 / 0.3);
+  }
+  
+  /* Shadow enhancements for cards */
+  html.light .hover\:shadow-2xl:hover,
+  html.light .hover\:shadow-purple-600\/30:hover {
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+  }
+  
+  /* Navbar */
+  html.light nav {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border-bottom: 1px solid #d0d7de;
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Course Cards - More specific selectors */
+  html.light .bg-\[\#161b22\].border.border-gray-800 {
+    background-color: #ffffff !important;
+    border-color: #d0d7de !important;
+    box-shadow: 0 2px 8px rgba(140, 149, 159, 0.12);
+  }
+  
+  html.light .bg-\[\#161b22\].border.border-gray-800:hover {
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15) !important;
+  }
+  
+  /* Search input */
+  html.light .bg-gray-900\/50.border.border-gray-800 {
+    background-color: #ffffff !important;
+    border-color: #d0d7de !important;
+  }
+  
+  /* Placeholder text */
+  html.light .placeholder-gray-500::placeholder {
+    color: #6e7781 !important;
+  }
+  
+  html.light .placeholder-gray-600::placeholder {
+    color: #57606a !important;
+  }
+  
+  /* Navbar - More comprehensive */
+  html.light nav,
+  html.light .bg-\[\#0d1117\].border-b {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border-bottom-color: #d0d7de !important;
+  }
+  
+  /* Course/Syllabus page backgrounds */
+  html.light .bg-\[\#0d1117\],
+  html.light main {
+    background-color: #fafbfc !important;
+  }
+  
+  /* Module cards and containers */
+  html.light .bg-\[\#161b22\] {
+    background-color: #ffffff !important;
+    border-color: #d0d7de !important;
+  }
+  
+  /* Progress bars */
+  html.light .bg-gray-900 {
+    background-color: #eaeef2 !important;
+  }
+  
+  /* Icons and SVG elements */
+  html.light .text-purple-400,
+  html.light .text-purple-300 {
+    color: #8b5cf6 !important;
+  }
+  
+  html.light .text-emerald-400,
+  html.light .text-emerald-300 {
+    color: #10b981 !important;
+  }
+  
+  html.light .text-pink-400,
+  html.light .text-pink-300 {
+    color: #ec4899 !important;
+  }
+  
+  html.light .text-orange-400,
+  html.light .text-orange-300 {
+    color: #f97316 !important;
+  }
+  
+  /* Buttons */
+  html.light .bg-purple-600 {
+    background-color: #8b5cf6 !important;
+  }
+  
+  html.light .bg-purple-600:hover,
+  html.light .hover\:bg-purple-500:hover {
+    background-color: #7c3aed !important;
+  }
+  
+  /* Badge backgrounds */
+  html.light .bg-emerald-900\/30 {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+  }
+  
+  html.light .bg-purple-900\/30 {
+    background-color: #ede9fe !important;
+    color: #6b21a8 !important;
+  }
+  
+  html.light .bg-red-900\/30 {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+  }
+  
+  /* Locks and disabled states */
+  html.light .opacity-50 {
+    opacity: 0.6 !important;
+  }
+  
+  /* Logo and branding */
+  html.light .text-purple-500,
+  html.light .text-purple-400 {
+    color: #8b5cf6 !important;
+  }
+  
+  /* Learning/Practice Page Sidebar */
+  html.light .bg-\[\#0d1117\].border-r,
+  html.light aside,
+  html.light .sidebar {
+    background-color: #ffffff !important;
+    border-color: #d0d7de !important;
+  }
+  
+  /* Code editor background - keep light */
+  html.light .bg-white {
+    background-color: #ffffff !important;
+  }
+  
+  /* Output terminal */
+  html.light .bg-black,
+  html.light pre {
+    background-color: #24292f !important;
+    color: #c9d1d9 !important;
+  }
+  
+  /* Module navigation buttons */
+  html.light .bg-gray-800\/50 {
+    background-color: #f6f8fa !important;
+    border-color: #d0d7de !important;
+  }
+  
+  /* Tab buttons */
+  html.light .bg-gray-700 {
+    background-color: #f6f8fa !important;
+  }
+  
+  html.light .bg-purple-700,
+  html.light .bg-purple-800 {
+    background-color: #8b5cf6 !important;
+  }
+  
+  /* Field guide and content panels */
+  html.light .bg-gray-900\/50,
+  html.light .bg-gray-800\/50 {
+    background-color: #ffffff !important;
+    border-color: #d0d7de !important;
+  }
+  
+  /* Code blocks in content */
+  html.light code {
+    background-color: #f6f8fa !important;
+    color: #24292f !important;
+    border: 1px solid #d0d7de;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  
+  html.light pre code {
+    background-color: transparent !important;
+    border: none;
+    padding: 0;
+  }
+  
+  /* Headers and titles */
+  html.light h1, html.light h2, html.light h3, html.light h4 {
+    color: #24292f !important;
+  }
+  
+  /* Links */
+  html.light a {
+    color: #0969da !important;
+  }
+  
+  html.light a:hover {
+    color: #0550ae !important;
   }
 }
 

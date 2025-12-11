@@ -12,18 +12,21 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { UserProvider } from './context/UserContext'
 import { AppProvider } from './context/AppContext'
 import { LanguageProvider } from './context/LanguageContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <ErrorBoundary>
-        <LanguageProvider>
-          <UserProvider>
-            <AppProvider>
-              <App />
-            </AppProvider>
-          </UserProvider>
-        </LanguageProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <UserProvider>
+              <AppProvider>
+                <App />
+              </AppProvider>
+            </UserProvider>
+          </LanguageProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </BrowserRouter>
   </StrictMode>,

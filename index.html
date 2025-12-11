@@ -44,6 +44,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     
+    <!-- Initialize theme before React loads to prevent flash -->
+    <script>
+      (function() {
+        const savedTheme = localStorage.getItem('codeQuarryTheme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+        
+        if (!isDark) {
+          document.documentElement.classList.add('light');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
