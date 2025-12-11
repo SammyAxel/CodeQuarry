@@ -1,54 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, Plus, X, Info, Sparkles, Gem, Zap, AlertTriangle } from 'lucide-react';
+import { MODULE_TYPES, DIFFICULTY_LEVELS, PROGRAMMING_LANGUAGES, COURSE_TIERS, VALIDATION } from '../constants/courseConstants';
 
 export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
   const textareaRef = useRef(null);
-  
-  // Markdown helper function
-  const insertMarkdown = (before, after = '') => {
-    if (!textareaRef.current) return;
-    
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    const newText = textarea.value.substring(0, start) + before + selectedText + after + textarea.value.substring(end);
-    
-    setData({ ...data, content: newText });
-    
-    // Restore cursor position
-    setTimeout(() => {
-      textarea.selectionStart = start + before.length;
-      textarea.selectionEnd = start + before.length + selectedText.length;
-      textarea.focus();
-    }, 0);
-  };
-  
-  // Convert legacy regex fields to string arrays for the new format
-  const convertLegacyData = (mod) => {
-    // Handle requiredCode - convert from regex or use existing array
-    let requiredCode = mod.requiredCode || [];
-    if (!requiredCode.length && mod.requiredSyntax) {
-      // If there's a legacy regex, we can't auto-convert it
-      // Just leave requiredCode empty and user can fill it in
-      requiredCode = [];
-    }
-    
-    // Handle stepRequirements - convert from stepSyntax or use existing
-    let stepRequirements = mod.stepRequirements || [];
-    if (!stepRequirements.length && mod.stepSyntax) {
-      // Can't auto-convert regex, leave empty
-      stepRequirements = [];
-    }
-    
-    return {
-      ...mod,
-      requiredCode,
-      stepRequirements
-    };
-  };
-  
-  const [data, setData] = useState(convertLegacyData(module));
+  const [data, setData] = useState(module);
   const [hintInput, setHintInput] = useState('');
   const [requiredCodeInput, setRequiredCodeInput] = useState('');
   const [refineryEnabled, setRefineryEnabled] = useState(!!module.refineryCriteria);
@@ -183,9 +139,9 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                 onChange={(e) => setData({ ...data, type: e.target.value })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               >
-                <option>practice</option>
-                <option>article</option>
-                <option>video</option>
+                {MODULE_TYPES.map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -195,9 +151,9 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                 onChange={(e) => setData({ ...data, language: e.target.value })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               >
-                <option>python</option>
-                <option>javascript</option>
-                <option>c</option>
+                {PROGRAMMING_LANGUAGES.map(lang => (
+                  <option key={lang.value} value={lang.value}>{lang.label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -207,32 +163,47 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                 onChange={(e) => setData({ ...data, difficulty: e.target.value })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               >
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
+                {DIFFICULTY_LEVELS.map(level => (
+                  <option key={level.value} value={level.value}>{level.label}</option>
+                ))}
               </select>
             </div>
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase">Est. Time (mins)</label>
               <input
                 type="number"
+                min={VALIDATION.MIN_ESTIMATED_TIME}
+                max={VALIDATION.MAX_ESTIMATED_TIME}
                 value={data.estimatedTime || ''}
-                onChange={(e) => setData({ ...data, estimatedTime: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (!isNaN(val) && val >= VALIDATION.MIN_ESTIMATED_TIME && val <= VALIDATION.MAX_ESTIMATED_TIME) {
+                    setData({ ...data, estimatedTime: val });
+                  }
+                }}
                 placeholder="e.g., 10"
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               />
+              <p className="text-xs text-gray-500 mt-1">Between {VALIDATION.MIN_ESTIMATED_TIME} and {VALIDATION.MAX_ESTIMATED_TIME} minutes</p>
             </div>
             {data.type === 'practice' && (
               <div>
                 <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1"><Gem className="w-4 h-4" /> Gem Reward</label>
                 <input
                   type="number"
+                  min={VALIDATION.MIN_GEM_REWARD}
+                  max={VALIDATION.MAX_GEM_REWARD}
                   value={data.gemReward || 10}
-                  onChange={(e) => setData({ ...data, gemReward: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val) && val >= VALIDATION.MIN_GEM_REWARD && val <= VALIDATION.MAX_GEM_REWARD) {
+                      setData({ ...data, gemReward: val });
+                    }
+                  }}
                   placeholder="e.g., 10"
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
                 />
-                <p className="text-xs text-gray-500 mt-1">Gems awarded for completing this module</p>
+                <p className="text-xs text-gray-500 mt-1">Between {VALIDATION.MIN_GEM_REWARD} and {VALIDATION.MAX_GEM_REWARD} gems</p>
               </div>
             )}
           </div>

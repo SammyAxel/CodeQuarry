@@ -1,11 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Plus, X, Copy, AlertCircle, Server, ServerOff, Save, Upload, Download, FileJson, GripVertical } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronLeft, Plus, X, Copy, AlertCircle, Server, ServerOff, Save, Upload, Download, FileJson, GripVertical, BookOpen, Zap, Palette, Settings, Gamepad2, Rocket, Code, Wrench } from 'lucide-react';
 import { ModuleFormEditor } from './ModuleFormEditor';
 import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, sanitizeInput } from '../utils/securityUtils';
+import { COURSE_TIERS, VALIDATION } from '../constants/courseConstants';
 
-const ICONS = ['📚', '🐍', '🟨', '⚙️', '🎮', '🚀', '💻', '🔧'];
+// Course icon options with lucide icons
+const COURSE_ICONS = [
+  { icon: BookOpen, name: 'book', label: 'Book' },
+  { icon: Zap, name: 'zap', label: 'Lightning' },
+  { icon: Palette, name: 'palette', label: 'Palette' },
+  { icon: Settings, name: 'settings', label: 'Settings' },
+  { icon: Gamepad2, name: 'gamepad', label: 'Gamepad' },
+  { icon: Rocket, name: 'rocket', label: 'Rocket' },
+  { icon: Code, name: 'code', label: 'Code' },
+  { icon: Wrench, name: 'wrench', label: 'Tools' }
+];
 
-export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, isPublishedEdit = false }) => {
+export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, isPublishedEdit = false, adminRole = 'admin' }) => {
   const [data, setData] = useState(course);
   const [editingModule, setEditingModule] = useState(null);
   const [editingModuleIndex, setEditingModuleIndex] = useState(null);
@@ -211,14 +222,20 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
       return;
     }
 
-    // Save course
+    // Only admins can save to database; mods always save to localStorage
+    const isAdmin = adminRole === 'admin';
+    const saveToDatabase = isPublishedEdit && serverOnline && isAdmin;
+    
     logSecurityEvent('course_save_success', { 
       courseId: course.id,
       modules: data.modules.length,
+      destination: saveToDatabase ? 'database' : 'localStorage',
+      adminRole: adminRole,
       timestamp: new Date().toISOString()
     });
     
-    onSave(data);
+    // Pass save destination to parent handler
+    onSave(data, saveToDatabase);
     
     // Generate new token for next operation
     const token = generateCSRFToken('course-editor');
@@ -295,32 +312,34 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
                 onChange={(e) => setData({ ...data, level: e.target.value })}
                 className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white mt-1"
               >
-                <option value="Copper">Copper - Foundational</option>
-                <option value="Silver">Silver - Intermediate</option>
-                <option value="Gold">Gold - Advanced</option>
-                <option value="Platinum">Platinum - Expert</option>
+                {COURSE_TIERS.map(tier => (
+                  <option key={tier.value} value={tier.value}>
+                    {tier.label} - {tier.description}
+                  </option>
+                ))}
               </select>
               <p className="text-xs text-gray-500 mt-2">Choose the difficulty tier for this course</p>
             </div>
 
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase">Icon</label>
-              <p className="text-xs text-gray-500 mt-1 mb-2">Choose an emoji or upload a custom image (PNG/JPG, max 2MB)</p>
+              <p className="text-xs text-gray-500 mt-1 mb-2">Select a professional icon or upload a custom image (PNG/JPG, max 2MB)</p>
               <div className="grid grid-cols-4 gap-2 mt-2">
-                {ICONS.map((icon) => (
+                {COURSE_ICONS.map(({ icon: IconComponent, name, label }) => (
                   <button
-                    key={icon}
+                    key={name}
                     onClick={() => {
-                      setData({ ...data, icon, customIconUrl: null });
+                      setData({ ...data, icon: name, customIconUrl: null });
                       setCustomIconPreview(null);
                     }}
-                    className={`p-3 text-2xl rounded-lg transition-all ${
-                      data.icon === icon && !data.customIconUrl
-                        ? 'bg-purple-600 border-2 border-purple-400'
-                        : 'bg-gray-800 border border-gray-700 hover:border-gray-600'
+                    title={label}
+                    className={`p-3 rounded-lg transition-all flex items-center justify-center ${
+                      data.icon === name && !data.customIconUrl
+                        ? 'bg-purple-600 border-2 border-purple-400 text-white'
+                        : 'bg-gray-800 border border-gray-700 hover:border-gray-600 text-gray-300'
                     }`}
                   >
-                    {icon}
+                    <IconComponent className="w-6 h-6" />
                   </button>
                 ))}
               </div>
@@ -330,10 +349,20 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
                 <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Or Upload Custom Icon</label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
+                      // Validate file size
+                      if (file.size > VALIDATION.MAX_ICON_FILE_SIZE) {
+                        alert(`File size must be less than ${VALIDATION.MAX_ICON_FILE_SIZE / (1024 * 1024)}MB`);
+                        return;
+                      }
+                      // Validate file type
+                      if (!VALIDATION.ALLOWED_ICON_TYPES.includes(file.type)) {
+                        alert('File type must be PNG, JPG, WebP, or SVG');
+                        return;
+                      }
                       const reader = new FileReader();
                       reader.onload = (event) => {
                         const dataUrl = event.target?.result;
@@ -351,7 +380,7 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
                     <button
                       onClick={() => {
                         setCustomIconPreview(null);
-                        setData({ ...data, customIconUrl: null, icon: '📚' });
+                        setData({ ...data, customIconUrl: null, icon: 'book' });
                       }}
                       className="text-xs px-2 py-1 bg-red-600/20 text-red-300 hover:bg-red-600/30 rounded transition-colors"
                     >
@@ -364,65 +393,45 @@ export const CourseEditor = ({ course, onSave, onCancel, serverOnline = false, i
 
             <div className="pt-4 space-y-2">
               {/* Server status indicator */}
-              {isPublishedEdit && (
-                <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded ${serverOnline ? 'bg-green-900/30 text-green-400' : 'bg-yellow-900/30 text-yellow-400'}`}>
-                  {serverOnline ? <Server className="w-3 h-3" /> : <ServerOff className="w-3 h-3" />}
-                  {serverOnline ? 'Server online - can save to file' : 'Server offline - saves to browser only'}
-                </div>
-              )}
-
-              {/* Import/Export modules */}
-              <div className="border-t border-gray-700 pt-4 space-y-2">
-                <p className="text-xs text-gray-400 mb-2">📦 Module Management</p>
-                <button
-                  onClick={handleExportModules}
-                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Export Modules JSON
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportModules}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
-                >
-                  <FileJson className="w-4 h-4" />
-                  Import Modules JSON
-                </button>
-              </div>
-              
-              {/* Save to localStorage (default) */}
+              {/* Advanced Options */}
               <button
                 onClick={handleSaveCourse}
-                className="w-full px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 rounded-lg font-bold transition-all flex items-center justify-center gap-2 text-white shadow-lg"
               >
-                <Save className="w-4 h-4" />
-                {isPublishedEdit ? 'Save to Browser' : 'Save Course'}
+                <Save className="w-5 h-5" />
+                Save Changes
               </button>
               
-              {/* Save to file (if server online and editing published course) */}
-              {isPublishedEdit && serverOnline && (
-                <button
-                  onClick={() => {
-                    if (!verifyCSRFToken('course-editor', csrfToken)) {
-                      alert('Security error: Invalid form token.');
-                      return;
-                    }
-                    onSave(data, true); // true = save to file
-                    const token = generateCSRFToken('course-editor');
-                    setCSRFToken(token);
-                  }}
-                  className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Save to File
-                </button>
+              {/* Server Status & Auto-Save Info */}
+              {isPublishedEdit && (
+                <div className={`text-xs p-3 rounded-lg border flex items-start gap-2 ${
+                  adminRole === 'admin' && serverOnline
+                    ? 'bg-green-900/20 border-green-600/50 text-green-300' 
+                    : 'bg-blue-900/20 border-blue-600/50 text-blue-300'
+                }`}>
+                  <div className="flex-shrink-0 mt-0.5">
+                    {serverOnline ? <Server className="w-4 h-4" /> : <ServerOff className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    {adminRole === 'admin' ? (
+                      <>
+                        <p className="font-semibold">Server Status: {serverOnline ? 'Online' : 'Offline'}</p>
+                        <p className="text-xs opacity-90 mt-0.5">
+                          {serverOnline 
+                            ? '✅ Changes will be saved directly to production database.' 
+                            : '⚠️ Changes will be saved locally and synced when server comes online.'}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold">Mod Permissions</p>
+                        <p className="text-xs opacity-90 mt-0.5">
+                          💾 Changes are saved locally. An admin will review and publish to production.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
               
               <input type="hidden" value={csrfToken} />

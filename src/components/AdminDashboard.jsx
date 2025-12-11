@@ -31,9 +31,15 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
   // Fetch courses from API
   const { courses: apiCourses, loading: coursesLoading, refetch: refetchCourses } = useCourses();
   
-  // Check if user is admin (can publish/delete/edit all)
+  // Permission helpers
   const isAdmin = adminRole === 'admin';
-  // Mods can create and edit but not publish
+  const isMod = adminRole === 'mod';
+  
+  // Permission checks
+  const canPublish = isAdmin;
+  const canDelete = isAdmin;
+  const canCreate = true; // Both admins and mods can create
+  const canEdit = true; // Both admins and mods can edit
 
   // Load drafts from localStorage and check server health
   useEffect(() => {
@@ -156,101 +162,146 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
     }
   };
 
-  // Save course
-  const handleSaveCourse = async (course, saveToFile = false) => {
-    // Check if this is a published course edit
-    if (editingPublishedId) {
-      // If saveToFile is true and server is online, save directly to file
-      if (saveToFile && serverOnline) {
-        // Check authentication before saving to file
-        const token = getSessionToken();
-        if (!token) {
-          // Store the course data and action, show auth modal
-          setPendingAction(() => async () => {
-            try {
-              await updateCourse(editingPublishedId, course);
-              
-              const updatedEdits = { ...publishedEdits };
-              delete updatedEdits[editingPublishedId];
-              savePublishedEdits(updatedEdits);
-              
-              await refetchCourses(); // Refresh courses from API
-              alert('✅ Course saved to database!');
-              setEditingPublishedId(null);
-              setView('list');
-              setEditingCourse(null);
-            } catch (error) {
-              console.error('Save to database error:', error);
-              alert('❌ Failed to save to database: ' + error.message + '\n\nFalling back to localStorage.');
-              // Fallback to localStorage
-              const updatedEdits = {
-                ...publishedEdits,
-                [editingPublishedId]: {
-                  ...course,
-                  id: editingPublishedId,
-                  updatedAt: new Date().toISOString()
-                }
-              };
-              savePublishedEdits(updatedEdits);
-              setEditingPublishedId(null);
-            }
-          });
-          setShowAuthModal(true);
-          return;
-        }
+  // Save course - auto-detects destination (database if editing published + server online, otherwise localStorage)
+  const handleSaveCourse = async (course, saveToDatabase = false) => {
+    try {
+      // Check if this is a published course edit
+      if (editingPublishedId) {
+        // Determine whether to save to database or localStorage
+        const shouldSaveToDatabase = saveToDatabase && serverOnline;
+        
+        if (shouldSaveToDatabase) {
+          // Check authentication before saving to database
+          const token = getSessionToken();
+          if (!token) {
+            // Store the course data and action, show auth modal
+            setPendingAction(() => async () => {
+              try {
+                await updateCourse(editingPublishedId, course);
+                
+                // Clear any localStorage edits for this course since it's now saved to database
+                const updatedEdits = { ...publishedEdits };
+                delete updatedEdits[editingPublishedId];
+                savePublishedEdits(updatedEdits);
+                
+                await refetchCourses(); // Refresh courses from API
+                logSecurityEvent('published_course_saved_to_db', {
+                  courseId: editingPublishedId,
+                  modules: course.modules?.length
+                });
+                alert('✅ Course successfully saved to production database!');
+                setEditingPublishedId(null);
+                setView('list');
+                setEditingCourse(null);
+              } catch (error) {
+                console.error('Save to database error:', error);
+                logSecurityEvent('published_course_save_db_failed', {
+                  courseId: editingPublishedId,
+                  error: error.message
+                });
+                // Fallback to localStorage
+                const updatedEdits = {
+                  ...publishedEdits,
+                  [editingPublishedId]: {
+                    ...course,
+                    id: editingPublishedId,
+                    updatedAt: new Date().toISOString()
+                  }
+                };
+                savePublishedEdits(updatedEdits);
+                alert('⚠️ Database save failed. Changes saved locally instead.');
+                setEditingPublishedId(null);
+              }
+            });
+            setShowAuthModal(true);
+            return;
+          }
 
-        try {
-          await updateCourse(editingPublishedId, course);
-          
-          // Clear any localStorage edits for this course since it's now saved to database
-          const updatedEdits = { ...publishedEdits };
-          delete updatedEdits[editingPublishedId];
+          try {
+            await updateCourse(editingPublishedId, course);
+            
+            // Clear any localStorage edits for this course since it's now saved to database
+            const updatedEdits = { ...publishedEdits };
+            delete updatedEdits[editingPublishedId];
+            savePublishedEdits(updatedEdits);
+            
+            await refetchCourses(); // Refresh courses from API
+            logSecurityEvent('published_course_saved_to_db', {
+              courseId: editingPublishedId,
+              modules: course.modules?.length
+            });
+            alert('✅ Course successfully saved to production database!');
+            setEditingPublishedId(null);
+            setView('list');
+            setEditingCourse(null);
+            return;
+          } catch (error) {
+            console.error('Save to database error:', error);
+            logSecurityEvent('published_course_save_db_failed', {
+              courseId: editingPublishedId,
+              error: error.message
+            });
+            // Fallback to localStorage
+            const updatedEdits = {
+              ...publishedEdits,
+              [editingPublishedId]: {
+                ...course,
+                id: editingPublishedId,
+                updatedAt: new Date().toISOString()
+              }
+            };
+            savePublishedEdits(updatedEdits);
+            alert('⚠️ Database save failed. Changes saved locally instead.');
+          }
+        } else {
+          // Save as an override to localStorage
+          const updatedEdits = {
+            ...publishedEdits,
+            [editingPublishedId]: {
+              ...course,
+              id: editingPublishedId, // Keep original ID
+              updatedAt: new Date().toISOString()
+            }
+          };
           savePublishedEdits(updatedEdits);
-          
-          await refetchCourses(); // Refresh courses from API
-          alert('✅ Course saved to database!');
-          setEditingPublishedId(null);
-          setView('list');
-          setEditingCourse(null);
-          return;
-        } catch (error) {
-          console.error('Save to database error:', error);
-          alert('❌ Failed to save to database: ' + error.message + '\n\nFalling back to localStorage.');
+          logSecurityEvent('published_course_saved_local', {
+            courseId: editingPublishedId,
+            modules: course.modules?.length
+          });
+          alert('✅ Changes saved locally. (Server offline - will sync when available)');
         }
-      }
-      
-      // Save as an override to localStorage (fallback or default)
-      const updatedEdits = {
-        ...publishedEdits,
-        [editingPublishedId]: {
-          ...course,
-          id: editingPublishedId, // Keep original ID
-          updatedAt: new Date().toISOString()
-        }
-      };
-      savePublishedEdits(updatedEdits);
-      setEditingPublishedId(null);
-      logSecurityEvent('published_course_edited', {
-        courseId: editingPublishedId,
-        modules: course.modules?.length
-      });
-    } else {
-      // Save as a draft
-      const existingIndex = drafts.findIndex(d => d.id === course.id);
-      let updated;
-      
-      if (existingIndex >= 0) {
-        updated = [...drafts];
-        updated[existingIndex] = { ...course, updatedAt: new Date().toISOString() };
+        
+        setEditingPublishedId(null);
       } else {
-        updated = [...drafts, { ...course, createdAt: new Date().toISOString() }];
+        // Save as a draft
+        const existingIndex = drafts.findIndex(d => d.id === course.id);
+        let updated;
+        
+        if (existingIndex >= 0) {
+          updated = [...drafts];
+          updated[existingIndex] = { ...course, updatedAt: new Date().toISOString() };
+        } else {
+          updated = [...drafts, { ...course, createdAt: new Date().toISOString() }];
+        }
+        
+        saveDrafts(updated);
+        logSecurityEvent('draft_saved', {
+          courseId: course.id,
+          modules: course.modules?.length
+        });
+        alert('✅ Draft saved successfully!');
       }
       
-      saveDrafts(updated);
+      setView('list');
+      setEditingCourse(null);
+    } catch (error) {
+      console.error('Unexpected save error:', error);
+      alert('❌ Unexpected error while saving. Please try again.');
+      logSecurityEvent('course_save_unexpected_error', {
+        courseId: editingPublishedId || course?.id,
+        error: error.message
+      });
     }
-    
-    setView('list');
-    setEditingCourse(null);
   };
 
   // Revert published course to original
@@ -385,8 +436,8 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
         }}
         onExport={() => handleExportCourse(selectedCourse)}
         onPublish={async () => {
-          if (!isAdmin) {
-            alert('Only admins can publish courses.');
+          if (!canPublish) {
+            alert(`⛔ Only admins can publish courses to production.${isMod ? ' Mods can create and edit drafts, but admins must review and publish.' : ''}`);
             return;
           }
           
@@ -613,7 +664,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
                   <Download className="w-4 h-4" />
                   Export
                 </button>
-                {course._hasLocalEdits && isAdmin && (
+                {course._hasLocalEdits && canDelete && (
                   <button
                     onClick={() => handleRevertPublished(course.id)}
                     className="flex items-center gap-2 px-3 py-1.5 bg-gray-600/20 text-gray-300 hover:bg-gray-600/30 rounded text-sm font-bold transition-colors"
@@ -707,7 +758,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
                   <Download className="w-4 h-4" />
                   Export
                 </button>
-                {isAdmin && (
+                {canDelete && (
                   <button
                     onClick={() => {
                       const token = generateCSRFToken('admin-dashboard-delete');

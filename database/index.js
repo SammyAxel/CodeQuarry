@@ -14,6 +14,7 @@ import * as User from './models/User.js';
 import * as Progress from './models/Progress.js';
 import * as Cosmetic from './models/Cosmetic.js';
 import * as Course from './models/Course.js';
+import * as Draft from './models/Draft.js';
 import * as Admin from './models/Admin.js';
 
 const { Pool } = pg;
@@ -185,6 +186,35 @@ const initDatabase = async () => {
       )
     `);
 
+    // Course Drafts table (for collaborative course creation/editing)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS drafts (
+        id SERIAL PRIMARY KEY,
+        course_id TEXT,
+        title TEXT NOT NULL,
+        description TEXT,
+        icon TEXT,
+        custom_icon_url TEXT,
+        language TEXT DEFAULT 'javascript',
+        difficulty TEXT DEFAULT 'easy',
+        tier TEXT DEFAULT 'Copper',
+        modules JSONB DEFAULT '[]',
+        created_by INTEGER NOT NULL,
+        creator_name TEXT NOT NULL,
+        last_edited_by INTEGER,
+        editor_name TEXT,
+        status TEXT DEFAULT 'in_progress',
+        review_notes TEXT,
+        commission DECIMAL(10, 2) DEFAULT 0,
+        completion_percentage INTEGER DEFAULT 0,
+        collaborators JSONB DEFAULT '[]',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (last_edited_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
 
@@ -262,10 +292,13 @@ export default {
   
   // Course management
   ...Course,
-  reseedCourses,
+  
+  // Draft management (collaborative course creation)
+  ...Draft,
   
   // Admin operations
   ...Admin,
+  reseedCourses,
   
   // Pool for advanced queries
   pool

@@ -23,6 +23,7 @@ import db from '../database/index.js';
 import authRoutes from './routes/auth.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import coursesRoutes from './routes/courses.routes.js';
+import draftsRoutes from './routes/drafts.routes.js';
 import cosmeticsRoutes from './routes/cosmetics.routes.js';
 import progressRoutes from './routes/progress.routes.js';
 import adminRoutes from './routes/admin.routes.js';
@@ -57,6 +58,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', usersRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/courses', coursesRoutes);
+app.use('/api/drafts', draftsRoutes);
 app.use('/api/user/cosmetics', cosmeticsRoutes); // User cosmetics operations
 app.use('/api/cosmetics', cosmeticsRoutes); // Public shop endpoint
 app.use('/api/admin', adminRoutes);
