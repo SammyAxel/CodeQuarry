@@ -32,6 +32,10 @@ export const UserProvider = ({ children }) => {
   const [adminRole, setAdminRole] = useState(null);
   const [showAuthPage, setShowAuthPage] = useState('login'); // 'login' | 'register'
   const [equippedCosmetics, setEquippedCosmetics] = useState({});
+  const [hasVisitedPractice, setHasVisitedPractice] = useState(() => {
+    // Load from localStorage on init
+    return localStorage.getItem('hasVisitedPractice') === 'true';
+  });
 
   /**
    * Initialize user session from stored token
@@ -242,6 +246,21 @@ export const UserProvider = ({ children }) => {
     }
   }, [currentUser, isAdmin]);
 
+  /**
+   * Mark that the user has visited practice page (for tutorial)
+   */
+  const markPracticeVisited = useCallback(() => {
+    setHasVisitedPractice(true);
+    localStorage.setItem('hasVisitedPractice', 'true');
+  }, []);
+
+  /**
+   * Check if user is visiting practice for the first time
+   */
+  const shouldShowPracticeTutorial = useCallback(() => {
+    return !hasVisitedPractice && !!currentUser && !isAdmin;
+  }, [hasVisitedPractice, currentUser, isAdmin]);
+
   const value = {
     currentUser,
     isLoading,
@@ -261,6 +280,9 @@ export const UserProvider = ({ children }) => {
     refreshProgress,
     userProgress,
     isAuthenticated: !!currentUser && !isAdmin,
+    hasVisitedPractice,
+    markPracticeVisited,
+    shouldShowPracticeTutorial,
   };
 
   return (

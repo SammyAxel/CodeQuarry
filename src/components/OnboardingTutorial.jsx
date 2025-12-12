@@ -2,10 +2,12 @@
  * Onboarding Tutorial Component
  * Interactive guide for new users
  * Shows step-by-step how to use CodeQuarry
+ * Features Quarry Guide mascot for a fun, engaging experience
  */
 
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, BookOpen, Award, Users, Code, MessageCircle } from 'lucide-react';
+import { QuarryGuide } from './QuarryGuide';
 
 export const OnboardingTutorial = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -15,37 +17,49 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
       title: '👋 Welcome to CodeQuarry!',
       description: 'Learn programming through interactive courses and challenges. Earn gems, unlock achievements, and compete with friends!',
       icon: <BookOpen className="w-12 h-12 text-purple-500" />,
-      tips: ['Each course has multiple modules', 'Complete challenges to earn gems', 'Track your progress on the dashboard']
+      tips: ['Each course has multiple modules', 'Complete challenges to earn gems', 'Track your progress on the dashboard'],
+      quarryMessage: "Hey! I'm Quarry, your learning guide! Welcome to CodeQuarry, where coding meets adventure! 🎮",
+      quarryExpression: 'excited'
     },
     {
       title: '🎓 Browsing Courses',
       description: 'Click on "Home" to see all available courses. Each course teaches a different programming language.',
       icon: <Code className="w-12 h-12 text-blue-500" />,
-      tips: ['Filter by difficulty: Easy, Medium, Hard', 'Courses are color-coded by language', 'Read the description before starting']
+      tips: ['Filter by difficulty: Easy, Medium, Hard', 'Courses are color-coded by language', 'Read the description before starting'],
+      quarryMessage: "Each course is like a new mining site with different challenges. Pick one that excites you! ⛏️",
+      quarryExpression: 'thinking'
     },
     {
       title: '🚀 Starting a Module',
       description: 'Inside each course, you\'ll find modules (lessons). Click a module to start learning and practicing code.',
       icon: <Users className="w-12 h-12 text-green-500" />,
-      tips: ['Read the article/video first to learn', 'Then solve the practice problem', 'Submit your code to check answers']
+      tips: ['Read the article/video first to learn', 'Then solve the practice problem', 'Submit your code to check answers'],
+      quarryMessage: "Here's my favorite part! Each module has a theory section and hands-on practice. Learning by doing! 💡",
+      quarryExpression: 'helpful'
     },
     {
       title: '⭐ Earning Gems',
       description: 'Complete modules and challenges to earn gems. Gems are points you can use to unlock cosmetics and badges.',
       icon: <Award className="w-12 h-12 text-pink-500" />,
-      tips: ['Harder challenges = more gems', 'Daily bonuses for consistent learning', 'No penalty for wrong answers!']
+      tips: ['Harder challenges = more gems', 'Daily bonuses for consistent learning', 'No penalty for wrong answers!'],
+      quarryMessage: "Every successful solution earns you gems! These shiny rewards unlock special cosmetics. Nice loot! 💎",
+      quarryExpression: 'happy'
     },
     {
       title: '📊 Checking Your Progress',
       description: 'Visit your Profile to see all your achievements, collected cosmetics, and leaderboard rank.',
       icon: <MessageCircle className="w-12 h-12 text-orange-500" />,
-      tips: ['Dark theme by default (switch in settings)', 'Light theme available if you prefer', 'Customize your profile with cosmetics']
+      tips: ['Dark theme by default (switch in settings)', 'Light theme available if you prefer', 'Customize your profile with cosmetics'],
+      quarryMessage: "Want to show off? Check your profile and see your epic collection of achievements! 🏆",
+      quarryExpression: 'happy'
     },
     {
       title: '💡 Tips for Success',
       description: 'Take your time with each module. It\'s okay to make mistakes—that\'s how you learn!',
       icon: <Code className="w-12 h-12 text-cyan-500" />,
-      tips: ['Start with easier courses', 'Practice regularly for best results', 'Feel free to replay modules anytime']
+      tips: ['Start with easier courses', 'Practice regularly for best results', 'Feel free to replay modules anytime'],
+      quarryMessage: "Most importantly: have fun and don't rush! Every expert coder started exactly where you are. You've got this! 🚀",
+      quarryExpression: 'excited'
     }
   ];
 
@@ -71,10 +85,27 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      {/* Quarry Guide Mascot */}
+      <QuarryGuide
+        message={step.quarryMessage}
+        expression={step.quarryExpression}
+        position={currentStep % 2 === 0 ? 'bottom-left' : 'bottom-right'}
+        size="medium"
+        isAnimated={true}
+        onDismiss={() => {
+          localStorage.setItem('tutorialCompleted', 'true');
+          onClose();
+        }}
+      />
+
       <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="bg-black/30 backdrop-blur px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">CodeQuarry 101</h2>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span>🎮</span>
+            <span>CodeQuarry 101</span>
+            <span>with Quarry</span>
+          </h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-white/20 rounded-lg transition-colors"

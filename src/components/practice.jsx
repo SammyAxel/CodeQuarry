@@ -9,17 +9,21 @@ import NavigationControls from './NavControl';
 import { CodeEditor } from './CodeEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { RefineryModal } from './RefineryModal';
+import { PracticeTutorial } from './PracticeTutorial';
 import { useCodeEngine } from '../hooks/useCodeEngine';
 import { getSavedCode, saveModuleProgress } from '../utils/userApi';
 import { useLanguage } from '../context/LanguageContext';
+import { useUser } from '../context/UserContext';
 
 export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted }) => { 
   const { t } = useLanguage();
+  const { shouldShowPracticeTutorial, markPracticeVisited } = useUser();
   const [code, setCode] = useState(module.initialCode || '');
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showRefineryModal, setShowRefineryModal] = useState(false);
+  const [showPracticeTutorial, setShowPracticeTutorial] = useState(shouldShowPracticeTutorial());
   const [refineryBest, setRefineryBest] = useState(null);
   const [syntaxError, setSyntaxError] = useState(null);
   const [activeTab, setActiveTab] = useState('theory');
@@ -469,6 +473,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
             {/* Tabs */}
             <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-800/50 shrink-0 bg-[#010409]">
               <button
+                id="field-guide-tab"
                 onClick={() => setActiveTab('theory')}
                 className={`p-2 rounded transition-colors ${activeTab === 'theory' ? 'bg-purple-600/40 text-purple-300' : 'text-gray-400 hover:text-white'}`}
                 title="Field Guide"
@@ -476,6 +481,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
                 <BookOpen className="w-4 h-4" />
               </button>
               <button
+                id="bounty-tab"
                 onClick={() => setActiveTab('tasks')}
                 className={`p-2 rounded transition-colors ${activeTab === 'tasks' ? 'bg-blue-600/40 text-blue-300' : 'text-gray-400 hover:text-white'}`}
                 title="Bounty"
@@ -641,6 +647,16 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
              }}
            />
          )}
+
+         {/* Practice Tutorial */}
+         <PracticeTutorial
+           isOpen={showPracticeTutorial}
+           module={module}
+           onClose={() => {
+             setShowPracticeTutorial(false);
+             markPracticeVisited();
+           }}
+         />
       </div>
     </div>
   );
