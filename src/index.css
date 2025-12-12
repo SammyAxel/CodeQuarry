@@ -2,358 +2,294 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light Mode Color Scheme */
+/* ==================== THEME SYSTEM ==================== */
+/* Light and Dark Mode Color Scheme */
 @layer base {
   :root {
     color-scheme: light dark;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   
   .light {
     color-scheme: light;
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f7fa;
+    --bg-tertiary: #eceef3;
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-tertiary: #718096;
+    --border-color: #cbd5e0;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
   
   .dark {
     color-scheme: dark;
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2128;
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    --text-tertiary: #6e7681;
+    --border-color: #30363d;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.6);
   }
 }
 
-/* Light Mode Overrides */
+/* ==================== LIGHT MODE THEME ==================== */
 @layer components {
-  /* Base light mode styles */
-  html.light,
-  html.light body {
-    background-color: #fafbfc !important;
-    color: #24292f !important;
+  html.light {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
   }
-  
-  /* Background colors */
+
+  html.light body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  /* ---- Core Backgrounds ---- */
   html.light .bg-\[\#0d1117\],
   html.light .bg-gray-900,
   html.light .bg-gray-950 {
-    background-color: #fafbfc !important;
+    background-color: var(--bg-secondary);
   }
-  
+
   html.light .bg-\[\#161b22\],
-  html.light .bg-gray-800,
-  html.light .bg-gray-900\/50 {
-    background-color: #ffffff !important;
-    border-color: #d0d7de !important;
-    box-shadow: 0 1px 3px rgba(140, 149, 159, 0.15);
+  html.light .bg-gray-800 {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
   }
-  
+
+  html.light .bg-gray-900\/50,
+  html.light .bg-gray-800\/50 {
+    background-color: var(--bg-primary) !important;
+    border-color: var(--border-color);
+  }
+
   html.light .bg-gray-700 {
-    background-color: #f6f8fa !important;
+    background-color: var(--bg-tertiary);
   }
-  
+
   html.light .bg-gray-600 {
-    background-color: #eaeef2 !important;
+    background-color: var(--bg-secondary);
   }
-  
-  /* Text colors */
+
+  html.light nav,
+  html.light aside,
+  html.light header {
+    background-color: rgba(255, 255, 255, 0.98);
+    border-color: var(--border-color);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ---- Text Colors ---- */
   html.light .text-white {
-    color: #24292f !important;
+    color: var(--text-primary);
   }
-  
+
   html.light .text-gray-100,
   html.light .text-gray-200,
   html.light .text-gray-300 {
-    color: #24292f !important;
+    color: var(--text-primary);
   }
-  
+
   html.light .text-gray-400,
   html.light .text-gray-500,
   html.light .text-gray-600 {
-    color: #57606a !important;
+    color: var(--text-secondary);
   }
-  
-  /* Border colors */
+
+  html.light .text-gray-700 {
+    color: var(--text-tertiary);
+  }
+
+  /* ---- Borders ---- */
   html.light .border-gray-700,
   html.light .border-gray-800,
-  html.light .border-gray-900,
-  html.light .border-purple-500\/20 {
-    border-color: #d0d7de !important;
+  html.light .border-gray-900 {
+    border-color: var(--border-color);
   }
-  
-  /* Hover states */
+
+  /* ---- Hover States ---- */
   html.light .hover\:bg-gray-800:hover {
-    background-color: #f6f8fa !important;
+    background-color: var(--bg-tertiary);
   }
-  
+
   html.light .hover\:bg-gray-700:hover {
-    background-color: #eaeef2 !important;
+    background-color: var(--bg-secondary);
   }
-  
-  html.light .hover\:bg-gray-600:hover {
-    background-color: #dfe3e8 !important;
-  }
-  
+
   html.light .hover\:text-white:hover {
-    color: #24292f !important;
+    color: var(--text-primary);
   }
-  
-  html.light .hover\:border-purple-500:hover,
-  html.light .hover\:border-purple-500\/50:hover,
-  html.light .hover\:border-purple-500\/70:hover {
-    border-color: #8b5cf6 !important;
+
+  html.light .group:hover .group-hover\:bg-gray-800 {
+    background-color: var(--bg-tertiary);
   }
-  
-  /* Gradients */
-  html.light .from-purple-900\/50 {
-    --tw-gradient-from: #f5f3ff;
-    --tw-gradient-to: rgb(245 243 255 / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-  
-  html.light .to-pink-900\/50 {
-    --tw-gradient-to: #fdf2f8;
-  }
-  
-  /* Ring colors for focus states */
-  html.light .ring-offset-gray-900 {
-    --tw-ring-offset-color: #ffffff;
-  }
-  
-  /* Input fields */
+
+  /* ---- Input Fields ---- */
   html.light input,
   html.light textarea,
   html.light select {
-    background-color: #ffffff !important;
-    color: #24292f !important;
-    border-color: #d0d7de !important;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
   }
-  
+
   html.light input:focus,
   html.light textarea:focus,
   html.light select:focus {
-    border-color: #8b5cf6 !important;
+    border-color: #8b5cf6;
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
   }
-  
+
   html.light input::placeholder,
   html.light textarea::placeholder {
-    color: #6e7781 !important;
+    color: var(--text-tertiary);
   }
-  
-  /* Cards and containers with opacity */
-  html.light .bg-gray-900\/60 {
-    background-color: #ffffff !important;
-    box-shadow: 0 1px 3px rgba(140, 149, 159, 0.15);
+
+  /* ---- Code Editor & Terminal ---- */
+  html.light .bg-white {
+    background-color: var(--bg-primary);
   }
-  
-  html.light .bg-gray-900\/30,
+
+  html.light .bg-black,
+  html.light pre {
+    background-color: #24292f;
+    color: #c9d1d9;
+  }
+
+  html.light code {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  html.light pre code {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  /* ---- Cards & Panels ---- */
+  html.light .bg-gray-900\/60,
   html.light .bg-purple-900\/30,
   html.light .bg-emerald-900\/30,
   html.light .bg-pink-900\/30,
   html.light .bg-red-900\/50 {
-    background-color: #ffffff !important;
-    border-color: #d0d7de !important;
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
   }
-  
-  /* Specific component overrides */
-  html.light .group:hover .group-hover\:bg-gray-800 {
-    background-color: #f6f8fa !important;
-  }
-  
-  /* Ring colors */
-  html.light .ring-gray-700 {
-    --tw-ring-color: #d0d7de;
-  }
-  
-  html.light .group-hover\:ring-purple-500\/50 {
-    --tw-ring-color: rgb(139 92 246 / 0.3);
-  }
-  
-  /* Shadow enhancements for cards */
-  html.light .hover\:shadow-2xl:hover,
-  html.light .hover\:shadow-purple-600\/30:hover {
-    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
-  }
-  
-  /* Navbar */
-  html.light nav {
-    background-color: rgba(255, 255, 255, 0.95) !important;
-    border-bottom: 1px solid #d0d7de;
-    backdrop-filter: blur(10px);
-  }
-  
-  /* Course Cards - More specific selectors */
-  html.light .bg-\[\#161b22\].border.border-gray-800 {
-    background-color: #ffffff !important;
-    border-color: #d0d7de !important;
-    box-shadow: 0 2px 8px rgba(140, 149, 159, 0.12);
-  }
-  
-  html.light .bg-\[\#161b22\].border.border-gray-800:hover {
-    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15) !important;
-  }
-  
-  /* Search input */
-  html.light .bg-gray-900\/50.border.border-gray-800 {
-    background-color: #ffffff !important;
-    border-color: #d0d7de !important;
-  }
-  
-  /* Placeholder text */
-  html.light .placeholder-gray-500::placeholder {
-    color: #6e7781 !important;
-  }
-  
-  html.light .placeholder-gray-600::placeholder {
-    color: #57606a !important;
-  }
-  
-  /* Navbar - More comprehensive */
-  html.light nav,
-  html.light .bg-\[\#0d1117\].border-b {
-    background-color: rgba(255, 255, 255, 0.95) !important;
-    border-bottom-color: #d0d7de !important;
-  }
-  
-  /* Course/Syllabus page backgrounds */
-  html.light .bg-\[\#0d1117\],
-  html.light main {
-    background-color: #fafbfc !important;
-  }
-  
-  /* Module cards and containers */
-  html.light .bg-\[\#161b22\] {
-    background-color: #ffffff !important;
-    border-color: #d0d7de !important;
-  }
-  
-  /* Progress bars */
-  html.light .bg-gray-900 {
-    background-color: #eaeef2 !important;
-  }
-  
-  /* Icons and SVG elements */
+
+  /* ---- Accent Colors ---- */
   html.light .text-purple-400,
   html.light .text-purple-300 {
-    color: #8b5cf6 !important;
+    color: #8b5cf6;
   }
-  
+
   html.light .text-emerald-400,
   html.light .text-emerald-300 {
-    color: #10b981 !important;
+    color: #10b981;
   }
-  
+
   html.light .text-pink-400,
   html.light .text-pink-300 {
-    color: #ec4899 !important;
+    color: #ec4899;
   }
-  
+
   html.light .text-orange-400,
   html.light .text-orange-300 {
-    color: #f97316 !important;
+    color: #f97316;
   }
-  
-  /* Buttons */
-  html.light .bg-purple-600 {
-    background-color: #8b5cf6 !important;
-  }
-  
-  html.light .bg-purple-600:hover,
-  html.light .hover\:bg-purple-500:hover {
-    background-color: #7c3aed !important;
-  }
-  
-  /* Badge backgrounds */
-  html.light .bg-emerald-900\/30 {
-    background-color: #d1fae5 !important;
-    color: #065f46 !important;
-  }
-  
-  html.light .bg-purple-900\/30 {
-    background-color: #ede9fe !important;
-    color: #6b21a8 !important;
-  }
-  
-  html.light .bg-red-900\/30 {
-    background-color: #fee2e2 !important;
-    color: #991b1b !important;
-  }
-  
-  /* Locks and disabled states */
-  html.light .opacity-50 {
-    opacity: 0.6 !important;
-  }
-  
-  /* Logo and branding */
-  html.light .text-purple-500,
-  html.light .text-purple-400 {
-    color: #8b5cf6 !important;
-  }
-  
-  /* Learning/Practice Page Sidebar */
-  html.light .bg-\[\#0d1117\].border-r,
-  html.light aside,
-  html.light .sidebar {
-    background-color: #ffffff !important;
-    border-color: #d0d7de !important;
-  }
-  
-  /* Code editor background - keep light */
-  html.light .bg-white {
-    background-color: #ffffff !important;
-  }
-  
-  /* Output terminal */
-  html.light .bg-black,
-  html.light pre {
-    background-color: #24292f !important;
-    color: #c9d1d9 !important;
-  }
-  
-  /* Module navigation buttons */
-  html.light .bg-gray-800\/50 {
-    background-color: #f6f8fa !important;
-    border-color: #d0d7de !important;
-  }
-  
-  /* Tab buttons */
-  html.light .bg-gray-700 {
-    background-color: #f6f8fa !important;
-  }
-  
+
+  /* ---- Buttons ---- */
+  html.light .bg-purple-600,
   html.light .bg-purple-700,
   html.light .bg-purple-800 {
-    background-color: #8b5cf6 !important;
+    background-color: #8b5cf6;
+    color: white;
   }
-  
-  /* Field guide and content panels */
-  html.light .bg-gray-900\/50,
-  html.light .bg-gray-800\/50 {
-    background-color: #ffffff !important;
-    border-color: #d0d7de !important;
+
+  html.light .bg-purple-600:hover,
+  html.light .hover\:bg-purple-500:hover {
+    background-color: #7c3aed;
   }
-  
-  /* Code blocks in content */
-  html.light code {
-    background-color: #f6f8fa !important;
-    color: #24292f !important;
-    border: 1px solid #d0d7de;
-    padding: 2px 6px;
-    border-radius: 4px;
+
+  /* ---- Badges ---- */
+  html.light .bg-emerald-900\/30 {
+    background-color: #d1fae5;
+    color: #065f46;
   }
-  
-  html.light pre code {
-    background-color: transparent !important;
-    border: none;
-    padding: 0;
+
+  html.light .bg-purple-900\/30 {
+    background-color: #ede9fe;
+    color: #6b21a8;
   }
-  
-  /* Headers and titles */
-  html.light h1, html.light h2, html.light h3, html.light h4 {
-    color: #24292f !important;
+
+  html.light .bg-red-900\/30 {
+    background-color: #fee2e2;
+    color: #991b1b;
   }
-  
-  /* Links */
+
+  /* ---- Shadows ---- */
+  html.light .shadow,
+  html.light .shadow-md {
+    box-shadow: var(--shadow);
+  }
+
+  html.light .shadow-lg,
+  html.light .hover\:shadow-lg:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  html.light .shadow-xl,
+  html.light .hover\:shadow-xl:hover,
+  html.light .hover\:shadow-2xl:hover {
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* ---- Headers ---- */
+  html.light h1,
+  html.light h2,
+  html.light h3,
+  html.light h4,
+  html.light h5,
+  html.light h6 {
+    color: var(--text-primary);
+  }
+
+  /* ---- Links ---- */
   html.light a {
-    color: #0969da !important;
+    color: #0969da;
   }
-  
+
   html.light a:hover {
-    color: #0550ae !important;
+    color: #0550ae;
+  }
+
+  /* ---- Scrollbar ---- */
+  html.light ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  html.light ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+  }
+
+  html.light ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 5px;
+  }
+
+  html.light ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
   }
 }
 
