@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Clock, ChevronLeft, CheckCircle2, Code2, Zap, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, ChevronLeft, ChevronRight, CheckCircle2, Code2, Zap, AlertTriangle } from 'lucide-react';
 
 import NavigationControls from './NavControl.jsx';
 import { MarkdownRenderer } from './MarkdownRenderer';
