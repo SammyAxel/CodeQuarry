@@ -52,7 +52,8 @@ const initDatabase = async () => {
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS bio TEXT,
       ADD COLUMN IF NOT EXISTS custom_role VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS total_gems INTEGER DEFAULT 0
+      ADD COLUMN IF NOT EXISTS total_gems INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS has_visited_practice BOOLEAN DEFAULT false
     `);
 
     // User sessions table
