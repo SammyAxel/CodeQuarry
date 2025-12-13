@@ -2,12 +2,10 @@
  * Onboarding Tutorial Component
  * Interactive guide for new users
  * Shows step-by-step how to use CodeQuarry
- * Features Quarry Guide mascot for a fun, engaging experience
  */
 
 import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, BookOpen, Award, Users, Code, MessageCircle } from 'lucide-react';
-import { QuarryGuide } from './QuarryGuide';
 
 export const OnboardingTutorial = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -84,27 +82,13 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      {/* Quarry Guide Mascot */}
-      <QuarryGuide
-        message={step.quarryMessage}
-        expression={step.quarryExpression}
-        position={currentStep % 2 === 0 ? 'bottom-left' : 'bottom-right'}
-        size="medium"
-        isAnimated={true}
-        onDismiss={() => {
-          localStorage.setItem('tutorialCompleted', 'true');
-          onClose();
-        }}
-      />
-
-      <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-4">
+      {/* Floating Tutorial Card - Hovering */}
+      <div className="bg-gradient-to-br from-purple-600 via-blue-600 to-cyan-600 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-300">
         {/* Header */}
-        <div className="bg-black/30 backdrop-blur px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <span>🎮</span>
-            <span>CodeQuarry 101</span>
-            <span>with Quarry</span>
+        <div className="bg-black/30 backdrop-blur px-6 py-4 flex items-center justify-between shrink-0">
+          <h2 className="text-2xl font-bold text-white">
+            CodeQuarry 101
           </h2>
           <button
             onClick={onClose}
@@ -115,7 +99,7 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="bg-white dark:bg-gray-900 p-8 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+        <div className="bg-white dark:bg-gray-900 p-8 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 140px)' }}>
           {/* Icon and Title */}
           <div className="flex flex-col items-center mb-6">
             <div className="mb-4">{step.icon}</div>
@@ -159,7 +143,7 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer / Navigation */}
-        <div className="bg-gray-100 dark:bg-gray-800 px-6 py-4 flex items-center justify-between border-t dark:border-gray-700">
+        <div className="bg-gray-100 dark:bg-gray-800 px-6 py-4 flex items-center justify-between border-t dark:border-gray-700 shrink-0">
           <button
             onClick={handlePrev}
             disabled={currentStep === 0}

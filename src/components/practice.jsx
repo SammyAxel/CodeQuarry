@@ -656,6 +656,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
              setShowPracticeTutorial(false);
              markPracticeVisited();
            }}
+           onTabChange={setActiveTab}
          />
       </div>
     </div>
