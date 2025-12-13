@@ -164,7 +164,8 @@ router.get('/me', verifyUserSession, async (req, res) => {
       avatarUrl: user.avatar_url,
       role: user.role,
       createdAt: user.created_at,
-      lastLoginAt: user.last_login_at
+      lastLoginAt: user.last_login_at,
+      hasVisitedPractice: user.has_visited_practice || false
     },
     stats
   });
@@ -359,6 +360,21 @@ router.put('/bio', verifyUserSession, async (req, res) => {
   } catch (error) {
     console.error('Error updating bio:', error);
     res.status(500).json({ error: 'Failed to update bio' });
+  }
+});
+
+/**
+ * POST /api/user/mark-practice-visited
+ * Mark that user has visited the practice page (for onboarding tutorial)
+ * Server-side tracking - not using localStorage for shared computers
+ */
+router.post('/mark-practice-visited', verifyUserSession, async (req, res) => {
+  try {
+    const result = await db.markPracticeVisited(req.user.id);
+    res.json({ success: true, hasVisitedPractice: result.has_visited_practice });
+  } catch (error) {
+    console.error('Error marking practice as visited:', error);
+    res.status(500).json({ error: 'Failed to mark practice as visited' });
   }
 });
 

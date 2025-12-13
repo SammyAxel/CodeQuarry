@@ -32,10 +32,7 @@ export const UserProvider = ({ children }) => {
   const [adminRole, setAdminRole] = useState(null);
   const [showAuthPage, setShowAuthPage] = useState('login'); // 'login' | 'register'
   const [equippedCosmetics, setEquippedCosmetics] = useState({});
-  const [hasVisitedPractice, setHasVisitedPractice] = useState(() => {
-    // Load from localStorage on init
-    return localStorage.getItem('hasVisitedPractice') === 'true';
-  });
+  const [hasVisitedPractice, setHasVisitedPractice] = useState(false); // Loaded from server
 
   /**
    * Initialize user session from stored token
@@ -47,6 +44,8 @@ export const UserProvider = ({ children }) => {
           // Validate session and get user data
           const data = await getCurrentUser();
           setCurrentUser(data.user);
+          // Load hasVisitedPractice from user data (server-side)
+          setHasVisitedPractice(data.user?.hasVisitedPractice || false);
           
           // Load progress
           const progress = await getProgress();
@@ -248,11 +247,31 @@ export const UserProvider = ({ children }) => {
 
   /**
    * Mark that the user has visited practice page (for tutorial)
+   * Sends update to server to persist across sessions
    */
-  const markPracticeVisited = useCallback(() => {
-    setHasVisitedPractice(true);
-    localStorage.setItem('hasVisitedPractice', 'true');
-  }, []);
+  const markPracticeVisited = useCallback(async () => {
+    if (!currentUser || isAdmin) return;
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/api/user/mark-practice-visited`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-token': token || ''
+        }
+      });
+      
+      if (response.ok) {
+        setHasVisitedPractice(true);
+      }
+    } catch (err) {
+      console.error('Failed to mark practice as visited:', err);
+      // Still update local state even if server call fails
+      setHasVisitedPractice(true);
+    }
+  }, [currentUser, isAdmin]);
 
   /**
    * Check if user is visiting practice for the first time

@@ -57,7 +57,7 @@ export const findUser = async (identifier) => {
 
 export const findUserById = async (id) => {
   const result = await pool.query(
-    `SELECT id, username, email, display_name, avatar_url, role, created_at, last_login_at
+    `SELECT id, username, email, display_name, avatar_url, role, created_at, last_login_at, has_visited_practice
      FROM users 
      WHERE id = $1 AND is_active = true`,
     [id]
@@ -67,6 +67,14 @@ export const findUserById = async (id) => {
 
 export const verifyPassword = (password, hash) => {
   return bcrypt.compareSync(password, hash);
+};
+
+export const markPracticeVisited = async (userId) => {
+  const result = await pool.query(
+    `UPDATE users SET has_visited_practice = true WHERE id = $1 RETURNING id, has_visited_practice`,
+    [userId]
+  );
+  return result.rows[0] || null;
 };
 
 export const updateLastLogin = async (userId) => {
