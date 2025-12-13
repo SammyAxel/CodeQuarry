@@ -52,9 +52,21 @@ const initDatabase = async () => {
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS bio TEXT,
       ADD COLUMN IF NOT EXISTS custom_role VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS total_gems INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS has_visited_practice BOOLEAN DEFAULT false
+      ADD COLUMN IF NOT EXISTS total_gems INTEGER DEFAULT 0
     `);
+
+    // Add has_visited_practice column separately (may take longer on large tables)
+    try {
+      await client.query(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS has_visited_practice BOOLEAN DEFAULT false
+      `);
+    } catch (err) {
+      // Column may already exist, that's OK
+      if (err.code !== '42701') { // 42701 = duplicate column
+        console.warn('⚠️  Warning adding has_visited_practice column:', err.message);
+      }
+    }
 
     // User sessions table
     await client.query(`
