@@ -90,6 +90,8 @@ export const UserProvider = ({ children }) => {
     setCurrentUser(user);
     setIsAdmin(false);
     setAdminRole(null);
+    // Reset practice visited from user data
+    setHasVisitedPractice(user.hasVisitedPractice || false);
     
     // Load user progress
     try {
