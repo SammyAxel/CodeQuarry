@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, X, Pickaxe } from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 
 export const PracticeTutorial = ({ 
   isOpen, 
@@ -72,24 +72,46 @@ export const PracticeTutorial = ({
       const targetEl = document.getElementById(step.targetElement);
       if (targetEl && cardRef.current) {
         const targetRect = targetEl.getBoundingClientRect();
-        const cardRect = cardRef.current.getBoundingClientRect();
-        const gap = 20;
+        const cardWidth = 320; // w-80 = 20rem = 320px
+        const cardHeight = cardRef.current.offsetHeight;
+        const gap = 16;
+        const padding = 16;
 
         let top = 0;
         let left = 0;
+        let position = 'right'; // default
 
-        if (step.position === 'right') {
-          // Position to the right of the element
-          left = window.innerWidth - cardRect.width - 24;
-          top = Math.max(16, Math.min(window.innerHeight - cardRect.height - 16, targetRect.top + targetRect.height / 2 - cardRect.height / 2));
-        } else if (step.position === 'below') {
-          // Position below the element
-          left = Math.max(16, Math.min(window.innerWidth - cardRect.width - 16, targetRect.left + targetRect.width / 2 - cardRect.width / 2));
+        // Calculate available space in each direction
+        const spaceRight = window.innerWidth - targetRect.right;
+        const spaceLeft = targetRect.left;
+        const spaceBelow = window.innerHeight - targetRect.bottom;
+        const spaceAbove = targetRect.top;
+
+        // Decide position based on available space
+        if (spaceRight >= cardWidth + gap) {
+          // Position to the right
+          position = 'right';
+          left = targetRect.right + gap;
+          top = Math.max(padding, Math.min(window.innerHeight - cardHeight - padding, targetRect.top + targetRect.height / 2 - cardHeight / 2));
+        } else if (spaceLeft >= cardWidth + gap) {
+          // Position to the left
+          position = 'left';
+          left = targetRect.left - cardWidth - gap;
+          top = Math.max(padding, Math.min(window.innerHeight - cardHeight - padding, targetRect.top + targetRect.height / 2 - cardHeight / 2));
+        } else if (spaceBelow >= cardHeight + gap) {
+          // Position below
+          position = 'below';
           top = targetRect.bottom + gap;
+          left = Math.max(padding, Math.min(window.innerWidth - cardWidth - padding, targetRect.left + targetRect.width / 2 - cardWidth / 2));
+        } else if (spaceAbove >= cardHeight + gap) {
+          // Position above
+          position = 'above';
+          top = targetRect.top - cardHeight - gap;
+          left = Math.max(padding, Math.min(window.innerWidth - cardWidth - padding, targetRect.left + targetRect.width / 2 - cardWidth / 2));
         } else {
-          // Center on screen
-          left = (window.innerWidth - cardRect.width) / 2;
-          top = (window.innerHeight - cardRect.height) / 2;
+          // Fallback: center on screen
+          left = (window.innerWidth - cardWidth) / 2;
+          top = (window.innerHeight - cardHeight) / 2;
         }
 
         setCardPosition({ top, left });
@@ -146,13 +168,6 @@ export const PracticeTutorial = ({
         }}
         className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border-2 border-purple-500 p-5 w-80 pointer-events-auto animate-in fade-in zoom-in-95 duration-300"
       >
-        {/* Pickaxe icon decoration */}
-        {step.targetElement && (
-          <div className="absolute -top-3 -right-3 text-2xl animate-bounce" style={{ animationDuration: '2s' }}>
-            ⛏️
-          </div>
-        )}
-
         {/* Close button */}
         <button
           onClick={onClose}
