@@ -33,29 +33,29 @@ export const PracticeTutorial = ({
     {
       element: '#field-guide-tab',
       popover: {
-        title: 'Field Guide',
+        title: 'Field Guide 📖',
         description: 'Click the 📖 icon to read theory and examples. This is your guide to complete the challenge!',
         side: 'right',
         align: 'start',
       },
-      onNextClick: () => onTabChange && onTabChange('theory'),
+      onHighlight: () => onTabChange && onTabChange('theory'),
     },
     {
       element: '#bounty-tab',
       popover: {
-        title: 'Bounty',
+        title: 'Bounty 🎁',
         description: 'Click the 📝 icon to see your tasks. Complete them to earn rewards!',
         side: 'right',
         align: 'start',
       },
-      onNextClick: () => onTabChange && onTabChange('tasks'),
+      onHighlight: () => onTabChange && onTabChange('tasks'),
     },
     {
-      element: 'CodeEditor',
+      element: '.code-editor-wrapper, [class*="CodeEditor"]',
       popover: {
         title: 'Code Editor 💻',
         description: 'Write your solution here. Hit the Run button to test instantly.',
-        side: 'center',
+        side: 'left',
         align: 'center',
       },
     },
@@ -87,15 +87,17 @@ export const PracticeTutorial = ({
     if (isOpen) {
       if (!driverRef.current) {
         driverRef.current = new Driver({
-          allowClose: false, // Prevent closing by clicking outside
-          overlayClickNext: false,
+          allowClose: true, // Allow closing by clicking outside
+          overlayClickNext: true, // Allow clicking overlay to move to next step
           showProgress: true,
           nextBtnText: 'Next',
           prevBtnText: 'Back',
           doneBtnText: 'Start!',
+          overlayOpacity: 0.5,
           onNext: (element, stepIdx) => {
-            if (steps[stepIdx] && typeof steps[stepIdx].onNextClick === 'function') {
-              steps[stepIdx].onNextClick();
+            // Trigger onHighlight callback if it exists
+            if (steps[stepIdx] && typeof steps[stepIdx].onHighlight === 'function') {
+              steps[stepIdx].onHighlight();
             }
             // If this is the last step, close the tutorial and reset
             if (stepIdx === steps.length - 1) {
