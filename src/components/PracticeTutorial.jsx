@@ -97,7 +97,12 @@ export const PracticeTutorial = ({
             if (steps[stepIdx] && typeof steps[stepIdx].onNextClick === 'function') {
               steps[stepIdx].onNextClick();
             }
-            setCurrentStep(stepIdx + 1);
+            // If this is the last step, close the tutorial
+            if (stepIdx === steps.length - 1) {
+              onClose();
+            } else {
+              setCurrentStep(stepIdx + 1);
+            }
           },
           onPrevious: (element, stepIdx) => {
             setCurrentStep(stepIdx - 1);
