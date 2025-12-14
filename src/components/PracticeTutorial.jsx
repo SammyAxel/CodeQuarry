@@ -85,52 +85,60 @@ export const PracticeTutorial = ({
   // Initialize and control driver.js
   useEffect(() => {
     if (isOpen) {
-      if (!driverRef.current) {
-        driverRef.current = new Driver({
-          allowClose: true, // Allow closing by clicking outside
-          overlayClickNext: true, // Allow clicking overlay to move to next step
-          showProgress: true,
-          nextBtnText: 'Next',
-          prevBtnText: 'Back',
-          doneBtnText: 'Start!',
-          overlayOpacity: 0.5,
-          onNext: (element, stepIdx) => {
-            // Trigger onHighlight callback if it exists
-            if (steps[stepIdx] && typeof steps[stepIdx].onHighlight === 'function') {
-              steps[stepIdx].onHighlight();
-            }
-            // If this is the last step, close the tutorial and reset
-            if (stepIdx === steps.length - 1) {
-              setCurrentStep(0);
+      // Create new driver instance
+      driverRef.current = new Driver({
+        allowClose: true, // Allow closing by clicking outside
+        overlayClickNext: true, // Allow clicking overlay to move to next step
+        showProgress: true,
+        nextBtnText: 'Next',
+        prevBtnText: 'Back',
+        doneBtnText: 'Start!',
+        overlayOpacity: 0.5,
+        onNext: (element, stepIdx) => {
+          // Trigger onHighlight callback if it exists
+          if (steps[stepIdx] && typeof steps[stepIdx].onHighlight === 'function') {
+            steps[stepIdx].onHighlight();
+          }
+          // If this is the last step, close the tutorial
+          if (stepIdx === steps.length - 1) {
+            if (driverRef.current) {
               driverRef.current.destroy();
-              onClose();
-            } else {
-              setCurrentStep(stepIdx + 1);
+              driverRef.current = null;
             }
-          },
-          onPrevious: (element, stepIdx) => {
-            setCurrentStep(stepIdx - 1);
-          },
-          onReset: () => {
-            setCurrentStep(0);
             onClose();
-          },
-          onDestroyStarted: () => {
-            setCurrentStep(0);
-          },
-          onDestroy: () => {
-            setCurrentStep(0);
-            onClose();
-          },
-        });
-      }
+          } else {
+            setCurrentStep(stepIdx + 1);
+          }
+        },
+        onPrevious: (element, stepIdx) => {
+          setCurrentStep(stepIdx - 1);
+        },
+        onDestroy: () => {
+          setCurrentStep(0);
+          driverRef.current = null;
+          onClose();
+        },
+      });
+
       driverRef.current.setSteps(steps);
       driverRef.current.drive(currentStep);
-    } else if (driverRef.current) {
-      driverRef.current.destroy();
+    } else {
+      // Clean up when closed
+      if (driverRef.current) {
+        driverRef.current.destroy();
+        driverRef.current = null;
+      }
+      setCurrentStep(0);
     }
+
+    return () => {
+      if (driverRef.current) {
+        driverRef.current.destroy();
+        driverRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, currentStep]);
+  }, [isOpen]);
 
   // No manual UI, driver.js handles the tutorial
   return null;
