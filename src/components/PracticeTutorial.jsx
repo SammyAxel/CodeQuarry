@@ -33,8 +33,8 @@ export const PracticeTutorial = ({
     {
       element: '#field-guide-tab',
       popover: {
-        title: 'Field Guide 📖',
-        description: 'Click the 📖 icon to read theory and examples. This is your reference manual!',
+        title: 'Field Guide',
+        description: 'Click the 📖 icon to read theory and examples. This is your guide to complete the challenge!',
         side: 'right',
         align: 'start',
       },
@@ -43,7 +43,7 @@ export const PracticeTutorial = ({
     {
       element: '#bounty-tab',
       popover: {
-        title: 'Bounty 🎁',
+        title: 'Bounty',
         description: 'Click the 📝 icon to see your tasks. Complete them to earn rewards!',
         side: 'right',
         align: 'start',
@@ -51,10 +51,10 @@ export const PracticeTutorial = ({
       onNextClick: () => onTabChange && onTabChange('tasks'),
     },
     {
-      element: 'body',
+      element: 'CodeEditor',
       popover: {
         title: 'Code Editor 💻',
-        description: 'Write your solution here. Hit the Play button to test instantly.',
+        description: 'Write your solution here. Hit the Run button to test instantly.',
         side: 'center',
         align: 'center',
       },
@@ -72,7 +72,7 @@ export const PracticeTutorial = ({
       element: 'body',
       popover: {
         title: 'Ready! 🚀',
-        description: ",You're all set. Go show this challenge who's boss!",
+        description: "You're all set. Go show this challenge who's boss!",
         side: 'center',
         align: 'center',
       },
@@ -97,8 +97,10 @@ export const PracticeTutorial = ({
             if (steps[stepIdx] && typeof steps[stepIdx].onNextClick === 'function') {
               steps[stepIdx].onNextClick();
             }
-            // If this is the last step, close the tutorial
+            // If this is the last step, close the tutorial and reset
             if (stepIdx === steps.length - 1) {
+              setCurrentStep(0);
+              driverRef.current.destroy();
               onClose();
             } else {
               setCurrentStep(stepIdx + 1);
@@ -113,6 +115,10 @@ export const PracticeTutorial = ({
           },
           onDestroyStarted: () => {
             setCurrentStep(0);
+          },
+          onDestroy: () => {
+            setCurrentStep(0);
+            onClose();
           },
         });
       }
