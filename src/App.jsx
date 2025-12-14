@@ -431,6 +431,15 @@ export default function App() {
             {language === 'en' ? 'ID' : 'EN'}
           </button>
           <div className="w-px h-6 bg-gray-700/50"></div>
+          {!currentUser && (
+            <button 
+              onClick={handleEnterAdminMode}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20 rounded-lg transition-all"
+              title="Enter Admin Mode"
+            >
+              <Crown className="w-4 h-4" /> Admin
+            </button>
+          )}
           <button 
             onClick={() => { navigateHome(); setCurrentPage('profile'); window.history.pushState({}, '', '/profile'); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
