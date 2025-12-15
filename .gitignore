@@ -11,8 +11,6 @@ draLocaldrafts
 node_modules
 dist
 dist-ssr
-todo
-TODO.md
 \.env
 .env.local
 .env.production
