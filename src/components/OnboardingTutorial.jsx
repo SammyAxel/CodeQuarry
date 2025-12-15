@@ -66,8 +66,6 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
 
   const step = steps[currentStep];
 
-  const driverRef = useRef(null);
-
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -84,99 +82,52 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
     }
   };
 
-  // Initialize driver.js guided tour when available
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let mounted = true;
-    let pollTimer = null;
-    const waitForSelectors = (selectors, timeout = 2000, interval = 100) => {
-      const start = Date.now();
-      return new Promise((resolve) => {
-        const checker = () => {
-          if (!mounted) return resolve(false);
-          const allFound = selectors.every(sel => document.querySelector(sel));
-          if (allFound) return resolve(true);
-          if (Date.now() - start >= timeout) return resolve(false);
-          pollTimer = window.setTimeout(checker, interval);
-        };
-        checker();
-      });
-    };
-
-    try {
-      driverRef.current = new Driver({
-        allowClose: true,
-        overlayClickNext: false,
-        showProgress: true,
-        nextBtnText: 'Next',
-        prevBtnText: 'Back',
-        doneBtnText: 'Got it!',
-        onNext: (_el, idx) => {
-          if (idx === steps.length - 1) {
-            localStorage.setItem('tutorialCompleted', 'true');
-            driverRef.current && driverRef.current.destroy();
-            driverRef.current = null;
-            onClose();
-          }
-        },
-        onDestroy: () => {
+  // Use shared useDriverTour hook to initialize and control the driver tour
+  const { start, destroy } = useDriverTour({
+    steps: [
+      { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
+      { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
+      { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
+      { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
+    ],
+    selectors: ['#site-title', '#home-search', '.course-card', '#help-tutorial-btn'],
+    onFailure: (err) => {
+      console.warn('Onboarding driver failed to start:', err);
+      // Persist as completed so we don't keep retrying
+      localStorage.setItem('tutorialCompleted', 'true');
+      onClose();
+    },
+    driverOptions: {
+      nextBtnText: 'Next',
+      prevBtnText: 'Back',
+      doneBtnText: 'Got it!',
+      onNext: (_el, idx) => {
+        if (idx === steps.length - 1) {
           localStorage.setItem('tutorialCompleted', 'true');
-          driverRef.current = null;
+          onClose();
+        }
+      },
+      onDestroy: () => {
+        localStorage.setItem('tutorialCompleted', 'true');
+        onClose();
+      }
+    }
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      start(0).then(ok => {
+        if (!ok) {
+          localStorage.setItem('tutorialCompleted', 'true');
           onClose();
         }
       });
-
-      const driverSteps = [
-        '#site-title',
-        '#home-search',
-        '.course-card',
-        '#help-tutorial-btn'
-      ];
-
-      // Wait until the target elements exist in the DOM before starting the driver tour
-      // Use the shared hook instead of manual driver management
-    const { start, destroy } = useDriverTour({
-      steps: [
-        { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
-        { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
-        { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
-        { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
-      ],
-      selectors: ['#site-title', '#home-search', '.course-card', '#help-tutorial-btn'],
-      onFailure: (err) => {
-        console.warn('Onboarding driver failed to start:', err);
-        // Persist as completed so we don't keep retrying
-        localStorage.setItem('tutorialCompleted', 'true');
-        onClose();
-      }
-    });
-
-    // Start the driver and close if it cannot run
-    start(0).then(ok => {
-      if (!ok) {
-        localStorage.setItem('tutorialCompleted', 'true');
-        onClose();
-      }
-    });
-
-    return () => {
+    } else {
       destroy();
-    };
-    } catch (e) {
-      // If driver initialization fails (e.g., during SSR or missing elements), fall back to modal
-      console.warn('Driver tour failed to initialize, falling back to modal.', e);
-      try { if (driverRef.current) driverRef.current.destroy(); } catch (err) {}
-      driverRef.current = null;
     }
 
     return () => {
-      mounted = false;
-      if (pollTimer) clearTimeout(pollTimer);
-      if (driverRef.current) {
-        try { driverRef.current.destroy(); } catch (e) {}
-        driverRef.current = null;
-      }
+      destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);

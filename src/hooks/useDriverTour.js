@@ -12,7 +12,7 @@ import { driver as Driver } from 'driver.js';
  * - onFailure: callback when driver cannot start
  * - driverClass: override for testing
  */
-export const useDriverTour = ({ steps = [], selectors = [], timeout = 2500, interval = 100, onFailure = () => {}, driverClass = Driver } = {}) => {
+export const useDriverTour = ({ steps = [], selectors = [], timeout = 2500, interval = 100, onFailure = () => {}, driverClass = Driver, driverOptions = {} } = {}) => {
   const driverRef = useRef(null);
   const pollRef = useRef(null);
   const mountedRef = useRef(true);
@@ -49,11 +49,13 @@ export const useDriverTour = ({ steps = [], selectors = [], timeout = 2500, inte
   const start = async (startIndex = 0) => {
     // Create driver instance
     try {
-      driverRef.current = new driverClass({
+      const options = {
         allowClose: true,
         overlayClickNext: false,
         showProgress: true,
-      });
+        ...driverOptions,
+      };
+      driverRef.current = new driverClass(options);
     } catch (e) {
       onFailure(e);
       driverRef.current = null;
