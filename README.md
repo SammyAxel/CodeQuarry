@@ -10,7 +10,7 @@
 
 CodeQuarry is a web-based application designed to make learning to code an engaging and rewarding experience. Instead of passive reading, users "mine" for knowledge by completing interactive coding challenges directly in the browser. The app features a custom-built code editor, a live execution environment for multiple languages, and a persistent progress system, all wrapped in a fun, thematic "mining" UI.
 
-Deployed preview may be accessed using this link: https://codequarry-9xk.pages.dev
+Deployed preview may be accessed using this link: https://codequarry.app
 
 This app is made for COMP6100001 - LC09 - Software Engineering class of Binus University 2025/2026 Odd Year.
 
