@@ -120,8 +120,11 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
       driverRef.current.setSteps(driverSteps);
       driverRef.current.start();
     } catch (e) {
-      // If driver initialization fails (e.g., during SSR), fall back to modal
+      // If driver initialization fails (e.g., during SSR or missing elements), fall back to modal
       console.warn('Driver tour failed to start, falling back to modal.', e);
+      // Ensure we don't leave driverRef in a half-initialized state
+      try { if (driverRef.current) driverRef.current.destroy(); } catch (err) {}
+      driverRef.current = null;
     }
 
     return () => {

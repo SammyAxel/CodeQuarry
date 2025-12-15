@@ -181,7 +181,11 @@ const HomePage = ({ courses, onSelectCourse }) => {
       <div className="fixed bottom-6 right-6 z-30">
         <button
           id="help-tutorial-btn"
-          onClick={() => setShowTutorial(true)}
+          onClick={() => {
+            // Always allow manual opening of the tutorial (clears persisted dismissal)
+            localStorage.removeItem('tutorialCompleted');
+            setShowTutorial(true);
+          }}
           className="p-3 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"
           title="View Tutorial"
         >
