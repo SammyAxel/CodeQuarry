@@ -134,31 +134,34 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
       ];
 
       // Wait until the target elements exist in the DOM before starting the driver tour
-      waitForSelectors(driverSteps, 2500, 100).then((ok) => {
-        if (!mounted) return;
-        if (ok && driverRef.current) {
-          const formattedSteps = [
-            { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
-            { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
-            { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
-            { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
-          ];
+      // Use the shared hook instead of manual driver management
+    const { start, destroy } = useDriverTour({
+      steps: [
+        { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
+        { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
+        { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
+        { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
+      ],
+      selectors: ['#site-title', '#home-search', '.course-card', '#help-tutorial-btn'],
+      onFailure: (err) => {
+        console.warn('Onboarding driver failed to start:', err);
+        // Persist as completed so we don't keep retrying
+        localStorage.setItem('tutorialCompleted', 'true');
+        onClose();
+      }
+    });
 
-          driverRef.current.setSteps(formattedSteps);
-          try {
-            // `driver.js` exposes `drive()` in our usage elsewhere. Call `drive(0)` to begin at step 0.
-            driverRef.current.drive(0);
-            // Hide modal fallback while driver is active
-            return;
-          } catch (err) {
-            console.warn('Driver failed to start after elements became available (drive):', err);
-          }
-        }
+    // Start the driver and close if it cannot run
+    start(0).then(ok => {
+      if (!ok) {
+        localStorage.setItem('tutorialCompleted', 'true');
+        onClose();
+      }
+    });
 
-        // If driver couldn't start, cleanup and leave the modal shown
-        try { if (driverRef.current) driverRef.current.destroy(); } catch (err) {}
-        driverRef.current = null;
-      });
+    return () => {
+      destroy();
+    };
     } catch (e) {
       // If driver initialization fails (e.g., during SSR or missing elements), fall back to modal
       console.warn('Driver tour failed to initialize, falling back to modal.', e);

@@ -82,60 +82,32 @@ export const PracticeTutorial = ({
 
 
 
-  // Initialize and control driver.js
+  // Use shared useDriverTour hook to manage driver.js lifecycle
+  const { start, destroy } = useDriverTour({
+    steps,
+    selectors: ['body', '#field-guide-tab', '#bounty-tab', '.code-editor-wrapper'],
+    onFailure: (err) => {
+      // If driver fails, ensure we still close the tutorial so it doesn't loop
+      console.warn('Practice tutorial driver failed:', err);
+      onClose();
+    }
+  });
+
   useEffect(() => {
     if (isOpen) {
-      // Create new driver instance
-      driverRef.current = new Driver({
-        allowClose: true, // Allow closing by clicking outside
-        overlayClickNext: true, // Allow clicking overlay to move to next step
-        showProgress: true,
-        nextBtnText: 'Next',
-        prevBtnText: 'Back',
-        doneBtnText: 'Start!',
-        overlayOpacity: 0.5,
-        onNext: (element, stepIdx) => {
-          // Trigger onHighlight callback if it exists
-          if (steps[stepIdx] && typeof steps[stepIdx].onHighlight === 'function') {
-            steps[stepIdx].onHighlight();
-          }
-          // If this is the last step, close the tutorial
-          if (stepIdx === steps.length - 1) {
-            if (driverRef.current) {
-              driverRef.current.destroy();
-              driverRef.current = null;
-            }
-            onClose();
-          } else {
-            setCurrentStep(stepIdx + 1);
-          }
-        },
-        onPrevious: (element, stepIdx) => {
-          setCurrentStep(stepIdx - 1);
-        },
-        onDestroy: () => {
-          setCurrentStep(0);
-          driverRef.current = null;
+      start(0).then(ok => {
+        if (!ok) {
+          // Driver couldn't start; close tutorial
           onClose();
-        },
+        }
       });
-
-      driverRef.current.setSteps(steps);
-      driverRef.current.drive(currentStep);
     } else {
-      // Clean up when closed
-      if (driverRef.current) {
-        driverRef.current.destroy();
-        driverRef.current = null;
-      }
+      destroy();
       setCurrentStep(0);
     }
 
     return () => {
-      if (driverRef.current) {
-        driverRef.current.destroy();
-        driverRef.current = null;
-      }
+      destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
