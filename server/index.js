@@ -38,7 +38,12 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: CORS_ORIGIN,
+  origin: function(origin, callback) {
+    // allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -70,5 +75,5 @@ app.use('/api', compileRoutes); // Compile endpoints at root level
 app.listen(PORT, () => {
   console.log(`✅ CodeQuarry API server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
-  console.log(`🔗 CORS Origin: ${CORS_ORIGIN}`);
+  console.log(`🔗 CORS Origins: ${CORS_ORIGINS.join(', ')}`);
 });
