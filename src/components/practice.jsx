@@ -256,7 +256,8 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
     }
 
     // Execute the code - only show validation messages if syntax is correct
-    const { success } = await runCode(code, !hasSyntaxError);
+    const runResult = await runCode(code, !hasSyntaxError, module.tests);
+    const success = runResult?.success || false;
 
     // Mark step 3 complete if output matches
     if (success && steps.length > 2) {

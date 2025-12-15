@@ -17,6 +17,11 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
     noNestedLoops: false,
     requireComments: false
   });
+  const [practiceTestInput, setPracticeTestInput] = useState('');
+  const [practiceTestExpected, setPracticeTestExpected] = useState('');
+  const [practiceTestPublic, setPracticeTestPublic] = useState(true);
+  const [refineryNewTest, setRefineryNewTest] = useState({ input: '', expectedOutput: '', public: true });
+  const [refineryNewPattern, setRefineryNewPattern] = useState({ name: '', regex: '', message: '', type: 'forbidden' });
 
   // Parse steps from instruction to show how many step requirements are needed
   const parseSteps = (instruction) => {
@@ -251,17 +256,92 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-                <h3 className="font-bold mb-4 text-purple-400">Expected Output</h3>
-                <input
-                  type="text"
-                  value={data.expectedOutput}
-                  onChange={(e) => setData({ ...data, expectedOutput: e.target.value })}
-                  placeholder="What should the output be?"
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
-                />
-                <p className="text-gray-500 text-xs mt-2">
-                  The exact output the code should produce when run.
-                </p>
+                <h3 className="font-bold mb-4 text-purple-400">Test Cases</h3>
+                <p className="text-gray-500 text-xs mb-3">Add one or more input → expected output test cases (visible or hidden).</p>
+
+                <div className="space-y-2 mb-3">
+                  {(data.tests || []).map((t, idx) => (
+                    <div key={idx} className="bg-gray-800 p-3 rounded border border-gray-700">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs text-gray-300">
+                          <div className="font-mono text-sm">Input:</div>
+                          <pre className="text-sm text-white whitespace-pre-wrap">{t.input}</pre>
+                        </div>
+                        <div className="text-xs text-gray-300">
+                          <div className="font-mono text-sm">Expected:</div>
+                          <pre className="text-sm text-white whitespace-pre-wrap">{t.expectedOutput}</pre>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-1 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={t.public !== false}
+                              onChange={(e) => {
+                                const tests = [...(data.tests || [])];
+                                tests[idx].public = e.target.checked;
+                                setData({ ...data, tests });
+                              }}
+                              className="w-4 h-4"
+                            />
+                            <span>Public</span>
+                          </label>
+                          <button
+                            onClick={() => {
+                              const tests = [...(data.tests || [])];
+                              tests.splice(idx, 1);
+                              setData({ ...data, tests });
+                            }}
+                            className="p-1 text-red-400 hover:text-red-300"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <textarea
+                    value={practiceTestInput}
+                    onChange={(e) => setPracticeTestInput(e.target.value)}
+                    placeholder="Test input (each line is a new line for the program)"
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm h-20 font-mono"
+                  />
+                  <input
+                    type="text"
+                    value={practiceTestExpected}
+                    onChange={(e) => setPracticeTestExpected(e.target.value)}
+                    placeholder="Expected output (exact match)"
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={practiceTestPublic}
+                        onChange={(e) => setPracticeTestPublic(e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-gray-300">Public</span>
+                    </label>
+                    <button
+                      onClick={() => {
+                        if ((practiceTestExpected || '').trim().length > 0) {
+                          const tests = [...(data.tests || [])];
+                          tests.push({ input: practiceTestInput, expectedOutput: practiceTestExpected, public: practiceTestPublic });
+                          setData({ ...data, tests });
+                          setPracticeTestInput('');
+                          setPracticeTestExpected('');
+                          setPracticeTestPublic(true);
+                        }
+                      }}
+                      className="px-3 py-2 bg-purple-600 hover:bg-purple-500 rounded font-bold text-sm transition-colors"
+                    >
+                      Add Test
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
@@ -495,10 +575,31 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                                 {challenge.maxLines && (
                                   <span className="text-blue-400">Max {challenge.maxLines} lines</span>
                                 )}
-                                {challenge.noNestedLoops && (
-                                  <span className="text-green-400">No nested loops</span>
+                                {challenge.forbiddenPatterns && challenge.forbiddenPatterns.length > 0 && (
+                                  <span className="text-red-400">Forbidden patterns: {challenge.forbiddenPatterns.length}</span>
+                                )}
+                                {challenge.requiredPatterns && challenge.requiredPatterns.length > 0 && (
+                                  <span className="text-green-400">Required patterns: {challenge.requiredPatterns.length}</span>
                                 )}
                               </div>
+
+                              {/* Tests */}
+                              {(challenge.tests || []).length > 0 && (
+                                <div className="mt-3 text-xs text-gray-300">
+                                  <div className="font-bold mb-1">Tests</div>
+                                  <div className="space-y-1">
+                                    {challenge.tests.map((t, ti) => (
+                                      <div key={ti} className="flex items-start gap-3">
+                                        <div className="flex-1">
+                                          <div className="text-xs text-white font-mono">Input: {t.input || '(none)'}</div>
+                                          <div className="text-xs text-gray-300 font-mono">Expected: {t.expectedOutput}</div>
+                                        </div>
+                                        <div className="text-xs text-gray-400">{t.public !== false ? 'Public' : 'Hidden'}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                             <button
                               onClick={() => {
@@ -510,6 +611,117 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                             >
                               <X className="w-4 h-4" />
                             </button>
+                          </div>
+
+                          {/* Add test to existing challenge */}
+                          <div className="mt-2 bg-gray-800/30 border border-gray-700 rounded p-3 space-y-3">
+                            <div>
+                              <label className="text-xs font-bold text-gray-400 mb-1 block">Add Test</label>
+                              <textarea
+                                value={refineryNewTest.input}
+                                onChange={(e) => setRefineryNewTest({ ...refineryNewTest, input: e.target.value })}
+                                placeholder="Test input (each line is a new line)"
+                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm h-16 font-mono resize-none"
+                              />
+                              <input
+                                type="text"
+                                value={refineryNewTest.expectedOutput}
+                                onChange={(e) => setRefineryNewTest({ ...refineryNewTest, expectedOutput: e.target.value })}
+                                placeholder="Expected output (exact match)"
+                                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm mt-2"
+                              />
+
+                              <div className="flex items-center gap-3 mt-2">
+                                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={refineryNewTest.public}
+                                    onChange={(e) => setRefineryNewTest({ ...refineryNewTest, public: e.target.checked })}
+                                    className="w-4 h-4"
+                                  />
+                                  <span className="text-gray-300">Public</span>
+                                </label>
+
+                                <button
+                                  onClick={() => {
+                                    if (refineryNewTest.expectedOutput.trim().length > 0) {
+                                      const challenges = [...(data.refineryChallenges || [])];
+                                      const ch = challenges[idx] || {};
+                                      ch.tests = ch.tests || [];
+                                      ch.tests.push({ ...refineryNewTest });
+                                      challenges[idx] = ch;
+                                      setData({ ...data, refineryChallenges: challenges });
+                                      setRefineryNewTest({ input: '', expectedOutput: '', public: true });
+                                    }
+                                  }}
+                                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm font-bold"
+                                >
+                                  Add Test
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-bold text-gray-400 mb-1 block">Add Forbidden / Required Pattern</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                <input
+                                  type="text"
+                                  value={refineryNewPattern.name}
+                                  onChange={(e) => setRefineryNewPattern({ ...refineryNewPattern, name: e.target.value })}
+                                  placeholder="Pattern name"
+                                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+                                />
+                                <input
+                                  type="text"
+                                  value={refineryNewPattern.regex}
+                                  onChange={(e) => setRefineryNewPattern({ ...refineryNewPattern, regex: e.target.value })}
+                                  placeholder="Regex (e.g., while\s*\()"
+                                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm font-mono"
+                                />
+                                <input
+                                  type="text"
+                                  value={refineryNewPattern.message}
+                                  onChange={(e) => setRefineryNewPattern({ ...refineryNewPattern, message: e.target.value })}
+                                  placeholder="Message"
+                                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                <button
+                                  onClick={() => {
+                                    if (refineryNewPattern.name && refineryNewPattern.regex) {
+                                      const challenges = [...(data.refineryChallenges || [])];
+                                      const ch = challenges[idx] || {};
+                                      ch.forbiddenPatterns = ch.forbiddenPatterns || [];
+                                      ch.forbiddenPatterns.push({ ...refineryNewPattern });
+                                      challenges[idx] = ch;
+                                      setData({ ...data, refineryChallenges: challenges });
+                                      setRefineryNewPattern({ name: '', regex: '', message: '', type: 'forbidden' });
+                                    }
+                                  }}
+                                  className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded text-sm font-bold"
+                                >
+                                  Add Forbidden
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    if (refineryNewPattern.name && refineryNewPattern.regex) {
+                                      const challenges = [...(data.refineryChallenges || [])];
+                                      const ch = challenges[idx] || {};
+                                      ch.requiredPatterns = ch.requiredPatterns || [];
+                                      ch.requiredPatterns.push({ ...refineryNewPattern });
+                                      challenges[idx] = ch;
+                                      setData({ ...data, refineryChallenges: challenges });
+                                      setRefineryNewPattern({ name: '', regex: '', message: '', type: 'required' });
+                                    }
+                                  }}
+                                  className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm font-bold"
+                                >
+                                  Add Required
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -755,9 +967,33 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                 .map(reqs => (reqs || []).filter(r => r && r.trim()))
                 .filter((reqs, idx) => idx < parsedSteps.length || reqs.length > 0);
               
+              // Migrate expectedOutput -> tests for practice modules
+              const migratedData = { ...data };
+              if (migratedData.type === 'practice') {
+                if ((!migratedData.tests || migratedData.tests.length === 0) && migratedData.expectedOutput) {
+                  migratedData.tests = [{ input: '', expectedOutput: migratedData.expectedOutput, public: true }];
+                }
+                // Remove old field
+                delete migratedData.expectedOutput;
+              }
+
+              // Migrate legacy refineryCriteria into refineryChallenges if present
+              if (!migratedData.refineryChallenges && migratedData.refineryCriteria) {
+                migratedData.refineryChallenges = [ {
+                  id: `migrated-${Date.now()}`,
+                  title: 'Refinery',
+                  description: migratedData.refineryCriteria.description || 'Optimize this solution',
+                  baseGems: migratedData.refineryCriteria.bonusGems || 50,
+                  maxLines: migratedData.refineryCriteria.maxLines,
+                  forbiddenPatterns: migratedData.refineryCriteria.forbiddenPatterns || [],
+                  requiredPatterns: migratedData.refineryCriteria.requiredPatterns || []
+                } ];
+                delete migratedData.refineryCriteria;
+              }
+
               const savedData = {
-                ...data,
-                requiredCode: (data.requiredCode || []).filter(c => c && c.trim()),
+                ...migratedData,
+                requiredCode: (migratedData.requiredCode || []).filter(c => c && c.trim()),
                 stepRequirements: cleanedStepRequirements.length > 0 ? cleanedStepRequirements : undefined,
                 // Remove legacy regex fields if using new format
                 requiredSyntax: undefined,

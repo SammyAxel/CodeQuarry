@@ -46,7 +46,8 @@ router.post('/v1/compile-c', async (req, res) => {
             name: 'main.c',
             content: code
           }
-        ]
+        ],
+        stdin: req.body.stdin || ''
       })
     });
 

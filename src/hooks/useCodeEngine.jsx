@@ -129,7 +129,7 @@ export const useCodeEngine = (module) => {
     }
   }, [module.language]);
 
-  const runCode = async (code, shouldDisplayMessages = true) => {
+  const runCode = async (code, shouldDisplayMessages = true, tests = null) => {
     // Check rate limiting
     if (isRateLimited()) {
       const maxAttempts = parseInt(import.meta.env.VITE_MAX_CODE_ATTEMPTS) || 100;
@@ -181,80 +181,166 @@ export const useCodeEngine = (module) => {
     try {
       if (module.language === 'javascript') {
         const worker = initJsWorker();
-        
-        if (worker) {
-          // Use sandboxed Web Worker for execution
-          const workerPromise = new Promise((resolve, reject) => {
-            executionTimeout = setTimeout(() => {
-              isTimedOut = true;
-              worker.postMessage({ type: 'cancel' });
-              reject(new Error(`Code execution exceeded ${execTimeout}ms timeout`));
-            }, execTimeout);
-            
-            const handler = (e) => {
-              // Skip 'ready' message from worker initialization
-              if (e.data.type === 'ready') return;
-              
-              clearTimeout(executionTimeout);
-              worker.removeEventListener('message', handler);
-              
-              if (e.data.type === 'result') {
-                // Convert log objects to strings
-                const workerLogs = e.data.logs || [];
-                logs = workerLogs.map(l => l.message || String(l));
-                if (e.data.error && !e.data.success) {
-                  reject(new Error(e.data.error));
-                } else {
-                  resolve();
+
+        const runSingleTest = async (test) => {
+          // test: { input, expectedOutput }
+          if (worker) {
+            return await new Promise((resolve, reject) => {
+              executionTimeout = setTimeout(() => {
+                isTimedOut = true;
+                worker.postMessage({ type: 'cancel' });
+                reject(new Error(`Code execution exceeded ${execTimeout}ms timeout`));
+              }, execTimeout);
+
+              const handler = (e) => {
+                if (e.data.type === 'ready') return;
+                clearTimeout(executionTimeout);
+                worker.removeEventListener('message', handler);
+
+                if (e.data.type === 'result') {
+                  const workerLogs = e.data.logs || [];
+                  const mlogs = workerLogs.map(l => l.message || String(l));
+                  const testPassed = !!e.data.testPassed;
+                  resolve({ logs: mlogs, testPassed });
+                } else if (e.data.type === 'error') {
+                  const workerLogs = e.data.logs || [];
+                  const mlogs = workerLogs.map(l => l.message || String(l));
+                  reject(new Error(e.data.error || 'Worker error'));
                 }
-              } else if (e.data.type === 'error') {
-                const workerLogs = e.data.logs || [];
-                logs = workerLogs.map(l => l.message || String(l));
-                reject(new Error(e.data.error));
-              }
-            };
-            
-            worker.addEventListener('message', handler);
-            worker.postMessage({ type: 'execute', code, timeout: execTimeout });
-          });
-          
-          await workerPromise;
-          
-          if (logs.length > 0) setOutput(prev => [...prev, ...logs]);
-          validateOutput(logs, shouldDisplayMessages);
-          
-          logSecurityEvent('code_executed_sandboxed', {
-            language: 'javascript',
-            timestamp: new Date().toISOString()
-          });
-        } else {
-          // Fallback to direct execution (less secure but functional)
+              };
+
+              worker.addEventListener('message', handler);
+              worker.postMessage({ type: 'execute', code, timeout: execTimeout, expectedOutput: test?.expectedOutput, input: test?.input });
+            });
+          }
+
+          // Fallback direct execution
+          const logsLocal = [];
           const originalLog = console.log;
-          console.log = (...args) => { logs.push(args.join(' ')); };
-          
-          // Wrap execution in timeout
-          const codePromise = new Promise((resolve, reject) => {
-            executionTimeout = setTimeout(() => {
-              isTimedOut = true;
-              reject(new Error(`Code execution exceeded ${execTimeout}ms timeout`));
-            }, execTimeout);
-            
+          console.log = (...args) => { logsLocal.push(args.join(' ')); };
+
+          // Provide readline helper for fallback
+          const TEST_INPUT = test?.input || '';
+          const __input_lines = TEST_INPUT.split('\n');
+          const readline = () => (__input_lines.length ? __input_lines.shift() : '');
+          globalThis.readline = readline;
+          globalThis.prompt = readline;
+
+          try {
+            const codePromise = new Promise((resolve, reject) => {
+              executionTimeout = setTimeout(() => {
+                isTimedOut = true;
+                reject(new Error(`Code execution exceeded ${execTimeout}ms timeout`));
+              }, execTimeout);
+
+              try {
+                new Function(code)();
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            });
+
+            await codePromise;
+            clearTimeout(executionTimeout);
+          } finally {
+            console.log = originalLog;
+            delete globalThis.readline;
+            delete globalThis.prompt;
+          }
+
+          const cleanOutput = logsLocal.join('').replace(/\s/g, '');
+          const cleanExpected = (test?.expectedOutput || '').replace(/\s/g, '');
+          const passed = cleanExpected ? cleanOutput.includes(cleanExpected) : false;
+          return { logs: logsLocal, testPassed: passed };
+        };
+
+        if (Array.isArray(tests) && tests.length > 0) {
+          const testResults = [];
+          for (const t of tests) {
             try {
-              new Function(code)();
-              resolve();
+              const r = await runSingleTest(t);
+              testResults.push({ input: t.input || '', expected: t.expectedOutput || '', passed: !!r.testPassed, logs: r.logs });
+              if (r.logs && r.logs.length > 0) setOutput(prev => [...prev, ...r.logs]);
             } catch (err) {
-              reject(err);
+              setOutput(prev => [...prev, `❌ ${err.message}`]);
+              testResults.push({ input: t.input || '', expected: t.expectedOutput || '', passed: false, logs: [err.message] });
             }
-          });
-          
-          await codePromise;
-          clearTimeout(executionTimeout);
-          
-          if (logs.length > 0) setOutput(prev => [...prev, ...logs]);
-          validateOutput(logs, shouldDisplayMessages);
-          console.log = originalLog;
+          }
+
+          // Aggregate pass/fail
+          const passedAll = testResults.every(tr => tr.passed);
+          if (shouldDisplayMessages) setOutput(prev => [...prev, passedAll ? '✅ All tests passed.' : '❌ Some tests failed.']);
+          // Return an object describing test results
+          return { success: passedAll, testResults };
+        }
+
+        // No tests array - run single expectedOutput behavior
+        // Run one execution and validate module.expectedOutput if present
+        logs = [];
+        try {
+          const r = await runSingleTest({ input: '', expectedOutput: module.expectedOutput || '' });
+          if (r.logs && r.logs.length > 0) setOutput(prev => [...prev, ...r.logs]);
+          validateOutput(r.logs, shouldDisplayMessages);
+          return { success: !!r.testPassed };
+        } catch (err) {
+          setOutput(prev => [...prev, `❌ ${err.message}`]);
+          return { success: false };
         }
       } else if (module.language === 'python' && pyodideRef.current) {
+        // Run per test if tests provided
+        const runPythonTest = async (test) => {
+          logs = [];
+          pyodideRef.current.setStdout({ batched: (text) => logs.push(text) });
+
+          const TEST_INPUT = test?.input || '';
+          const preamble = `__input_lines = iter(${JSON.stringify(TEST_INPUT.split('\n'))})\n` +
+            `def input(prompt=None):\n` +
+            `    try:\n` +
+            `        return next(__input_lines)\n` +
+            `    except StopIteration:\n` +
+            `        return ''\n`;
+
+          const combined = preamble + '\n' + code;
+
+          const pythonPromise = new Promise((resolve, reject) => {
+            executionTimeout = setTimeout(() => {
+              isTimedOut = true;
+              reject(new Error(`Python execution exceeded ${execTimeout}ms timeout (likely infinite loop)`));
+            }, execTimeout);
+
+            pyodideRef.current.runPythonAsync(combined)
+              .then(resolve)
+              .catch(reject);
+          });
+
+          await pythonPromise;
+          clearTimeout(executionTimeout);
+          return logs;
+        };
+
+        if (Array.isArray(tests) && tests.length > 0) {
+          const testResults = [];
+          for (const t of tests) {
+            try {
+              const rlogs = await runPythonTest(t);
+              if (rlogs.length > 0) setOutput(prev => [...prev, ...rlogs]);
+              const cleanOutput = rlogs.join('').replace(/\s/g, '');
+              const cleanExpected = (t.expectedOutput || '').replace(/\s/g, '');
+              const passed = cleanExpected ? cleanOutput.includes(cleanExpected) : false;
+              testResults.push({ input: t.input || '', expected: t.expectedOutput || '', passed, logs: rlogs });
+            } catch (err) {
+              setOutput(prev => [...prev, `❌ ${err.message}`]);
+              testResults.push({ input: t.input || '', expected: t.expectedOutput || '', passed: false, logs: [err.message] });
+            }
+          }
+
+          const passedAll = testResults.every(tr => tr.passed);
+          if (shouldDisplayMessages) setOutput(prev => [...prev, passedAll ? '✅ All tests passed.' : '❌ Some tests failed.']);
+          return { success: passedAll, testResults };
+        }
+
+        // No tests array - existing behavior
         pyodideRef.current.setStdout({ batched: (text) => logs.push(text) });
         
         // Wrap Pyodide execution in timeout
@@ -281,21 +367,66 @@ export const useCodeEngine = (module) => {
             throw new Error("C program must include int main() function");
           }
 
-          // Try backend first (if available)
+          // If tests provided, run each test via backend
+          if (Array.isArray(tests) && tests.length > 0) {
+            const testResults = [];
+            for (let ti = 0; ti < tests.length; ti++) {
+              const t = tests[ti];
+              try {
+                executionTimeout = setTimeout(() => { isTimedOut = true; }, execTimeout);
+
+                const apiBase = import.meta.env.VITE_API_URL || '';
+                const apiUrl = `${apiBase}/api/compile-c`;
+
+                const response = await fetch(apiUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ code, stdin: t.input || '' })
+                });
+
+                clearTimeout(executionTimeout);
+                if (isTimedOut) throw new Error(`C compilation exceeded ${execTimeout}ms timeout`);
+
+                if (!response.ok) throw new Error('Backend compilation error');
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+
+                const outLines = (result.output || '').split('\n').filter(l => l.trim());
+                if (outLines.length > 0) setOutput(prev => [...prev, ...outLines]);
+
+                const cleanOutput = outLines.join('').replace(/\s/g, '');
+                const cleanExpected = (t.expectedOutput || '').replace(/\s/g, '');
+                const passed = cleanExpected ? cleanOutput.includes(cleanExpected) : false;
+
+                testResults.push({ input: t.input || '', expected: t.expectedOutput || '', passed, logs: outLines });
+              } catch (err) {
+                clearTimeout(executionTimeout);
+                setOutput(prev => [...prev, `❌ ${err.message}`]);
+                testResults.push({ input: t.input || '', expected: t.expectedOutput || '', passed: false, logs: [err.message] });
+              }
+            }
+
+            const passedAll = testResults.every(t => t.passed);
+            if (shouldDisplayMessages) setOutput(prev => [...prev, passedAll ? '✅ All tests passed.' : '❌ Some tests failed.']);
+            return { success: passedAll, testResults };
+          }
+
+          // Try backend first (if available) for single run
           let backendSuccess = false;
           try {
             executionTimeout = setTimeout(() => {
               isTimedOut = true;
             }, execTimeout);
-            
+
             // Use environment variable for API URL, fallback to relative path
             const apiBase = import.meta.env.VITE_API_URL || '';
             const apiUrl = `${apiBase}/api/compile-c`;
-            
+
             const response = await fetch(apiUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code })
+              body: JSON.stringify({ code, stdin: '' })
             });
 
             clearTimeout(executionTimeout);
@@ -325,10 +456,10 @@ export const useCodeEngine = (module) => {
           if (!backendSuccess) {
             // Fallback: Client-side printf parser
             setOutput(prev => [...prev, `⚠️ Using parser fallback...`]);
-            
+
             const printfRegex = /printf\s*\(\s*"([^"]+)"/g;
             const matches = [...code.matchAll(printfRegex)];
-            
+
             if (matches.length > 0) {
               logs = matches.map(m => m[1]);
               setOutput(prev => [...prev, '(Simulated output)', ...logs]);

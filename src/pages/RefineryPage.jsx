@@ -11,6 +11,7 @@ import {
 import { CodeEditor } from '../components/CodeEditor';
 import { useCodeEngine } from '../hooks/useCodeEngine';
 import { validateRefinery, getRefineryRank } from '../utils/refineryValidator';
+import { calculateFinalScore, gemsForScore } from '../utils/scoring';
 
 export const RefineryPage = ({ courseId, module, onClose, navProps }) => {
   const [code, setCode] = useState(module.solution || module.initialCode || '');
@@ -51,19 +52,41 @@ export const RefineryPage = ({ courseId, module, onClose, navProps }) => {
   };
 
   const handleAttemptRefinery = async () => {
-    const validation = validateRefinery(code, module.language, currentChallenge.criteria);
-    const rank = getRefineryRank(validation.score);
-    const gemsEarned = calculateGemReward(validation.score, currentChallenge.baseGems);
+    // Run tests first (from challenge.tests or module.tests)
+    const tests = currentChallenge.tests || module.tests || [];
+    let testResults = { success: true, testResults: [] };
+
+    if (Array.isArray(tests) && tests.length > 0) {
+      // Run tests through engine without showing messages
+      const execResult = await runCode(code, false, tests);
+      testResults = execResult || testResults;
+    }
+
+    // If tests exist and not all passed, compute correctness-based score
+    const totalTests = (testResults.testResults || []).length;
+    const passedTests = (testResults.testResults || []).filter(t => t.passed).length;
+    const correctnessPercent = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 100;
+
+    // Validate constraints (maxLines, patterns) regardless
+    const criteria = { ...currentChallenge };
+    const validation = validateRefinery(code, module.language, criteria);
+
+    // Determine final score combining correctness (primary) and constraints (secondary)
+    const finalScore = calculateFinalScore({ correctnessPercent, refineryScore: validation.score, constraintsPassed: validation.constraintsPassed || 0, totalConstraints: validation.totalConstraints || 0 });
+    const passed = totalTests > 0 ? (passedTests === totalTests) && validation.passed : validation.passed;
+
+    const rank = getRefineryRank(finalScore);
+    const gemsEarned = gemsForScore(finalScore, currentChallenge.baseGems);
 
     const result = {
       id: Date.now(),
       challengeId: currentChallenge.id,
       challengeTitle: currentChallenge.title,
-      score: validation.score,
+      score: finalScore,
       rank: rank.name,
-      metrics: validation.metrics,
+      metrics: { ...validation.metrics, tests: testResults.testResults || [] },
       gemsEarned,
-      passed: validation.passed,
+      passed,
       timestamp: new Date().toLocaleString(),
       code
     };
@@ -254,12 +277,31 @@ export const RefineryPage = ({ courseId, module, onClose, navProps }) => {
                 {/* Metrics */}
                 {currentAttempt.metrics && (
                   <div className="bg-gray-900/50 border border-gray-700 rounded p-3 space-y-2">
-                    {Object.entries(currentAttempt.metrics).map(([key, value]) => (
-                      <div key={key} className="flex justify-between text-sm">
-                        <span className="text-gray-400">{key}:</span>
-                        <span className="text-white font-mono">{value}</span>
+                    {currentAttempt.metrics.tests && currentAttempt.metrics.tests.length > 0 ? (
+                      <div>
+                        <div className="font-bold text-sm text-white mb-2">Test Results</div>
+                        <div className="space-y-2">
+                          {currentAttempt.metrics.tests.map((t, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm">
+                              <div className="flex-1">
+                                <div className="text-xs text-gray-300">Input: <span className="font-mono text-white">{t.input || '(none)'}</span></div>
+                                <div className="text-xs text-gray-300">Expected: <span className="font-mono text-white">{t.expected}</span></div>
+                              </div>
+                              <div className={`text-sm font-bold ${t.passed ? 'text-green-300' : 'text-yellow-300'}`}>
+                                {t.passed ? 'Passed' : 'Failed'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    ) : (
+                      Object.entries(currentAttempt.metrics).map(([key, value]) => (
+                        <div key={key} className="flex justify-between text-sm">
+                          <span className="text-gray-400">{key}:</span>
+                          <span className="text-white font-mono">{value}</span>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
 
