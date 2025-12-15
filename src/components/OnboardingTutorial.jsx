@@ -146,11 +146,12 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
 
           driverRef.current.setSteps(formattedSteps);
           try {
-            driverRef.current.start();
+            // `driver.js` exposes `drive()` in our usage elsewhere. Call `drive(0)` to begin at step 0.
+            driverRef.current.drive(0);
             // Hide modal fallback while driver is active
             return;
           } catch (err) {
-            console.warn('Driver failed to start after elements became available:', err);
+            console.warn('Driver failed to start after elements became available (drive):', err);
           }
         }
 
