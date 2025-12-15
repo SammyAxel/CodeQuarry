@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, ChevronRight, ChevronLeft, BookOpen, Award, Users, Code, MessageCircle, HelpCircle } from 'lucide-react';
 import { driver as Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
+import useDriverTour from '../hooks/useDriverTour';
 
 export const OnboardingTutorial = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);

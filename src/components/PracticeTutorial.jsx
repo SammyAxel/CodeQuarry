@@ -9,6 +9,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { driver as Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
+import useDriverTour from '../hooks/useDriverTour';
 
 export const PracticeTutorial = ({ 
   isOpen, 
