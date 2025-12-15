@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 
 // Import configuration (after dotenv is loaded)
-import { PORT, CORS_ORIGIN, NODE_ENV } from './config/constants.js';
+import { PORT, CORS_ORIGINS, NODE_ENV } from './config/constants.js';
 
 // Import modular database
 import db from '../database/index.js';
@@ -38,8 +38,8 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: function(origin, callback) {
-    // allow requests with no origin (like mobile apps or curl)
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g., mobile apps, curl)
     if (!origin) return callback(null, true);
     if (CORS_ORIGINS.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));

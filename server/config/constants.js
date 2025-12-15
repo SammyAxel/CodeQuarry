@@ -8,9 +8,14 @@ dotenv.config();
 
 export const PORT = process.env.PORT || 5000;
 export const API_ENDPOINT = process.env.API_ENDPOINT || 'https://emkc.org/api/v2/piston/execute';
+
+// Backward-compatible CORS handling:
+// - Supports a comma-separated CORS_ORIGINS env var
+// - Falls back to CORS_ORIGIN if set
+// - Defaults to http://localhost:4000
 export const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:4000';
-// Allow comma-separated list in CORS_ORIGINS env variable. If not set, fallback to single CORS_ORIGIN
-export const CORS_ORIGINS = (process.env.CORS_ORIGINS && process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)) || [CORS_ORIGIN];
+const rawCors = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || CORS_ORIGIN;
+export const CORS_ORIGINS = String(rawCors).split(',').map(s => s.trim()).filter(Boolean);
 export const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Admin passwords from environment
