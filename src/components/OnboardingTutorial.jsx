@@ -87,6 +87,22 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (!isOpen) return;
 
+    let mounted = true;
+    let pollTimer = null;
+    const waitForSelectors = (selectors, timeout = 2000, interval = 100) => {
+      const start = Date.now();
+      return new Promise((resolve) => {
+        const checker = () => {
+          if (!mounted) return resolve(false);
+          const allFound = selectors.every(sel => document.querySelector(sel));
+          if (allFound) return resolve(true);
+          if (Date.now() - start >= timeout) return resolve(false);
+          pollTimer = window.setTimeout(checker, interval);
+        };
+        checker();
+      });
+    };
+
     try {
       driverRef.current = new Driver({
         allowClose: true,
@@ -111,23 +127,47 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
       });
 
       const driverSteps = [
-        { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
-        { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
-        { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
-        { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
+        '#site-title',
+        '#home-search',
+        '.course-card',
+        '#help-tutorial-btn'
       ];
 
-      driverRef.current.setSteps(driverSteps);
-      driverRef.current.start();
+      // Wait until the target elements exist in the DOM before starting the driver tour
+      waitForSelectors(driverSteps, 2500, 100).then((ok) => {
+        if (!mounted) return;
+        if (ok && driverRef.current) {
+          const formattedSteps = [
+            { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
+            { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
+            { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
+            { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
+          ];
+
+          driverRef.current.setSteps(formattedSteps);
+          try {
+            driverRef.current.start();
+            // Hide modal fallback while driver is active
+            return;
+          } catch (err) {
+            console.warn('Driver failed to start after elements became available:', err);
+          }
+        }
+
+        // If driver couldn't start, cleanup and leave the modal shown
+        try { if (driverRef.current) driverRef.current.destroy(); } catch (err) {}
+        driverRef.current = null;
+      });
     } catch (e) {
       // If driver initialization fails (e.g., during SSR or missing elements), fall back to modal
-      console.warn('Driver tour failed to start, falling back to modal.', e);
-      // Ensure we don't leave driverRef in a half-initialized state
+      console.warn('Driver tour failed to initialize, falling back to modal.', e);
       try { if (driverRef.current) driverRef.current.destroy(); } catch (err) {}
       driverRef.current = null;
     }
 
     return () => {
+      mounted = false;
+      if (pollTimer) clearTimeout(pollTimer);
       if (driverRef.current) {
         try { driverRef.current.destroy(); } catch (e) {}
         driverRef.current = null;
