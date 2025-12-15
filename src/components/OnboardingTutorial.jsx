@@ -4,8 +4,10 @@
  * Shows step-by-step how to use CodeQuarry
  */
 
-import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, BookOpen, Award, Users, Code, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ChevronRight, ChevronLeft, BookOpen, Award, Users, Code, MessageCircle, HelpCircle } from 'lucide-react';
+import { driver as Driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 
 export const OnboardingTutorial = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -63,6 +65,8 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
 
   const step = steps[currentStep];
 
+  const driverRef = useRef(null);
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -79,6 +83,56 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
     }
   };
 
+  // Initialize driver.js guided tour when available
+  useEffect(() => {
+    if (!isOpen) return;
+
+    try {
+      driverRef.current = new Driver({
+        allowClose: true,
+        overlayClickNext: false,
+        showProgress: true,
+        nextBtnText: 'Next',
+        prevBtnText: 'Back',
+        doneBtnText: 'Got it!',
+        onNext: (_el, idx) => {
+          if (idx === steps.length - 1) {
+            localStorage.setItem('tutorialCompleted', 'true');
+            driverRef.current && driverRef.current.destroy();
+            driverRef.current = null;
+            onClose();
+          }
+        },
+        onDestroy: () => {
+          localStorage.setItem('tutorialCompleted', 'true');
+          driverRef.current = null;
+          onClose();
+        }
+      });
+
+      const driverSteps = [
+        { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
+        { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
+        { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
+        { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
+      ];
+
+      driverRef.current.setSteps(driverSteps);
+      driverRef.current.start();
+    } catch (e) {
+      // If driver initialization fails (e.g., during SSR), fall back to modal
+      console.warn('Driver tour failed to start, falling back to modal.', e);
+    }
+
+    return () => {
+      if (driverRef.current) {
+        try { driverRef.current.destroy(); } catch (e) {}
+        driverRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -91,8 +145,10 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
             CodeQuarry 101
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => { localStorage.setItem('tutorialCompleted', 'true'); onClose(); }}
             className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+            title="Close tutorial and don't show again"
+            aria-label="Close tutorial and don't show again"
           >
             <X className="w-6 h-6 text-white" />
           </button>

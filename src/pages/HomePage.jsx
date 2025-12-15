@@ -59,7 +59,7 @@ const HomePage = ({ courses, onSelectCourse }) => {
           <Pickaxe className="w-10 h-10 text-purple-400 opacity-60 rotate-45 animate-bounce [animation-delay:0.3s]" />
         </div>
         
-        <h1 className="text-6xl font-black mb-8 bg-gradient-to-r from-purple-300 via-purple-400 to-pink-400 text-transparent bg-clip-text py-2.5">
+        <h1 id="site-title" className="text-6xl font-black mb-8 bg-gradient-to-r from-purple-300 via-purple-400 to-pink-400 text-transparent bg-clip-text py-2.5">
           CodeQuarry
         </h1>
         
@@ -77,6 +77,7 @@ const HomePage = ({ courses, onSelectCourse }) => {
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
           <input
+            id="home-search"
             type="text"
             placeholder="Search courses by title, topic, or level..."
             value={searchQuery}
@@ -118,8 +119,9 @@ const HomePage = ({ courses, onSelectCourse }) => {
           filteredCourses.map((course, idx) => (
           <div 
             key={course.id} 
+            data-course-id={course.id}
             onClick={() => onSelectCourse(course)} 
-            className="bg-[#161b22] border border-gray-800 hover:border-purple-500/70 p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-600/30 group relative overflow-hidden z-10 backdrop-blur-sm" 
+            className="course-card bg-[#161b22] border border-gray-800 hover:border-purple-500/70 p-6 rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-600/30 group relative overflow-hidden z-10 backdrop-blur-sm" 
             style={{animationDelay: `${idx * 0.1}s`}}
           >
             {/* Gradient overlay on hover */}
@@ -178,6 +180,7 @@ const HomePage = ({ courses, onSelectCourse }) => {
       {/* Help/Tutorial Button */}
       <div className="fixed bottom-6 right-6 z-30">
         <button
+          id="help-tutorial-btn"
           onClick={() => setShowTutorial(true)}
           className="p-3 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"
           title="View Tutorial"
