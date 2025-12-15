@@ -52,10 +52,21 @@ const executeCode = (code, timeout = 5000) => {
     // Create safe console
     const safeConsole = createSafeConsole(logs);
 
-    // Wrap code in a function with safe console
+    // Provide simple stdin helpers for tests
+    const TEST_INPUT = typeof input === 'string' ? input : '';
+    const __input_lines = TEST_INPUT.split('\n');
+    const readline = () => (__input_lines.length ? __input_lines.shift() : '');
+    const prompt = () => readline();
+
+    // Wrap code in a function with safe console and helpers
     const wrappedCode = `
-      (function(console) {
+      (function(console, readline, prompt) {
         "use strict";
+        const __readline = readline;
+        const __prompt = prompt;
+        // Expose helpers to the student's code
+        globalThis.readline = __readline;
+        globalThis.prompt = __prompt;
         ${code}
       })
     `;
@@ -63,7 +74,7 @@ const executeCode = (code, timeout = 5000) => {
     // Execute the code
     // eslint-disable-next-line no-eval
     const fn = eval(wrappedCode);
-    fn(safeConsole);
+    fn(safeConsole, readline, prompt);
     
     success = true;
   } catch (err) {
@@ -85,7 +96,7 @@ const executeCode = (code, timeout = 5000) => {
  * Message handler for receiving code execution requests
  */
 self.onmessage = function(event) {
-  const { id, code, timeout, expectedOutput } = event.data;
+  const { id, code, timeout, expectedOutput, input } = event.data; // input: test stdin string
 
   // Set up timeout protection
   const timeoutMs = timeout || 5000;

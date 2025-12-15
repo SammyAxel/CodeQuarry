@@ -14,8 +14,11 @@ export const validateRefinery = (code, language, criteria) => {
   const metrics = calculateMetrics(code, language);
   const feedback = [];
   let passed = true;
+  let constraintsPassed = 0;
+  let totalConstraints = 0;
 
   // Check line count
+  totalConstraints++;
   if (criteria.maxLines && metrics.lineCount > criteria.maxLines) {
     passed = false;
     feedback.push({
@@ -25,6 +28,7 @@ export const validateRefinery = (code, language, criteria) => {
       severity: 'error'
     });
   } else if (criteria.maxLines) {
+    constraintsPassed++;
     feedback.push({
       type: 'lines',
       message: `✓ Line count optimized (${metrics.lineCount}/${criteria.maxLines})`,
@@ -43,6 +47,7 @@ export const validateRefinery = (code, language, criteria) => {
       severity: 'error'
     });
   } else if (criteria.noNestedLoops) {
+    constraintsPassed++;
     feedback.push({
       type: 'loops',
       message: '✓ No nested loops - efficient!',
@@ -54,6 +59,7 @@ export const validateRefinery = (code, language, criteria) => {
   // Check for specific patterns to avoid
   if (criteria.forbiddenPatterns) {
     criteria.forbiddenPatterns.forEach(pattern => {
+      totalConstraints++;
       if (new RegExp(pattern.regex, pattern.flags || 'g').test(code)) {
         passed = false;
         feedback.push({
@@ -62,6 +68,8 @@ export const validateRefinery = (code, language, criteria) => {
           icon: '🚫',
           severity: 'warning'
         });
+      } else {
+        constraintsPassed++;
       }
     });
   }
@@ -69,6 +77,7 @@ export const validateRefinery = (code, language, criteria) => {
   // Check for required patterns (good practices)
   if (criteria.requiredPatterns) {
     criteria.requiredPatterns.forEach(pattern => {
+      totalConstraints++;
       if (!new RegExp(pattern.regex, pattern.flags || 'g').test(code)) {
         passed = false;
         feedback.push({
@@ -77,12 +86,15 @@ export const validateRefinery = (code, language, criteria) => {
           icon: '💡',
           severity: 'hint'
         });
+      } else {
+        constraintsPassed++;
       }
     });
   }
 
   // Check complexity
   if (criteria.maxComplexity && metrics.cyclomaticComplexity > criteria.maxComplexity) {
+    totalConstraints++;
     passed = false;
     feedback.push({
       type: 'complexity',
@@ -90,22 +102,33 @@ export const validateRefinery = (code, language, criteria) => {
       icon: '🧩',
       severity: 'error'
     });
+  } else if (criteria.maxComplexity) {
+    totalConstraints++;
+    constraintsPassed++;
   }
 
   // Check for comments (optional challenge)
-  if (criteria.requireComments && metrics.commentCount === 0) {
-    feedback.push({
-      type: 'comments',
-      message: 'Add comments to explain your optimizations! (Optional)',
-      icon: '💬',
-      severity: 'hint'
-    });
+  if (criteria.requireComments) {
+    totalConstraints++;
+    if (metrics.commentCount === 0) {
+      passed = false;
+      feedback.push({
+        type: 'comments',
+        message: 'Add comments to explain your optimizations!',
+        icon: '💬',
+        severity: 'hint'
+      });
+    } else {
+      constraintsPassed++;
+    }
   }
 
   return {
     passed,
     metrics,
     feedback,
+    constraintsPassed,
+    totalConstraints,
     score: calculateRefineryScore(metrics, criteria, passed)
   };
 };

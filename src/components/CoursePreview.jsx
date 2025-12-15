@@ -256,8 +256,8 @@ export const CoursePreview = ({ course, adminRole = 'mod', serverOnline = false,
                   {module.type === 'practice' && (
                     <div className="mt-3 pt-3 border-t border-gray-700 space-y-2 text-sm">
                       <div>
-                        <span className="text-gray-500">Expected Output:</span>
-                        <span className="text-gray-300 ml-2 font-mono">{module.expectedOutput}</span>
+                        <span className="text-gray-500">Tests:</span>
+                        <span className="text-gray-300 ml-2 font-mono">{(module.tests && module.tests.length) ? `${module.tests.length} test(s)` : (module.expectedOutput || '—')}</span>
                       </div>
                       {module.hints && module.hints.length > 0 && (
                         <div>
