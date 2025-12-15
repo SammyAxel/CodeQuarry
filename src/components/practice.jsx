@@ -450,7 +450,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
              title="Run Code (Ctrl+Enter)"
              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-green-900/30 hover:shadow-green-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
            >
-             <Play className="w-4 h-4 fill-current" /> Run
+             <Play className="w-4 h-4 fill-current" /> {t('practice.run')}
            </button>
         </div>
       </div>
@@ -561,7 +561,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
                                     : 'bg-gray-800 border border-gray-700 text-gray-400 hover:border-gray-600'
                                 }`}
                               >
-                                Hint {idx + 1}
+                                {t('practice.hint')} {idx + 1}
                               </button>
                             ))}
                             {module.solution && (

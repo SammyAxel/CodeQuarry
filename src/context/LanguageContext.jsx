@@ -4,6 +4,7 @@
  */
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import Leaderboard from '../components/Leaderboard';
 
 const LanguageContext = createContext();
 
@@ -91,7 +92,7 @@ const translations = {
     // Practice Mode
     practice: {
       hint: 'Hint',
-      run: 'Run Code',
+      run: 'Run',
       submit: 'Submit',
       reset: 'Reset',
       loading: 'Loading...',
@@ -128,7 +129,10 @@ const translations = {
     // Navigation
     nav: {
       dashboard: 'Dasbor',
+      users: 'Pengguna',
       admin: 'Admin',
+      leaderboard: 'Peringkat',
+      shop: 'Toko',
       logout: 'Keluar',
     },
     // Home Page
@@ -200,17 +204,17 @@ const translations = {
       confirmNewPassword: 'Konfirmasi Kata Sandi Baru',
       save: 'Simpan',
       cancel: 'Batal',
-      edit: 'Edit',
+      edit: 'Ubah',
       updatePassword: 'Perbarui Kata Sandi',
     },
     // Practice Mode
     practice: {
       hint: 'Petunjuk',
-      run: 'Jalankan Kode',
-      submit: 'Kirim',
+      run: 'Jalankan',
+      submit: 'Kumpulkan',
       reset: 'Reset',
       loading: 'Memuat...',
-      output: 'Output',
+      output: 'Hasil',
       success: 'Berhasil!',
       error: 'Error',
       nextLesson: 'Pelajaran Berikutnya',

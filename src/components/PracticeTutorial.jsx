@@ -24,7 +24,7 @@ export const PracticeTutorial = ({
     {
       element: 'body',
       popover: {
-        title: "Welcome! 🎯",
+        title: "Welcome!",
         description: "You're about to complete an interactive coding challenge.",
         side: 'center',
         align: 'center',
@@ -33,7 +33,7 @@ export const PracticeTutorial = ({
     {
       element: '#field-guide-tab',
       popover: {
-        title: 'Field Guide 📖',
+        title: 'Field Guide',
         description: 'Click the 📖 icon to read theory and examples. This is your guide to complete the challenge!',
         side: 'right',
         align: 'start',
@@ -43,7 +43,7 @@ export const PracticeTutorial = ({
     {
       element: '#bounty-tab',
       popover: {
-        title: 'Bounty 🎁',
+        title: 'Bounty',
         description: 'Click the 📝 icon to see your tasks. Complete them to earn rewards!',
         side: 'right',
         align: 'start',

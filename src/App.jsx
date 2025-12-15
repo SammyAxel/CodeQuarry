@@ -383,7 +383,7 @@ export default function App() {
                 }`}
                 title="User Management"
               >
-                <Users className="w-4 h-4" /> Users
+                <Users className="w-4 h-4" /> {t('nav.users')}
               </button>
               <button 
                 onClick={handleEnterAdminMode}
@@ -403,7 +403,7 @@ export default function App() {
             }`}
             title="Leaderboard"
           >
-            <Trophy className="w-4 h-4" /> Leaderboard
+            <Trophy className="w-4 h-4" /> {t('nav.leaderboard')}
           </button>
           <button 
             onClick={() => { navigateHome(); setCurrentPage('shop'); window.history.pushState({}, '', '/shop'); }}
@@ -414,7 +414,7 @@ export default function App() {
             }`}
             title="Cosmetics Shop"
           >
-            <ShoppingCart className="w-4 h-4" /> Shop
+            <ShoppingCart className="w-4 h-4" /> {t('nav.shop')}
           </button>
         </div>
 
@@ -437,7 +437,7 @@ export default function App() {
               className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-yellow-400 hover:text-yellow-300 hover:bg-yellow-900/20 rounded-lg transition-all"
               title="Enter Admin Mode"
             >
-              <Crown className="w-4 h-4" /> Admin
+              <Crown className="w-4 h-4" /> {t('nav.admin')}
             </button>
           )}
           <button 
@@ -466,17 +466,17 @@ export default function App() {
           </Suspense>
         )}
         {currentPage === 'profile' && view === VIEWS.HOME && (
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">{t('common.loading')}</div>}>
             <ProfilePage onBack={() => setCurrentPage('home')} />
           </Suspense>
         )}
         {currentPage === 'shop' && view === VIEWS.HOME && (
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">{t('common.loading')}</div>}>
             <CosmeticsShop />
           </Suspense>
         )}
         {currentPage === 'leaderboard' && view === VIEWS.HOME && (
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">{t('common.loading')}</div>}>
             <Leaderboard />
           </Suspense>
         )}
@@ -534,7 +534,7 @@ export default function App() {
       {/* Sarcastic Light Mode Footer */}
       {!isDark && (
         <div className="fixed bottom-0 left-0 right-0 bg-yellow-50 border-t-2 border-yellow-400 px-4 py-3 text-center text-sm text-gray-800 z-50 shadow-xl">
-          <span className="font-mono font-bold">⚠️ Warning: You're using light mode. Your retinas called - they want their melanin back. 🕶️</span>
+          <span className="font-mono font-bold">⚠️ Warning: You're using light mode. Your retinas called - they want their melanin back.</span>
           <br />
           <span className="text-xs text-gray-600 mt-1">Pro tip: Toggle dark mode to unlock the premium UI experience™</span>
         </div>
