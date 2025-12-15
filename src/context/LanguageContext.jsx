@@ -14,6 +14,9 @@ const translations = {
     // Navigation
     nav: {
       dashboard: 'Dashboard',
+      users: 'Users',
+      leaderboard: 'Leaderboard',
+      shop: 'Shop',
       admin: 'Admin',
       logout: 'Logout',
     },
