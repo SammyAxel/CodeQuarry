@@ -8,21 +8,19 @@ import {
 import NavigationControls from './NavControl'; 
 import { CodeEditor } from './CodeEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import { RefineryModal } from './RefineryModal';
 import { PracticeTutorial } from './PracticeTutorial';
 import { useCodeEngine } from '../hooks/useCodeEngine';
 import { getSavedCode, saveModuleProgress } from '../utils/userApi';
 import { useLanguage } from '../context/LanguageContext';
 import { useUser } from '../context/UserContext';
 
-export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted }) => { 
+export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted, onOpenRefinery }) => { 
   const { t } = useLanguage();
   const { shouldShowPracticeTutorial, markPracticeVisited } = useUser();
   const [code, setCode] = useState(module.initialCode || '');
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showRefineryModal, setShowRefineryModal] = useState(false);
   const [showPracticeTutorial, setShowPracticeTutorial] = useState(shouldShowPracticeTutorial());
   const [refineryBest, setRefineryBest] = useState(null);
   const [syntaxError, setSyntaxError] = useState(null);
@@ -347,7 +345,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
                     <button 
                       onClick={() => {
                         setShowSuccessModal(false);
-                        setShowRefineryModal(true);
+                        onOpenRefinery?.();
                       }}
                       className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 transform hover:scale-105"
                     >
@@ -630,23 +628,6 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
            </div>
          </div>
          </div>
-
-         {/* Refinery Modal */}
-         {showRefineryModal && (
-           <RefineryModal
-             module={module}
-             userCode={code}
-             courseId={courseId}
-             previousBest={refineryBest}
-             onClose={() => setShowRefineryModal(false)}
-             onAttempt={(result) => {
-               setRefineryBest(result);
-               // Save to localStorage
-               const key = `refinery_${courseId}_${module.id}`;
-               localStorage.setItem(key, JSON.stringify(result));
-             }}
-           />
-         )}
 
          {/* Practice Tutorial */}
          <PracticeTutorial

@@ -7,9 +7,16 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
   const [data, setData] = useState(module);
   const [hintInput, setHintInput] = useState('');
   const [requiredCodeInput, setRequiredCodeInput] = useState('');
-  const [refineryEnabled, setRefineryEnabled] = useState(!!module.refineryCriteria);
-  const [forbiddenPatternInput, setForbiddenPatternInput] = useState({ name: '', regex: '', message: '' });
-  const [requiredPatternInput, setRequiredPatternInput] = useState({ name: '', regex: '', message: '' });
+  const [refineryEnabled, setRefineryEnabled] = useState(!!module.refineryChallenges);
+  const [refineryNewChallenge, setRefineryNewChallenge] = useState({
+    title: '',
+    description: '',
+    maxLines: 0,
+    difficulty: 'Easy',
+    baseGems: 50,
+    noNestedLoops: false,
+    requireComments: false
+  });
 
   // Parse steps from instruction to show how many step requirements are needed
   const parseSteps = (instruction) => {
@@ -444,20 +451,9 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                     onChange={(e) => {
                       setRefineryEnabled(e.target.checked);
                       if (!e.target.checked) {
-                        setData({ ...data, refineryCriteria: undefined });
+                        setData({ ...data, refineryChallenges: undefined });
                       } else {
-                        setData({
-                          ...data,
-                          refineryCriteria: {
-                            description: 'Optimize your code!',
-                            maxLines: 10,
-                            noNestedLoops: false,
-                            maxComplexity: 10,
-                            requireComments: false,
-                            forbiddenPatterns: [],
-                            requiredPatterns: []
-                          }
-                        });
+                        setData({ ...data, refineryChallenges: [] });
                       }
                     }}
                     className="w-4 h-4"
@@ -472,264 +468,157 @@ export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
                     <p className="text-xs text-gray-300 flex items-start gap-2">
                       <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <span>
-                        The Refinery appears after completing this module, challenging students to optimize their code
-                        for better performance and cleaner style.
+                        Define multiple challenge objectives for students after completing this module.
+                        Each challenge can test optimization for length, performance, or clarity.
                       </span>
                     </p>
                   </div>
 
-                  {/* Description */}
+                  {/* Refinery Challenges List */}
                   <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">
-                      Challenge Description
+                    <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">
+                      Refinery Objectives
                     </label>
-                    <textarea
-                      value={data.refineryCriteria?.description || ''}
-                      onChange={(e) => setData({
-                        ...data,
-                        refineryCriteria: { ...data.refineryCriteria, description: e.target.value }
-                      })}
-                      placeholder="e.g., Optimize your FizzBuzz to use fewer lines while maintaining readability"
-                      className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm h-16 resize-none"
-                    />
-                  </div>
-
-                  {/* Basic Criteria */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">
-                        Max Lines
-                      </label>
-                      <input
-                        type="number"
-                        value={data.refineryCriteria?.maxLines || ''}
-                        onChange={(e) => setData({
-                          ...data,
-                          refineryCriteria: { ...data.refineryCriteria, maxLines: parseInt(e.target.value) || 0 }
-                        })}
-                        placeholder="e.g., 10"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">
-                        Max Complexity
-                      </label>
-                      <input
-                        type="number"
-                        value={data.refineryCriteria?.maxComplexity || ''}
-                        onChange={(e) => setData({
-                          ...data,
-                          refineryCriteria: { ...data.refineryCriteria, maxComplexity: parseInt(e.target.value) || 0 }
-                        })}
-                        placeholder="e.g., 5"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Cyclomatic complexity limit</p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1">
-                        <Gem className="w-4 h-4" /> Bonus Gems
-                      </label>
-                      <input
-                        type="number"
-                        value={data.refineryCriteria?.bonusGems || 0}
-                        onChange={(e) => setData({
-                          ...data,
-                          refineryCriteria: { ...data.refineryCriteria, bonusGems: parseInt(e.target.value) || 0 }
-                        })}
-                        placeholder="e.g., 50"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Gems for Diamond rank</p>
-                    </div>
-                  </div>
-
-                  {/* Boolean Flags */}
-                  <div className="flex gap-6">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={data.refineryCriteria?.noNestedLoops || false}
-                        onChange={(e) => setData({
-                          ...data,
-                          refineryCriteria: { ...data.refineryCriteria, noNestedLoops: e.target.checked }
-                        })}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-gray-300">No Nested Loops</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={data.refineryCriteria?.requireComments || false}
-                        onChange={(e) => setData({
-                          ...data,
-                          refineryCriteria: { ...data.refineryCriteria, requireComments: e.target.checked }
-                        })}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-gray-300">Require Comments</span>
-                    </label>
-                  </div>
-
-                  {/* Forbidden Patterns */}
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">
-                      Forbidden Patterns (Advanced)
-                    </label>
-                    <p className="text-xs text-gray-500 mb-3">
-                      Patterns students should avoid (e.g., inefficient loops, deprecated syntax)
-                    </p>
                     
-                    {/* List of forbidden patterns */}
-                    <div className="space-y-2 mb-3">
-                      {(data.refineryCriteria?.forbiddenPatterns || []).map((pattern, idx) => (
-                        <div key={idx} className="bg-red-900/20 border border-red-500/30 p-3 rounded">
-                          <div className="flex items-start justify-between mb-2">
+                    {/* List of defined challenges */}
+                    <div className="space-y-3 mb-4">
+                      {(data.refineryChallenges || []).map((challenge, idx) => (
+                        <div key={idx} className="bg-gray-900/50 border border-purple-500/30 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <p className="text-sm font-bold text-red-400">{pattern.name}</p>
-                              <code className="text-xs text-gray-400 font-mono">{pattern.regex}</code>
+                              <div className="font-bold text-white">{challenge.title}</div>
+                              <div className="text-xs text-gray-400 mt-1">{challenge.description}</div>
+                              <div className="flex items-center gap-4 mt-2 text-xs">
+                                <span className="text-yellow-400 flex items-center gap-1">
+                                  <Gem className="w-3 h-3" /> {challenge.baseGems} gems
+                                </span>
+                                {challenge.maxLines && (
+                                  <span className="text-blue-400">Max {challenge.maxLines} lines</span>
+                                )}
+                                {challenge.noNestedLoops && (
+                                  <span className="text-green-400">No nested loops</span>
+                                )}
+                              </div>
                             </div>
                             <button
                               onClick={() => {
-                                const patterns = [...(data.refineryCriteria?.forbiddenPatterns || [])];
-                                patterns.splice(idx, 1);
-                                setData({
-                                  ...data,
-                                  refineryCriteria: { ...data.refineryCriteria, forbiddenPatterns: patterns }
-                                });
+                                const challenges = [...(data.refineryChallenges || [])];
+                                challenges.splice(idx, 1);
+                                setData({ ...data, refineryChallenges: challenges });
                               }}
                               className="p-1 text-red-400 hover:text-red-300"
                             >
                               <X className="w-4 h-4" />
                             </button>
                           </div>
-                          <p className="text-xs text-gray-400">{pattern.message}</p>
                         </div>
                       ))}
                     </div>
-                    
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={forbiddenPatternInput.name}
-                        onChange={(e) => setForbiddenPatternInput({ ...forbiddenPatternInput, name: e.target.value })}
-                        placeholder="Pattern name (e.g., 'while loops')"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={forbiddenPatternInput.regex}
-                        onChange={(e) => setForbiddenPatternInput({ ...forbiddenPatternInput, regex: e.target.value })}
-                        placeholder="Regex pattern (e.g., 'while\s*\(')"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm font-mono"
-                      />
-                      <input
-                        type="text"
-                        value={forbiddenPatternInput.message}
-                        onChange={(e) => setForbiddenPatternInput({ ...forbiddenPatternInput, message: e.target.value })}
-                        placeholder="Error message (e.g., 'Use a for loop instead')"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
-                      />
-                      <button
-                        onClick={() => {
-                          if (forbiddenPatternInput.name && forbiddenPatternInput.regex) {
-                            const patterns = [...(data.refineryCriteria?.forbiddenPatterns || [])];
-                            patterns.push({ ...forbiddenPatternInput });
-                            setData({
-                              ...data,
-                              refineryCriteria: { ...data.refineryCriteria, forbiddenPatterns: patterns }
-                            });
-                            setForbiddenPatternInput({ name: '', regex: '', message: '' });
-                          }
-                        }}
-                        className="w-full px-4 py-2 bg-red-600 hover:bg-red-500 rounded font-bold text-sm transition-colors"
-                      >
-                        <Plus className="w-4 h-4 inline mr-2" />
-                        Add Forbidden Pattern
-                      </button>
-                    </div>
-                  </div>
 
-                  {/* Required Patterns */}
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">
-                      Required Patterns (Advanced)
-                    </label>
-                    <p className="text-xs text-gray-500 mb-3">
-                      Patterns students must use (e.g., list comprehension, arrow functions)
-                    </p>
-                    
-                    {/* List of required patterns */}
-                    <div className="space-y-2 mb-3">
-                      {(data.refineryCriteria?.requiredPatterns || []).map((pattern, idx) => (
-                        <div key={idx} className="bg-green-900/20 border border-green-500/30 p-3 rounded">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <p className="text-sm font-bold text-green-400">{pattern.name}</p>
-                              <code className="text-xs text-gray-400 font-mono">{pattern.regex}</code>
-                            </div>
-                            <button
-                              onClick={() => {
-                                const patterns = [...(data.refineryCriteria?.requiredPatterns || [])];
-                                patterns.splice(idx, 1);
-                                setData({
-                                  ...data,
-                                  refineryCriteria: { ...data.refineryCriteria, requiredPatterns: patterns }
-                                });
-                              }}
-                              className="p-1 text-green-400 hover:text-green-300"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <p className="text-xs text-gray-400">{pattern.message}</p>
+                    {/* Add new challenge */}
+                    <div className="bg-gray-900/50 border border-dashed border-gray-700 rounded-lg p-4 space-y-3">
+                      <h4 className="text-sm font-bold text-gray-300">Add New Objective</h4>
+                      
+                      <input
+                        type="text"
+                        value={refineryNewChallenge.title}
+                        onChange={(e) => setRefineryNewChallenge({ ...refineryNewChallenge, title: e.target.value })}
+                        placeholder="e.g., Optimize for Length"
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+                      />
+                      
+                      <textarea
+                        value={refineryNewChallenge.description}
+                        onChange={(e) => setRefineryNewChallenge({ ...refineryNewChallenge, description: e.target.value })}
+                        placeholder="Describe the challenge for students..."
+                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm h-16 resize-none"
+                      />
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="text-xs font-bold text-gray-400 mb-1 block">Max Lines</label>
+                          <input
+                            type="number"
+                            value={refineryNewChallenge.maxLines}
+                            onChange={(e) => setRefineryNewChallenge({ ...refineryNewChallenge, maxLines: parseInt(e.target.value) || 0 })}
+                            placeholder="Leave blank for no limit"
+                            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+                          />
                         </div>
-                      ))}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={requiredPatternInput.name}
-                        onChange={(e) => setRequiredPatternInput({ ...requiredPatternInput, name: e.target.value })}
-                        placeholder="Pattern name (e.g., 'list comprehension')"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={requiredPatternInput.regex}
-                        onChange={(e) => setRequiredPatternInput({ ...requiredPatternInput, regex: e.target.value })}
-                        placeholder="Regex pattern (e.g., '\[.*for.*in.*\]')"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm font-mono"
-                      />
-                      <input
-                        type="text"
-                        value={requiredPatternInput.message}
-                        onChange={(e) => setRequiredPatternInput({ ...requiredPatternInput, message: e.target.value })}
-                        placeholder="Hint message (e.g., 'Try using list comprehension')"
-                        className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
-                      />
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-400 mb-1 block">Difficulty</label>
+                          <select
+                            value={refineryNewChallenge.difficulty}
+                            onChange={(e) => setRefineryNewChallenge({ ...refineryNewChallenge, difficulty: e.target.value })}
+                            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+                          >
+                            <option value="Easy">Easy</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Hard">Hard</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-400 mb-1 block flex items-center gap-1">
+                            <Gem className="w-3 h-3" /> Base Gems
+                          </label>
+                          <input
+                            type="number"
+                            value={refineryNewChallenge.baseGems}
+                            onChange={(e) => setRefineryNewChallenge({ ...refineryNewChallenge, baseGems: parseInt(e.target.value) || 50 })}
+                            placeholder="e.g., 50"
+                            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <label className="flex items-center gap-2 cursor-pointer text-sm">
+                          <input
+                            type="checkbox"
+                            checked={refineryNewChallenge.noNestedLoops}
+                            onChange={(e) => setRefineryNewChallenge({ ...refineryNewChallenge, noNestedLoops: e.target.checked })}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-gray-300">No Nested Loops</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-sm">
+                          <input
+                            type="checkbox"
+                            checked={refineryNewChallenge.requireComments}
+                            onChange={(e) => setRefineryNewChallenge({ ...refineryNewChallenge, requireComments: e.target.checked })}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-gray-300">Require Comments</span>
+                        </label>
+                      </div>
+
                       <button
                         onClick={() => {
-                          if (requiredPatternInput.name && requiredPatternInput.regex) {
-                            const patterns = [...(data.refineryCriteria?.requiredPatterns || [])];
-                            patterns.push({ ...requiredPatternInput });
-                            setData({
-                              ...data,
-                              refineryCriteria: { ...data.refineryCriteria, requiredPatterns: patterns }
+                          if (refineryNewChallenge.title && refineryNewChallenge.description) {
+                            const challenges = [...(data.refineryChallenges || [])];
+                            challenges.push({
+                              id: `challenge-${Date.now()}`,
+                              icon: '⚡',
+                              ...refineryNewChallenge
                             });
-                            setRequiredPatternInput({ name: '', regex: '', message: '' });
+                            setData({ ...data, refineryChallenges: challenges });
+                            setRefineryNewChallenge({
+                              title: '',
+                              description: '',
+                              maxLines: 0,
+                              difficulty: 'Easy',
+                              baseGems: 50,
+                              noNestedLoops: false,
+                              requireComments: false
+                            });
                           }
                         }}
-                        className="w-full px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-bold text-sm transition-colors"
+                        className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded font-bold text-sm transition-colors"
                       >
-                        <Plus className="w-4 h-4 inline mr-2" />
-                        Add Required Pattern
+                        Add Objective
                       </button>
                     </div>
                   </div>
