@@ -14,7 +14,8 @@ import {
   saveModuleProgress as apiSaveModuleProgress,
   saveStepProgress as apiSaveStepProgress,
   isAuthenticated,
-  markPracticeVisited as markPracticeVisitedApi
+  markPracticeVisited as markPracticeVisitedApi,
+  markOnboardingCompleted as markOnboardingCompletedApi
 } from '../utils/userApi';
 import { logSecurityEvent } from '../utils/securityUtils';
 
@@ -34,6 +35,7 @@ export const UserProvider = ({ children }) => {
   const [showAuthPage, setShowAuthPage] = useState('login'); // 'login' | 'register'
   const [equippedCosmetics, setEquippedCosmetics] = useState({});
   const [hasVisitedPractice, setHasVisitedPractice] = useState(false); // Loaded from server
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false); // Persisted preference
 
   /**
    * Initialize user session from stored token
@@ -45,8 +47,9 @@ export const UserProvider = ({ children }) => {
           // Validate session and get user data
           const data = await getCurrentUser();
           setCurrentUser(data.user);
-          // Load hasVisitedPractice from user data (server-side)
+          // Load hasVisitedPractice and onboarding completion from user data (server-side)
           setHasVisitedPractice(data.user?.hasVisitedPractice || false);
+          setHasCompletedOnboarding(data.user?.hasCompletedOnboarding || data.user?.has_completed_onboarding || false);
           
           // Load progress
           const progress = await getProgress();
@@ -93,6 +96,7 @@ export const UserProvider = ({ children }) => {
     setAdminRole(null);
     // Reset practice visited from user data
     setHasVisitedPractice(user.hasVisitedPractice || false);
+    setHasCompletedOnboarding(user.hasCompletedOnboarding || user.has_completed_onboarding || false);
     
     // Load user progress
     try {
@@ -267,6 +271,39 @@ export const UserProvider = ({ children }) => {
       // Still update local state even if server call fails
       setHasVisitedPractice(true);
       setCurrentUser(prev => prev ? { ...prev, hasVisitedPractice: true } : prev);
+    }
+  }, [currentUser, isAdmin]);
+
+  const markOnboardingCompleted = useCallback(async () => {
+    if (!currentUser || isAdmin) return;
+
+    try {
+      const res = await markOnboardingCompletedApi();
+      const has = (res && (res.hasCompletedOnboarding || res.has_completed_onboarding)) || true;
+      setHasCompletedOnboarding(Boolean(has));
+      setCurrentUser(prev => prev ? { ...prev, hasCompletedOnboarding: true } : prev);
+      try {
+        // ensure local storage also reflects this for unauthenticated flows
+        localStorage.setItem('tutorialCompleted', 'true');
+        sessionStorage.setItem('tutorialCompleted', 'true');
+        const stored = localStorage.getItem('userData');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            parsed.hasCompletedOnboarding = true;
+            localStorage.setItem('userData', JSON.stringify(parsed));
+          } catch (e) {}
+        }
+      } catch (e) {}
+      return;
+    } catch (err) {
+      console.error('Failed to mark onboarding completed:', err);
+      setHasCompletedOnboarding(true);
+      setCurrentUser(prev => prev ? { ...prev, hasCompletedOnboarding: true } : prev);
+      try {
+        localStorage.setItem('tutorialCompleted', 'true');
+        sessionStorage.setItem('tutorialCompleted', 'true');
+      } catch (e) {}
     }
   }, [currentUser, isAdmin]);
 

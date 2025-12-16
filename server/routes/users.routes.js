@@ -378,4 +378,18 @@ router.post('/mark-practice-visited', verifyUserSession, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/user/mark-onboarding-completed
+ * Persist that the user completed onboarding so it doesn't reappear across sessions
+ */
+router.post('/mark-onboarding-completed', verifyUserSession, async (req, res) => {
+  try {
+    const result = await db.markOnboardingCompleted(req.user.id);
+    res.json({ success: true, hasCompletedOnboarding: result.has_completed_onboarding });
+  } catch (error) {
+    console.error('Error marking onboarding completed:', error);
+    res.status(500).json({ error: 'Failed to mark onboarding completed' });
+  }
+});
+
 export default router;

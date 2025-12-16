@@ -9,8 +9,9 @@ import { X, ChevronRight, ChevronLeft, BookOpen, Award, Users, Code, MessageCirc
 import { driver as Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import useDriverTour from '../hooks/useDriverTour';
+import { useUser } from '../context/UserContext';
 
-export const OnboardingTutorial = ({ isOpen, onClose }) => {
+export const OnboardingTutorial = ({ isOpen, onClose, driverClass: overrideDriverClass = undefined }) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const steps = [
@@ -66,12 +67,39 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
 
   const step = steps[currentStep];
 
+  const { markOnboardingCompleted } = useUser();
+
+  const setTutorialCompleted = async () => {
+    try {
+      localStorage.setItem('tutorialCompleted', 'true');
+      sessionStorage.setItem('tutorialCompleted', 'true');
+      // also update stored user data if present
+      const stored = localStorage.getItem('userData');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          parsed.hasCompletedOnboarding = true;
+          localStorage.setItem('userData', JSON.stringify(parsed));
+        } catch (e) {}
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+
+    // If authenticated, also persist server-side
+    try {
+      await markOnboardingCompleted();
+    } catch (e) {
+      // ignore server errors — local storage is primary fallback
+    }
+  };
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       // Mark tutorial as completed
-      localStorage.setItem('tutorialCompleted', 'true');
+      setTutorialCompleted();
       onClose();
     }
   };
@@ -94,7 +122,7 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
     onFailure: (err) => {
       console.warn('Onboarding driver failed to start:', err);
       // Persist as completed so we don't keep retrying
-      localStorage.setItem('tutorialCompleted', 'true');
+      setTutorialCompleted();
       onClose();
     },
     driverOptions: {
@@ -103,22 +131,23 @@ export const OnboardingTutorial = ({ isOpen, onClose }) => {
       doneBtnText: 'Got it!',
       onNext: (_el, idx) => {
         if (idx === steps.length - 1) {
-          localStorage.setItem('tutorialCompleted', 'true');
+          setTutorialCompleted();
           onClose();
         }
       },
       onDestroy: () => {
-        localStorage.setItem('tutorialCompleted', 'true');
+        setTutorialCompleted();
         onClose();
       }
-    }
+    },
+    driverClass: overrideDriverClass
   });
 
   useEffect(() => {
     if (isOpen) {
       start(0).then(ok => {
         if (!ok) {
-          localStorage.setItem('tutorialCompleted', 'true');
+          setTutorialCompleted();
           onClose();
         }
       });

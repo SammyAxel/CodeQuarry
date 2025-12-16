@@ -318,6 +318,26 @@ export const markPracticeVisited = async () => {
 };
 
 /**
+ * Mark that the current user has completed the onboarding tutorial
+ */
+export const markOnboardingCompleted = async () => {
+  const token = getUserToken();
+  if (!token) return null;
+
+  const response = await fetch(`${API_BASE}/user/mark-onboarding-completed`, {
+    method: 'POST',
+    headers: { 'x-user-token': token }
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to mark onboarding completed');
+  }
+
+  return response.json();
+};
+
+/**
  * Get user stats for dashboard
  * @returns {Promise<Object>}
  */

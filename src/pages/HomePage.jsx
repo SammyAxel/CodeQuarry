@@ -22,8 +22,14 @@ const HomePage = ({ courses, onSelectCourse }) => {
 
   // Show tutorial on first visit
   useEffect(() => {
-    const tutorialCompleted = localStorage.getItem('tutorialCompleted');
-    if (!tutorialCompleted) {
+    // Consider localStorage, sessionStorage, and authenticated user state
+    const tutorialCompleted = localStorage.getItem('tutorialCompleted') || sessionStorage.getItem('tutorialCompleted');
+    const storedUser = localStorage.getItem('userData');
+    const userHasCompleted = storedUser ? (() => {
+      try { return JSON.parse(storedUser).hasCompletedOnboarding; } catch (e) { return false; }
+    })() : false;
+
+    if (!tutorialCompleted && !userHasCompleted) {
       // Show tutorial after a brief delay for better UX
       const timer = setTimeout(() => setShowTutorial(true), 500);
       return () => clearTimeout(timer);

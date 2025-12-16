@@ -77,6 +77,14 @@ export const markPracticeVisited = async (userId) => {
   return result.rows[0] || null;
 };
 
+export const markOnboardingCompleted = async (userId) => {
+  const result = await pool.query(
+    `UPDATE users SET has_completed_onboarding = true WHERE id = $1 RETURNING id, has_completed_onboarding`,
+    [userId]
+  );
+  return result.rows[0] || null;
+};
+
 export const updateLastLogin = async (userId) => {
   await pool.query('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [userId]);
 };
