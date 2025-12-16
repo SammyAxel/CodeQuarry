@@ -13,7 +13,8 @@ import {
   getProgress, 
   saveModuleProgress as apiSaveModuleProgress,
   saveStepProgress as apiSaveStepProgress,
-  isAuthenticated
+  isAuthenticated,
+  markPracticeVisited as markPracticeVisitedApi
 } from '../utils/userApi';
 import { logSecurityEvent } from '../utils/securityUtils';
 
@@ -253,25 +254,19 @@ export const UserProvider = ({ children }) => {
    */
   const markPracticeVisited = useCallback(async () => {
     if (!currentUser || isAdmin) return;
-    
+
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const token = localStorage.getItem('userToken');
-      const response = await fetch(`${API_URL}/api/user/mark-practice-visited`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-token': token || ''
-        }
-      });
-      
-      if (response.ok) {
-        setHasVisitedPractice(true);
-      }
+      const res = await markPracticeVisitedApi();
+      // res may contain hasVisitedPractice or has_visited_practice
+      const has = (res && (res.hasVisitedPractice || res.has_visited_practice)) || true;
+      setHasVisitedPractice(Boolean(has));
+      setCurrentUser(prev => prev ? { ...prev, hasVisitedPractice: true } : prev);
+      return;
     } catch (err) {
       console.error('Failed to mark practice as visited:', err);
       // Still update local state even if server call fails
       setHasVisitedPractice(true);
+      setCurrentUser(prev => prev ? { ...prev, hasVisitedPractice: true } : prev);
     }
   }, [currentUser, isAdmin]);
 

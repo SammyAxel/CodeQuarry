@@ -298,6 +298,26 @@ export const getSavedCode = async (courseId, moduleId) => {
 };
 
 /**
+ * Mark that the current user has visited the practice page
+ */
+export const markPracticeVisited = async () => {
+  const token = getUserToken();
+  if (!token) return null;
+
+  const response = await fetch(`${API_BASE}/user/mark-practice-visited`, {
+    method: 'POST',
+    headers: { 'x-user-token': token }
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to mark practice visited');
+  }
+
+  return response.json();
+};
+
+/**
  * Get user stats for dashboard
  * @returns {Promise<Object>}
  */

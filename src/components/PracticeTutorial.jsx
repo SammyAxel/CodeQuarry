@@ -10,6 +10,7 @@ import { ChevronRight, X } from 'lucide-react';
 import { driver as Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import useDriverTour from '../hooks/useDriverTour';
+import { useUser } from '../context/UserContext';
 
 export const PracticeTutorial = ({ 
   isOpen, 
@@ -84,13 +85,30 @@ export const PracticeTutorial = ({
 
 
   // Use shared useDriverTour hook to manage driver.js lifecycle
+  const { markPracticeVisited } = useUser();
+
   const { start, destroy } = useDriverTour({
     steps,
     selectors: ['body', '#field-guide-tab', '#bounty-tab', '.code-editor-wrapper'],
     onFailure: (err) => {
       // If driver fails, ensure we still close the tutorial so it doesn't loop
       console.warn('Practice tutorial driver failed:', err);
+      try { markPracticeVisited(); } catch (e) {}
       onClose();
+    },
+    driverOptions: {
+      onNext: (_el, idx) => {
+        if (idx === steps.length - 1) {
+          try { markPracticeVisited(); } catch (e) {}
+          localStorage.setItem('tutorialCompleted', 'true');
+          onClose();
+        }
+      },
+      onDestroy: () => {
+        try { markPracticeVisited(); } catch (e) {}
+        localStorage.setItem('tutorialCompleted', 'true');
+        onClose();
+      }
     }
   });
 

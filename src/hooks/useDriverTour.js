@@ -47,6 +47,12 @@ export const useDriverTour = ({ steps = [], selectors = [], timeout = 2500, inte
   };
 
   const start = async (startIndex = 0) => {
+    // Ensure any existing driver instance is cleaned up before creating a new one
+    if (driverRef.current) {
+      try { driverRef.current.destroy(); } catch (e) {}
+      driverRef.current = null;
+    }
+
     // Create driver instance
     try {
       const options = {
