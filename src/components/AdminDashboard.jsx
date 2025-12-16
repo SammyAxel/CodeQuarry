@@ -44,10 +44,8 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
 
   // Load drafts from localStorage and check server health
   useEffect(() => {
-    const savedDrafts = localStorage.getItem('courseDrafts');
-    if (savedDrafts) {
-      setDrafts(JSON.parse(savedDrafts));
-    }
+    // Note: drafts are now managed by useDrafts hook which syncs with the API
+    // We no longer load from localStorage directly here
     
     // Load published course edits from localStorage
     const savedPublishedEdits = localStorage.getItem('publishedCourseEdits');
@@ -749,7 +747,7 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
                     </span>
                   </div>
                 </div>
-                <div className="text-2xl">{course.icon}</div>
+                <div className="text-2xl">{typeof course.icon === 'string' ? course.icon : '📚'}</div>
               </div>
 
               {/* Actions */}
