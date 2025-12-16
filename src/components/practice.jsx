@@ -16,18 +16,38 @@ import { useUser } from '../context/UserContext';
 
 export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted, onOpenRefinery }) => { 
   const { t } = useLanguage();
-  const { shouldShowPracticeTutorial, markPracticeVisited } = useUser();
+  const { shouldShowPracticeTutorial, markPracticeVisited, isLoading, hasVisitedPractice } = useUser();
   const [code, setCode] = useState(module.initialCode || '');
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showPracticeTutorial, setShowPracticeTutorial] = useState(shouldShowPracticeTutorial());
+  // Don't evaluate tutorial visibility until auth is complete - start false, set via useEffect
+  const [showPracticeTutorial, setShowPracticeTutorial] = useState(false);
   const [refineryBest, setRefineryBest] = useState(null);
   const [syntaxError, setSyntaxError] = useState(null);
   const [activeTab, setActiveTab] = useState('theory');
   const [completedSteps, setCompletedSteps] = useState(new Set());
   const [revealedHints, setRevealedHints] = useState(0);
   const [hasUserModifiedCode, setHasUserModifiedCode] = useState(false);
+
+  // Determine tutorial visibility after auth completes
+  useEffect(() => {
+    // Check localStorage first (synchronous)
+    if (localStorage.getItem('practiceVisited') || sessionStorage.getItem('practiceVisited')) {
+      setShowPracticeTutorial(false);
+      return;
+    }
+    // Wait for auth to complete
+    if (isLoading) {
+      return;
+    }
+    // Now safe to check server-side value
+    if (shouldShowPracticeTutorial()) {
+      setShowPracticeTutorial(true);
+    } else {
+      setShowPracticeTutorial(false);
+    }
+  }, [isLoading, shouldShowPracticeTutorial, hasVisitedPractice]);
 
   const { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines } = useCodeEngine(module);
 
@@ -636,6 +656,8 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
            module={module}
            onClose={() => {
              setShowPracticeTutorial(false);
+             // Save to localStorage immediately so it persists across refreshes
+             localStorage.setItem('practiceVisited', 'true');
              markPracticeVisited();
            }}
            onTabChange={setActiveTab}

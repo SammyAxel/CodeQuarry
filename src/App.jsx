@@ -250,11 +250,19 @@ export default function App() {
     navigateHome();
   };
 
-  // When currentUser becomes available (auto-login or login), ensure URL is not stuck on auth pages
+  // When currentUser becomes available (auto-login or login), restore intended URL or navigate home
   useEffect(() => {
     if (currentUser) {
       const path = location.pathname;
       if (path === '/login' || path === '/register') {
+        // Check if we have a saved intended URL to restore
+        const intendedUrl = sessionStorage.getItem('intendedUrl');
+        sessionStorage.removeItem('intendedUrl');
+        if (intendedUrl && intendedUrl !== '/login' && intendedUrl !== '/register') {
+          navigate(intendedUrl);
+          // Don't call navigateHome - let useRouting handle the route restoration
+          return;
+        }
         navigate('/');
         setCurrentPage('home');
         navigateHome();
@@ -332,7 +340,9 @@ export default function App() {
       );
     }
     // Update URL to /login (but not if we're on a public route)
+    // Save the intended URL so we can restore it after login
     if (location.pathname !== '/login' && !location.pathname.startsWith('/user/') && location.pathname !== '/leaderboard') {
+      sessionStorage.setItem('intendedUrl', location.pathname);
       window.history.pushState({}, '', '/login');
     }
     return (

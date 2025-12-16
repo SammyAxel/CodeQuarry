@@ -22,30 +22,45 @@ const HomePage = ({ courses, onSelectCourse }) => {
   const [showTutorial, setShowTutorial] = useState(false);
 
   // Check authenticated user's onboarding status from context
-  const { hasCompletedOnboarding: userHasCompletedOnboarding } = useUser();
+  const { hasCompletedOnboarding: userHasCompletedOnboarding, isLoading } = useUser();
 
-  // Show tutorial on first visit
+  // Show tutorial on first visit - wait for auth to complete before deciding
   useEffect(() => {
-    // Consider localStorage, sessionStorage, and authenticated user state
+    // ALWAYS check localStorage/sessionStorage first - these are synchronous
     const tutorialCompleted = localStorage.getItem('tutorialCompleted') || sessionStorage.getItem('tutorialCompleted');
-    const storedUser = localStorage.getItem('userData');
-    const userHasCompleted = storedUser ? (() => {
-      try { return JSON.parse(storedUser).hasCompletedOnboarding; } catch (e) { return false; }
-    })() : false;
+    if (tutorialCompleted) {
+      setShowTutorial(false);
+      return;
+    }
 
-    // If authenticated user has completed onboarding on server, don't show tutorial
+    // If still loading auth, don't make a decision yet
+    if (isLoading) {
+      return;
+    }
+
+    // Once loaded, check server-side flag
     if (userHasCompletedOnboarding) {
       localStorage.setItem('tutorialCompleted', 'true');
       setShowTutorial(false);
       return;
     }
 
-    if (!tutorialCompleted && !userHasCompleted) {
-      // Show tutorial after a brief delay for better UX
-      const timer = setTimeout(() => setShowTutorial(true), 500);
-      return () => clearTimeout(timer);
+    // Also check stored user data (legacy fallback)
+    const storedUser = localStorage.getItem('userData');
+    if (storedUser) {
+      try {
+        if (JSON.parse(storedUser).hasCompletedOnboarding) {
+          localStorage.setItem('tutorialCompleted', 'true');
+          setShowTutorial(false);
+          return;
+        }
+      } catch (e) { /* ignore parse errors */ }
     }
-  }, [userHasCompletedOnboarding]);
+
+    // Only show tutorial if we're SURE user hasn't completed it and auth is done
+    const timer = setTimeout(() => setShowTutorial(true), 500);
+    return () => clearTimeout(timer);
+  }, [userHasCompletedOnboarding, isLoading]);
 
   // Filter courses based on search query
   const filteredCourses = useMemo(() => {
