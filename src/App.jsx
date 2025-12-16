@@ -229,11 +229,38 @@ export default function App() {
 
   const handleLogin = (user) => {
     login(user);
+
+    // If server says onboarding already completed, sync local storage immediately
+    if (user?.hasCompletedOnboarding || user?.has_completed_onboarding) {
+      try { localStorage.setItem('tutorialCompleted', 'true'); sessionStorage.setItem('tutorialCompleted', 'true'); } catch (e) {}
+    }
+
+    // Ensure the app navigates to home after login and updates URL
+    navigate('/');
+    setCurrentPage('home');
+    // make sure AppContext view is home
+    // navigateHome sets view to HOME and clears active course/module
+    navigateHome();
   };
 
   const handleRegisterSuccess = (user) => {
     login(user);
+    navigate('/');
+    setCurrentPage('home');
+    navigateHome();
   };
+
+  // When currentUser becomes available (auto-login or login), ensure URL is not stuck on auth pages
+  useEffect(() => {
+    if (currentUser) {
+      const path = location.pathname;
+      if (path === '/login' || path === '/register') {
+        navigate('/');
+        setCurrentPage('home');
+        navigateHome();
+      }
+    }
+  }, [currentUser, location.pathname, navigate, navigateHome]);
 
   const handleAdminLogin = (role) => {
     userAdminLogin(role);
