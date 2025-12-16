@@ -4,6 +4,7 @@ import { sanitizeInput } from '../utils/securityUtils';
 import { getCourseLanguages } from '../utils/courseTranslations';
 import { useLanguage } from '../context/LanguageContext';
 import { OnboardingTutorial } from '../components/OnboardingTutorial';
+import { useUser } from '../context/UserContext';
 
 /**
  * Home page showing available courses
@@ -20,6 +21,9 @@ const HomePage = ({ courses, onSelectCourse }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showTutorial, setShowTutorial] = useState(false);
 
+  // Check authenticated user's onboarding status from context
+  const { hasCompletedOnboarding: userHasCompletedOnboarding } = useUser();
+
   // Show tutorial on first visit
   useEffect(() => {
     // Consider localStorage, sessionStorage, and authenticated user state
@@ -29,12 +33,19 @@ const HomePage = ({ courses, onSelectCourse }) => {
       try { return JSON.parse(storedUser).hasCompletedOnboarding; } catch (e) { return false; }
     })() : false;
 
+    // If authenticated user has completed onboarding on server, don't show tutorial
+    if (userHasCompletedOnboarding) {
+      localStorage.setItem('tutorialCompleted', 'true');
+      setShowTutorial(false);
+      return;
+    }
+
     if (!tutorialCompleted && !userHasCompleted) {
       // Show tutorial after a brief delay for better UX
       const timer = setTimeout(() => setShowTutorial(true), 500);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [userHasCompletedOnboarding]);
 
   // Filter courses based on search query
   const filteredCourses = useMemo(() => {

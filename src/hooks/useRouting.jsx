@@ -71,8 +71,10 @@ export const useRouting = (courses) => {
       const course = courses.find(c => c.id === route.courseId);
       if (course) {
         isNavigatingRef.current = true;
+        // Call navigateToSyllabus synchronously without setTimeout
+        // This ensures state is updated immediately for the next render
         navigateToSyllabus(course);
-        setTimeout(() => { isNavigatingRef.current = false; }, 100);
+        isNavigatingRef.current = false;
       }
     } else if (route.view === 'learning' && route.courseId && route.moduleId) {
       const course = courses.find(c => c.id === route.courseId);
@@ -80,11 +82,13 @@ export const useRouting = (courses) => {
         const module = course.modules?.find(m => m.id === route.moduleId);
         if (module) {
           isNavigatingRef.current = true;
+          // Update state synchronously for syllabus first
           navigateToSyllabus(course);
-          setTimeout(() => {
+          // Use micro task queue instead of macrotask for better timing
+          Promise.resolve().then(() => {
             navigateToLearning(module);
-            setTimeout(() => { isNavigatingRef.current = false; }, 100);
-          }, 50);
+            isNavigatingRef.current = false;
+          });
         }
       }
     }
