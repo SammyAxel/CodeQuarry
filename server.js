@@ -440,7 +440,9 @@ app.get('/api/user/me', verifyUserSession, async (req, res) => {
       avatarUrl: user.avatar_url,
       role: user.role,
       createdAt: user.created_at,
-      lastLoginAt: user.last_login_at
+      lastLoginAt: user.last_login_at,
+      hasVisitedPractice: user.has_visited_practice || false,
+      hasCompletedOnboarding: user.has_completed_onboarding || false
     },
     stats
   });

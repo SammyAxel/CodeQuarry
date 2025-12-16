@@ -57,7 +57,7 @@ export const useRouting = (courses) => {
    * Handles direct links, bookmarks, and page refreshes
    */
   useEffect(() => {
-    // Skip if already initialized or no courses loaded yet
+    // Skip if already initialized
     if (hasInitialized.current) return;
     if (!courses || courses.length === 0) return;
     
@@ -69,15 +69,31 @@ export const useRouting = (courses) => {
     // Only need to restore state if URL has a specific route
     if (route.view === 'syllabus' && route.courseId) {
       const course = courses.find(c => c.id === route.courseId);
+
       if (course) {
         isNavigatingRef.current = true;
-        // Call navigateToSyllabus synchronously without setTimeout
-        // This ensures state is updated immediately for the next render
-        navigateToSyllabus(course);
-        isNavigatingRef.current = false;
+        // If course has no modules (list endpoint), fetch full course details
+        if (!course.modules || course.modules.length === 0) {
+          import('../api/courses').then(({ fetchCourse }) => {
+            fetchCourse(route.courseId).then(full => {
+              navigateToSyllabus(full || course);
+              isNavigatingRef.current = false;
+            }).catch(() => {
+              navigateToSyllabus(course);
+              isNavigatingRef.current = false;
+            });
+          }).catch(() => {
+            navigateToSyllabus(course);
+            isNavigatingRef.current = false;
+          });
+        } else {
+          navigateToSyllabus(course);
+          isNavigatingRef.current = false;
+        }
       }
     } else if (route.view === 'learning' && route.courseId && route.moduleId) {
       const course = courses.find(c => c.id === route.courseId);
+
       if (course) {
         const module = course.modules?.find(m => m.id === route.moduleId);
         if (module) {
@@ -89,6 +105,24 @@ export const useRouting = (courses) => {
             navigateToLearning(module);
             isNavigatingRef.current = false;
           });
+        } else {
+          // Module missing - fetch full course and try to find module
+          import('../api/courses').then(({ fetchCourse }) => {
+            fetchCourse(route.courseId).then(full => {
+              if (full) {
+                const m = full.modules?.find(mm => mm.id === route.moduleId);
+                if (m) {
+                  navigateToSyllabus(full);
+                  Promise.resolve().then(() => {
+                    navigateToLearning(m);
+                    isNavigatingRef.current = false;
+                  });
+                  return;
+                }
+              }
+              isNavigatingRef.current = false;
+            }).catch(() => { isNavigatingRef.current = false; });
+          }).catch(() => { isNavigatingRef.current = false; });
         }
       }
     }

@@ -126,7 +126,9 @@ router.post('/login', async (req, res) => {
       email: user.email,
       displayName: user.display_name,
       avatarUrl: user.avatar_url,
-      role: user.role || 'user'
+      role: user.role || 'user',
+      hasVisitedPractice: user.has_visited_practice || false,
+      hasCompletedOnboarding: user.has_completed_onboarding || false
     }
   });
 });
@@ -165,7 +167,8 @@ router.get('/me', verifyUserSession, async (req, res) => {
       role: user.role,
       createdAt: user.created_at,
       lastLoginAt: user.last_login_at,
-      hasVisitedPractice: user.has_visited_practice || false
+      hasVisitedPractice: user.has_visited_practice || false,
+      hasCompletedOnboarding: user.has_completed_onboarding || false
     },
     stats
   });

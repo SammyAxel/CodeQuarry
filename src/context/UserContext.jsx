@@ -336,6 +336,8 @@ export const UserProvider = ({ children }) => {
     hasVisitedPractice,
     markPracticeVisited,
     shouldShowPracticeTutorial,
+    hasCompletedOnboarding,
+    markOnboardingCompleted,
   };
 
   return (

@@ -57,7 +57,7 @@ export const findUser = async (identifier) => {
 
 export const findUserById = async (id) => {
   const result = await pool.query(
-    `SELECT id, username, email, display_name, avatar_url, role, created_at, last_login_at, has_visited_practice
+    `SELECT id, username, email, display_name, avatar_url, role, created_at, last_login_at, has_visited_practice, has_completed_onboarding
      FROM users 
      WHERE id = $1 AND is_active = true`,
     [id]
