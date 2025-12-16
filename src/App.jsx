@@ -235,11 +235,16 @@ export default function App() {
       try { localStorage.setItem('tutorialCompleted', 'true'); sessionStorage.setItem('tutorialCompleted', 'true'); } catch (e) {}
     }
 
-    // Ensure the app navigates to home after login and updates URL
+    // Check if we have an intended URL to restore (don't navigate yet, let useEffect handle it)
+    const intendedUrl = sessionStorage.getItem('intendedUrl');
+    if (intendedUrl && intendedUrl !== '/login' && intendedUrl !== '/register') {
+      // Will be handled by useEffect when currentUser updates
+      return;
+    }
+
+    // Otherwise navigate to home
     navigate('/');
     setCurrentPage('home');
-    // make sure AppContext view is home
-    // navigateHome sets view to HOME and clears active course/module
     navigateHome();
   };
 
