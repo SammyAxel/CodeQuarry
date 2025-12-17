@@ -52,6 +52,9 @@ export const ProfilePage = ({ onBack }) => {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
 
+  // API URL for backend calls
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   useEffect(() => {
     const loadUserData = async () => {
       setIsLoading(true);
@@ -65,7 +68,7 @@ export const ProfilePage = ({ onBack }) => {
         
         // Fetch equipped cosmetics
         const token = localStorage.getItem('userToken');
-        const cosmeticsResponse = await fetch('/api/cosmetics/equipped', {
+        const cosmeticsResponse = await fetch(`${API_URL}/api/cosmetics/equipped`, {
           headers: { 'X-User-Token': token }
         });
         
@@ -177,7 +180,6 @@ export const ProfilePage = ({ onBack }) => {
     setBioMessage(null);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('userToken');
       
       const response = await fetch(`${API_URL}/api/user/bio`, {
@@ -215,7 +217,7 @@ export const ProfilePage = ({ onBack }) => {
       const token = localStorage.getItem('userToken');
       
       // Save title
-      const titleResponse = await fetch('/api/cosmetics/equip', {
+      const titleResponse = await fetch(`${API_URL}/api/cosmetics/equip`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +235,7 @@ export const ProfilePage = ({ onBack }) => {
       }
 
       // Save name color
-      const colorResponse = await fetch('/api/cosmetics/equip', {
+      const colorResponse = await fetch(`${API_URL}/api/cosmetics/equip`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
