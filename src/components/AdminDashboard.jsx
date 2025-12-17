@@ -11,11 +11,7 @@ import { useDrafts } from '../hooks/useDrafts';
 import { COURSES, useCourses } from '../data/courses';
 import { getCourseLanguages } from '../utils/courseTranslations';
 
-console.log('[AdminDashboard Module] Component definition loading');
-
 export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
-  console.log('[AdminDashboard] Function called with adminRole:', adminRole);
-  
   const [view, setView] = useState('list'); // list, editor, preview, review, security, translate
   const [activeTab, setActiveTab] = useState('published'); // 'drafts' or 'published' or 'translations'
   const [publishedEdits, setPublishedEdits] = useState({}); // Stores local edits to published courses
@@ -32,12 +28,9 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [pendingAction, setPendingAction] = useState(null); // Stores the action to execute after auth
   
-  console.log('[AdminDashboard] About to call useDrafts');
   // IMPORTANT: All hooks must be called unconditionally before any early returns
   const { drafts, createDraft, updateDraft, deleteDraft, publishDraft } = useDrafts(adminRole);
-  console.log('[AdminDashboard] useDrafts returned, about to call useCourses');
   const { courses: apiCourses, loading: coursesLoading, refetch: refetchCourses } = useCourses();
-  console.log('[AdminDashboard] useCourses returned');
   
   // Permission helpers
   const isAdmin = adminRole === 'admin';

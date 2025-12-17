@@ -12,7 +12,6 @@ import { useApp } from '../context/AppContext';
 import { VIEWS } from '../constants/appConfig';
 
 export const useRouting = (courses) => {
-  console.log('[useRouting] Called with courses:', courses?.length);
   const navigate = useNavigate();
   const location = useLocation();
   const hasInitialized = useRef(false);

@@ -9,7 +9,6 @@ import * as draftApi from '../utils/draftApi';
 import { logSecurityEvent } from '../utils/securityUtils';
 
 export const useDrafts = (adminRole = 'admin') => {
-  console.log('[useDrafts] Hook called with adminRole:', adminRole);
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

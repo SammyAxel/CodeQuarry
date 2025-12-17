@@ -37,7 +37,6 @@ import { fetchCourseTranslations, getCourseTranslations } from './utils/courseTr
  * Uses Context API for state management
  */
 export default function App() {
-  console.log('[App] Rendering');
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark } = useThemeContext();
@@ -174,7 +173,6 @@ export default function App() {
   // Get merged courses and initialize routing
   // IMPORTANT: Memoize to prevent infinite render loops in useRouting
   const mergedCourses = useMemo(() => {
-    console.log('[App] Recomputing mergedCourses - apiCourses:', apiCourses?.length, 'publishedEdits:', Object.keys(publishedCourseEdits).length, 'custom:', customCourses.length);
     const baseCourses = apiCourses || COURSES;
     const editedOriginals = baseCourses.map(course => {
       if (publishedCourseEdits[course.id]) {
@@ -193,42 +191,8 @@ export default function App() {
 
   // Derive completed modules for the current user
   const completedModules = getCompletedModules();
-  
-  // If in admin mode, show admin dashboard
-  if (isAdminMode) {
-    return (
-      <div className="min-h-screen bg-[#0d1117] text-white">
-        <div className="flex items-center justify-between h-16 border-b border-gray-800 px-6 bg-gradient-to-r from-amber-950/50 to-yellow-950/30">
-          <div className="flex items-center gap-2 font-black text-xl">
-            <Gem className="w-6 h-6 text-yellow-500" />
-            <div className="flex items-center gap-2">
-              {adminRole === 'admin' ? <Crown className="w-5 h-5 text-yellow-500" /> : <Crown className="w-5 h-5 text-purple-500" />}
-              <span>{adminRole === 'admin' ? 'Admin Panel' : 'Mod Panel'}</span>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setIsAdminMode(false);
-              setAdminRole(null);
-            }}
-            className="px-4 py-2 bg-gray-800 hover:bg-red-900/50 rounded-lg font-bold transition-colors flex items-center gap-2 text-red-400 hover:text-red-300"
-          >
-            <LogOut className="w-4 h-4" />
-            Exit Admin
-          </button>
-        </div>
-        <AdminDashboard 
-          adminRole={adminRole} 
-          onUpdatePublishedCourses={handleUpdatePublishedCourses}
-          onPublishDraft={handlePublishDraft}
-          onUnpublishCourse={handleUnpublishCourse}
-          customCourses={customCourses}
-        />
-      </div>
-    );
-  }
-  
-  // Navigation handlers
+
+  // Navigation handlers (defined before any returns to comply with Rules of Hooks)
   const handleNextLesson = () => {
     if (!activeCourse || !activeModule) return;
     goToNextLesson(activeCourse.modules);
@@ -292,6 +256,7 @@ export default function App() {
     }
   }, [currentUser, location.pathname, navigate, navigateHome]);
 
+  // Admin handlers
   const handleAdminLogin = (role) => {
     userAdminLogin(role);
     setAdminRole(role);
@@ -314,6 +279,43 @@ export default function App() {
     // Reset URL to home
     window.history.pushState({}, '', '/');
   };
+
+  // ALL CONDITIONAL RETURNS MUST COME AFTER ALL HOOKS
+  // This prevents "Rendered fewer hooks than expected" errors
+
+  // If in admin mode, show admin dashboard
+  if (isAdminMode) {
+    return (
+      <div className="min-h-screen bg-[#0d1117] text-white">
+        <div className="flex items-center justify-between h-16 border-b border-gray-800 px-6 bg-gradient-to-r from-amber-950/50 to-yellow-950/30">
+          <div className="flex items-center gap-2 font-black text-xl">
+            <Gem className="w-6 h-6 text-yellow-500" />
+            <div className="flex items-center gap-2">
+              {adminRole === 'admin' ? <Crown className="w-5 h-5 text-yellow-500" /> : <Crown className="w-5 h-5 text-purple-500" />}
+              <span>{adminRole === 'admin' ? 'Admin Panel' : 'Mod Panel'}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setIsAdminMode(false);
+              setAdminRole(null);
+            }}
+            className="px-4 py-2 bg-gray-800 hover:bg-red-900/50 rounded-lg font-bold transition-colors flex items-center gap-2 text-red-400 hover:text-red-300"
+          >
+            <LogOut className="w-4 h-4" />
+            Exit Admin
+          </button>
+        </div>
+        <AdminDashboard 
+          adminRole={adminRole} 
+          onUpdatePublishedCourses={handleUpdatePublishedCourses}
+          onPublishDraft={handlePublishDraft}
+          onUnpublishCourse={handleUnpublishCourse}
+          customCourses={customCourses}
+        />
+      </div>
+    );
+  }
 
   // If no user is logged in, show the login page.
   if (isLoading) {
