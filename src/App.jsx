@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
   Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages, Users, Crown, Trophy, ShoppingCart
@@ -172,7 +172,22 @@ export default function App() {
   } = useApp();
 
   // Get merged courses and initialize routing
-  const mergedCourses = getMergedCourses();
+  // IMPORTANT: Memoize to prevent infinite render loops in useRouting
+  const mergedCourses = useMemo(() => {
+    const baseCourses = apiCourses || COURSES;
+    const editedOriginals = baseCourses.map(course => {
+      if (publishedCourseEdits[course.id]) {
+        return { ...course, ...publishedCourseEdits[course.id] };
+      }
+      return course;
+    });
+    // Add custom courses that aren't already in the list
+    const customFiltered = customCourses.filter(
+      custom => !editedOriginals.some(orig => orig.id === custom.id)
+    );
+    return [...editedOriginals, ...customFiltered];
+  }, [apiCourses, publishedCourseEdits, customCourses]);
+  
   useRouting(mergedCourses);
 
   // Derive completed modules for the current user
