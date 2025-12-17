@@ -174,6 +174,7 @@ export default function App() {
   // Get merged courses and initialize routing
   // IMPORTANT: Memoize to prevent infinite render loops in useRouting
   const mergedCourses = useMemo(() => {
+    console.log('[App] Recomputing mergedCourses - apiCourses:', apiCourses?.length, 'publishedEdits:', Object.keys(publishedCourseEdits).length, 'custom:', customCourses.length);
     const baseCourses = apiCourses || COURSES;
     const editedOriginals = baseCourses.map(course => {
       if (publishedCourseEdits[course.id]) {
