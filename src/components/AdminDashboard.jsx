@@ -14,7 +14,6 @@ import { getCourseLanguages } from '../utils/courseTranslations';
 export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
   const [view, setView] = useState('list'); // list, editor, preview, review, security, translate
   const [activeTab, setActiveTab] = useState('published'); // 'drafts' or 'published' or 'translations'
-  const { drafts, createDraft, updateDraft, deleteDraft, publishDraft } = useDrafts(adminRole);
   const [publishedEdits, setPublishedEdits] = useState({}); // Stores local edits to published courses
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -29,7 +28,8 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [pendingAction, setPendingAction] = useState(null); // Stores the action to execute after auth
   
-  // Fetch courses from API
+  // IMPORTANT: All hooks must be called unconditionally before any early returns
+  const { drafts, createDraft, updateDraft, deleteDraft, publishDraft } = useDrafts(adminRole);
   const { courses: apiCourses, loading: coursesLoading, refetch: refetchCourses } = useCourses();
   
   // Permission helpers
