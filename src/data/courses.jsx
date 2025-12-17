@@ -40,6 +40,7 @@ export const COURSES = FALLBACK_COURSES;
  * @returns {Object} { courses, loading, error, refetch }
  */
 export const useCourses = () => {
+  console.log('[useCourses] Hook called');
   const [courses, setCourses] = useState(FALLBACK_COURSES);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

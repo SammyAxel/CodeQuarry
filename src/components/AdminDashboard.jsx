@@ -11,8 +11,10 @@ import { useDrafts } from '../hooks/useDrafts';
 import { COURSES, useCourses } from '../data/courses';
 import { getCourseLanguages } from '../utils/courseTranslations';
 
+console.log('[AdminDashboard Module] Component definition loading');
+
 export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, onPublishDraft, onUnpublishCourse, customCourses = [] }) => {
-  console.log('[AdminDashboard] Rendering with adminRole:', adminRole);
+  console.log('[AdminDashboard] Function called with adminRole:', adminRole);
   
   const [view, setView] = useState('list'); // list, editor, preview, review, security, translate
   const [activeTab, setActiveTab] = useState('published'); // 'drafts' or 'published' or 'translations'

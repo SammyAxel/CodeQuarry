@@ -37,6 +37,7 @@ import { fetchCourseTranslations, getCourseTranslations } from './utils/courseTr
  * Uses Context API for state management
  */
 export default function App() {
+  console.log('[App] Rendering');
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark } = useThemeContext();

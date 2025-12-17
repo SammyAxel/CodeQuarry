@@ -15,19 +15,17 @@ import { LanguageProvider } from './context/LanguageContext'
 import { ThemeProvider } from './context/ThemeContext'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
-      <ErrorBoundary>
-        <ThemeProvider>
-          <LanguageProvider>
-            <UserProvider>
-              <AppProvider>
-                <App />
-              </AppProvider>
-            </UserProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </ErrorBoundary>
-    </BrowserRouter>
-  </StrictMode>,
+  <BrowserRouter>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <UserProvider>
+            <AppProvider>
+              <App />
+            </AppProvider>
+          </UserProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  </BrowserRouter>,
 );
