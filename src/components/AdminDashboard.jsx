@@ -350,8 +350,8 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
       timestamp: new Date().toISOString()
     });
     
-    const updated = drafts.filter(d => d.id !== id);
-    saveDrafts(updated);
+    // Use the deleteDraft from useDrafts hook
+    deleteDraft(id);
     setDeleteConfirmation(null);
     
     // Regenerate token for next delete
@@ -396,8 +396,8 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
             }))
           };
           
-          const updated = [...drafts, sanitized];
-          saveDrafts(updated);
+          // Use createDraft from useDrafts hook
+          createDraft(sanitized);
           logSecurityEvent('course_imported', { 
             courseId: sanitized.id,
             modules: sanitized.modules.length
@@ -467,8 +467,8 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
             // Fallback to localStorage
             if (onPublishDraft) {
               onPublishDraft(selectedCourse);
-              const updatedDrafts = drafts.filter(d => d.id !== selectedCourse.id);
-              saveDrafts(updatedDrafts);
+              // Remove from drafts using hook
+              deleteDraft(selectedCourse.id);
               alert('✅ Course saved to localStorage (offline mode).\nRestart with server to save to file.');
               setView('list');
               setSelectedCourse(null);
@@ -481,9 +481,8 @@ export const AdminDashboard = ({ adminRole = 'admin', onUpdatePublishedCourses, 
           try {
             await publishCourse(selectedCourse);
             
-            // Remove from drafts after publishing
-            const updatedDrafts = drafts.filter(d => d.id !== selectedCourse.id);
-            saveDrafts(updatedDrafts);
+            // Remove from drafts after publishing using hook
+            deleteDraft(selectedCourse.id);
             
             alert('✅ Course published successfully!\n\nThe file has been created at:\nsrc/data/' + selectedCourse.id + '.jsx\n\n⚠️ You need to restart the dev server (npm run dev) to see the changes.');
             setView('list');
