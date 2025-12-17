@@ -15,8 +15,11 @@ import { useLanguage } from '../context/LanguageContext';
 import { useUser } from '../context/UserContext';
 
 export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted, onOpenRefinery }) => { 
+  // IMPORTANT: All hooks must be called at the top, unconditionally
   const { t } = useLanguage();
   const { shouldShowPracticeTutorial, markPracticeVisited, isLoading, hasVisitedPractice } = useUser();
+  const { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines } = useCodeEngine(module);
+  
   const [code, setCode] = useState(module.initialCode || '');
   const [isLoadingCode, setIsLoadingCode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -48,8 +51,6 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
       setShowPracticeTutorial(false);
     }
   }, [isLoading, shouldShowPracticeTutorial, hasVisitedPractice]);
-
-  const { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines } = useCodeEngine(module);
 
   // Parse steps from instruction text
   const parseSteps = (instruction) => {
