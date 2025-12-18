@@ -38,16 +38,45 @@ export const useDriverTour = ({ steps = [], selectors = [], timeout = 2500, inte
     if (typeof opts?.onDestroy === 'function' && typeof normalized.onDestroyed !== 'function') {
       normalized.onDestroyed = (...args) => opts.onDestroy(...args);
     }
+    // NOTE: In driver.js v1.x, providing onNextClick/onPrevClick overrides the built-in
+    // navigation handlers. For backwards compatibility with older code that used `onNext`
+    // / `onPrev` as *observers*, we call the callback and then perform the default move.
     if (typeof opts?.onNext === 'function' && typeof normalized.onNextClick !== 'function') {
       normalized.onNextClick = (el, step, ...rest) => {
         const idx = getActiveIndexSafe();
-        return opts.onNext(el, typeof idx === 'number' ? idx : 0, step, ...rest);
+        const safeIdx = typeof idx === 'number' ? idx : 0;
+
+        // 1) notify legacy handler
+        opts.onNext(el, safeIdx, step, ...rest);
+
+        // 2) preserve default driver.js behavior
+        try {
+          const d = driverRef.current;
+          if (!d) return;
+          if (typeof d.hasNextStep === 'function' && d.hasNextStep()) {
+            if (typeof d.moveNext === 'function') d.moveNext();
+          } else {
+            if (typeof d.destroy === 'function') d.destroy();
+          }
+        } catch (e) {}
       };
     }
     if (typeof opts?.onPrev === 'function' && typeof normalized.onPrevClick !== 'function') {
       normalized.onPrevClick = (el, step, ...rest) => {
         const idx = getActiveIndexSafe();
-        return opts.onPrev(el, typeof idx === 'number' ? idx : 0, step, ...rest);
+        const safeIdx = typeof idx === 'number' ? idx : 0;
+
+        // 1) notify legacy handler
+        opts.onPrev(el, safeIdx, step, ...rest);
+
+        // 2) preserve default driver.js behavior
+        try {
+          const d = driverRef.current;
+          if (!d) return;
+          if (typeof d.hasPreviousStep === 'function' && d.hasPreviousStep()) {
+            if (typeof d.movePrevious === 'function') d.movePrevious();
+          }
+        } catch (e) {}
       };
     }
 
