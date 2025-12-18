@@ -5,6 +5,7 @@ import { getCourseLanguages } from '../utils/courseTranslations';
 import { useLanguage } from '../context/LanguageContext';
 import { OnboardingTutorial } from '../components/OnboardingTutorial';
 import { useUser } from '../context/UserContext';
+import { clearOnboardingTourState, hasSeenOnboardingTour, writeOnboardingTourState } from '../utils/onboardingTourState';
 
 /**
  * Home page showing available courses
@@ -22,13 +23,20 @@ const HomePage = ({ courses, onSelectCourse }) => {
   const [showTutorial, setShowTutorial] = useState(false);
 
   // Check authenticated user's onboarding status from context
-  const { hasCompletedOnboarding: userHasCompletedOnboarding, isLoading } = useUser();
+  const { hasCompletedOnboarding: userHasCompletedOnboarding, isLoading, currentUser } = useUser();
+  const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
 
   // Show tutorial on first visit - wait for auth to complete before deciding
   useEffect(() => {
     // ALWAYS check localStorage/sessionStorage first - these are synchronous
     const tutorialCompleted = localStorage.getItem('tutorialCompleted') || sessionStorage.getItem('tutorialCompleted');
     if (tutorialCompleted) {
+      setShowTutorial(false);
+      return;
+    }
+
+    // Dedicated onboarding tour state (supports dismissed vs completed)
+    if (hasSeenOnboardingTour(userKey) || hasSeenOnboardingTour('anon')) {
       setShowTutorial(false);
       return;
     }
@@ -41,6 +49,7 @@ const HomePage = ({ courses, onSelectCourse }) => {
     // Once loaded, check server-side flag
     if (userHasCompletedOnboarding) {
       localStorage.setItem('tutorialCompleted', 'true');
+      writeOnboardingTourState(userKey, 'completed');
       setShowTutorial(false);
       return;
     }
@@ -60,7 +69,7 @@ const HomePage = ({ courses, onSelectCourse }) => {
     // Only show tutorial if we're SURE user hasn't completed it and auth is done
     const timer = setTimeout(() => setShowTutorial(true), 500);
     return () => clearTimeout(timer);
-  }, [userHasCompletedOnboarding, isLoading]);
+  }, [userHasCompletedOnboarding, isLoading, userKey]);
 
   // Filter courses based on search query
   const filteredCourses = useMemo(() => {
@@ -216,6 +225,9 @@ const HomePage = ({ courses, onSelectCourse }) => {
           onClick={() => {
             // Always allow manual opening of the tutorial (clears persisted dismissal)
             localStorage.removeItem('tutorialCompleted');
+            sessionStorage.removeItem('tutorialCompleted');
+            clearOnboardingTourState(userKey);
+            clearOnboardingTourState('anon');
             setShowTutorial(true);
           }}
           className="p-3 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"

@@ -4,16 +4,15 @@
  * Shows step-by-step how to use CodeQuarry
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, ChevronRight, ChevronLeft, BookOpen, Award, Users, Code, MessageCircle, HelpCircle } from 'lucide-react';
 import { driver as Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import useDriverTour from '../hooks/useDriverTour';
 import { useUser } from '../context/UserContext';
+import { writeOnboardingTourState } from '../utils/onboardingTourState';
 
 export const OnboardingTutorial = ({ isOpen, onClose, driverClass: overrideDriverClass = undefined }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-
   const steps = [
     {
       title: '👋 Welcome to CodeQuarry!',
@@ -65,64 +64,64 @@ export const OnboardingTutorial = ({ isOpen, onClose, driverClass: overrideDrive
     }
   ];
 
-  const step = steps[currentStep];
+  const { markOnboardingCompleted, currentUser } = useUser();
+  const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
+  const persistedRef = useRef(false);
 
-  const { markOnboardingCompleted } = useUser();
+  const persistTourStatus = async (status) => {
+    if (persistedRef.current) return;
+    persistedRef.current = true;
 
-  const setTutorialCompleted = async () => {
+    // Dedicated onboarding state (supports dismissed vs completed)
+    writeOnboardingTourState(userKey, status);
+    // Also write to anon key as a conservative fallback, so guests don't get stuck
+    // in a loop if they dismiss before auth finishes.
+    writeOnboardingTourState('anon', status);
+
     try {
       localStorage.setItem('tutorialCompleted', 'true');
       sessionStorage.setItem('tutorialCompleted', 'true');
-      // also update stored user data if present
-      const stored = localStorage.getItem('userData');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          parsed.hasCompletedOnboarding = true;
-          localStorage.setItem('userData', JSON.stringify(parsed));
-        } catch (e) {}
+
+      if (status === 'completed') {
+        // also update stored user data if present
+        const stored = localStorage.getItem('userData');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            parsed.hasCompletedOnboarding = true;
+            localStorage.setItem('userData', JSON.stringify(parsed));
+          } catch (e) {}
+        }
       }
     } catch (e) {
       // ignore storage errors
     }
 
-    // If authenticated, also persist server-side
-    try {
-      await markOnboardingCompleted();
-    } catch (e) {
-      // ignore server errors — local storage is primary fallback
-    }
-  };
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      // Mark tutorial as completed
-      setTutorialCompleted();
-      onClose();
-    }
-  };
-
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+    if (status === 'completed') {
+      // If authenticated, also persist server-side
+      try {
+        await markOnboardingCompleted();
+      } catch (e) {
+        // ignore server errors — local storage is primary fallback
+      }
     }
   };
 
   // Use shared useDriverTour hook to initialize and control the driver tour
-  const { start, destroy } = useDriverTour({
-    steps: [
+  const tourSteps = [
       { element: '#site-title', popover: { title: steps[0].title, description: steps[0].description } },
       { element: '#home-search', popover: { title: steps[1].title, description: steps[1].description } },
       { element: '.course-card', popover: { title: steps[2].title, description: steps[2].description } },
       { element: '#help-tutorial-btn', popover: { title: steps[5].title, description: steps[5].description, side: 'left' } },
-    ],
+  ];
+
+  const { start, destroy } = useDriverTour({
+    steps: tourSteps,
     selectors: ['#site-title', '#home-search', '.course-card', '#help-tutorial-btn'],
     onFailure: (err) => {
       console.warn('Onboarding driver failed to start:', err);
-      // Persist as completed so we don't keep retrying
-      setTutorialCompleted();
+      // Persist as dismissed so we don't keep retrying
+      persistTourStatus('dismissed');
       onClose();
     },
     driverOptions: {
@@ -130,13 +129,15 @@ export const OnboardingTutorial = ({ isOpen, onClose, driverClass: overrideDrive
       prevBtnText: 'Back',
       doneBtnText: 'Got it!',
       onNext: (_el, idx) => {
-        if (idx === steps.length - 1) {
-          setTutorialCompleted();
+        if (idx === tourSteps.length - 1) {
+          persistTourStatus('completed');
           onClose();
         }
       },
       onDestroy: () => {
-        setTutorialCompleted();
+        // If user closes early, treat as dismissed.
+        // If they already completed on the last step, persistTourStatus will no-op.
+        persistTourStatus('dismissed');
         onClose();
       }
     },
@@ -147,7 +148,7 @@ export const OnboardingTutorial = ({ isOpen, onClose, driverClass: overrideDrive
     if (isOpen) {
       start(0).then(ok => {
         if (!ok) {
-          setTutorialCompleted();
+          persistTourStatus('dismissed');
           onClose();
         }
       });
@@ -167,8 +168,8 @@ export const OnboardingTutorial = ({ isOpen, onClose, driverClass: overrideDrive
 
   if (!isOpen) return null;
 
-  // While driver runs, we render nothing (driver.js provides the UI). Return null so there's
-  // no modal fallback UI.
+  // While driver runs, we render nothing (driver.js provides the UI).
+  return null;
 };
 
 export default OnboardingTutorial;

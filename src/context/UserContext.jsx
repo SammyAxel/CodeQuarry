@@ -18,6 +18,8 @@ import {
   markOnboardingCompleted as markOnboardingCompletedApi
 } from '../utils/userApi';
 import { logSecurityEvent } from '../utils/securityUtils';
+import { writeOnboardingTourState } from '../utils/onboardingTourState';
+import { readPracticeTourState, writePracticeTourState } from '../utils/practiceTourState';
 
 const UserContext = createContext();
 
@@ -259,6 +261,14 @@ export const UserProvider = ({ children }) => {
   const markPracticeVisited = useCallback(async () => {
     if (!currentUser || isAdmin) return;
 
+    // Ensure we persist a local fallback (avoid loops if server call fails)
+    try {
+      const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
+      if (!readPracticeTourState(userKey)) {
+        writePracticeTourState(userKey, 'dismissed');
+      }
+    } catch (e) {}
+
     try {
       const res = await markPracticeVisitedApi();
       // res may contain hasVisitedPractice or has_visited_practice
@@ -283,6 +293,10 @@ export const UserProvider = ({ children }) => {
       setHasCompletedOnboarding(Boolean(has));
       setCurrentUser(prev => prev ? { ...prev, hasCompletedOnboarding: true } : prev);
       try {
+        const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
+        writeOnboardingTourState(userKey, 'completed');
+      } catch (e) {}
+      try {
         // ensure local storage also reflects this for unauthenticated flows
         localStorage.setItem('tutorialCompleted', 'true');
         sessionStorage.setItem('tutorialCompleted', 'true');
@@ -300,6 +314,10 @@ export const UserProvider = ({ children }) => {
       console.error('Failed to mark onboarding completed:', err);
       setHasCompletedOnboarding(true);
       setCurrentUser(prev => prev ? { ...prev, hasCompletedOnboarding: true } : prev);
+      try {
+        const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
+        writeOnboardingTourState(userKey, 'completed');
+      } catch (e) {}
       try {
         localStorage.setItem('tutorialCompleted', 'true');
         sessionStorage.setItem('tutorialCompleted', 'true');

@@ -13,11 +13,13 @@ import { useCodeEngine } from '../hooks/useCodeEngine';
 import { getSavedCode, saveModuleProgress } from '../utils/userApi';
 import { useLanguage } from '../context/LanguageContext';
 import { useUser } from '../context/UserContext';
+import { hasSeenPracticeTour } from '../utils/practiceTourState';
 
 export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted, onOpenRefinery }) => { 
   // IMPORTANT: All hooks must be called at the top, unconditionally
   const { t } = useLanguage();
-  const { shouldShowPracticeTutorial, markPracticeVisited, isLoading, hasVisitedPractice } = useUser();
+  const { shouldShowPracticeTutorial, isLoading, hasVisitedPractice, currentUser } = useUser();
+  const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
   const { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines } = useCodeEngine(module);
   
   const [code, setCode] = useState(module.initialCode || '');
@@ -35,8 +37,8 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
 
   // Determine tutorial visibility after auth completes
   useEffect(() => {
-    // Check localStorage first (synchronous)
-    if (localStorage.getItem('practiceVisited') || sessionStorage.getItem('practiceVisited')) {
+    // Check persistent per-user state first (synchronous)
+    if (hasSeenPracticeTour(userKey)) {
       setShowPracticeTutorial(false);
       return;
     }
@@ -50,7 +52,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
     } else {
       setShowPracticeTutorial(false);
     }
-  }, [isLoading, shouldShowPracticeTutorial, hasVisitedPractice]);
+  }, [isLoading, shouldShowPracticeTutorial, hasVisitedPractice, userKey]);
 
   // Parse steps from instruction text
   const parseSteps = (instruction) => {
@@ -657,9 +659,6 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
            module={module}
            onClose={() => {
              setShowPracticeTutorial(false);
-             // Save to localStorage immediately so it persists across refreshes
-             localStorage.setItem('practiceVisited', 'true');
-             markPracticeVisited();
            }}
            onTabChange={setActiveTab}
          />

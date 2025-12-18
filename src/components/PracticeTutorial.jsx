@@ -5,12 +5,13 @@
  */
 
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { driver as Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import useDriverTour from '../hooks/useDriverTour';
 import { useUser } from '../context/UserContext';
+import { writePracticeTourState } from '../utils/practiceTourState';
 
 export const PracticeTutorial = ({ 
   isOpen, 
@@ -18,8 +19,7 @@ export const PracticeTutorial = ({
   module = {},
   onTabChange = null
 }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const driverRef = useRef(null);
+  const persistedRef = useRef(false);
 
   // Define driver.js steps
   const steps = [
@@ -85,7 +85,23 @@ export const PracticeTutorial = ({
 
 
   // Use shared useDriverTour hook to manage driver.js lifecycle
-  const { markPracticeVisited } = useUser();
+  const { markPracticeVisited, currentUser } = useUser();
+  const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
+
+  const persistPracticeStatus = async (status) => {
+    if (persistedRef.current) return;
+    persistedRef.current = true;
+
+    // Persist per-user so refreshes don't re-trigger
+    writePracticeTourState(userKey, status);
+
+    // Also persist server-side (counts both "completed" and "dismissed" as "visited")
+    try {
+      await markPracticeVisited();
+    } catch (e) {
+      // ignore server errors; local persistence prevents loops
+    }
+  };
 
   const { start, destroy } = useDriverTour({
     steps,
@@ -93,20 +109,20 @@ export const PracticeTutorial = ({
     onFailure: (err) => {
       // If driver fails, ensure we still close the tutorial so it doesn't loop
       console.warn('Practice tutorial driver failed:', err);
-      try { markPracticeVisited(); } catch (e) {}
+      persistPracticeStatus('dismissed');
       onClose();
     },
     driverOptions: {
       onNext: (_el, idx) => {
         if (idx === steps.length - 1) {
-          try { markPracticeVisited(); } catch (e) {}
-          localStorage.setItem('tutorialCompleted', 'true');
+          persistPracticeStatus('completed');
           onClose();
         }
       },
       onDestroy: () => {
-        try { markPracticeVisited(); } catch (e) {}
-        localStorage.setItem('tutorialCompleted', 'true');
+        // If user closes early, treat as dismissed.
+        // If they already completed on the last step, persistPracticeStatus will no-op.
+        persistPracticeStatus('dismissed');
         onClose();
       }
     }
@@ -122,7 +138,6 @@ export const PracticeTutorial = ({
       });
     } else {
       destroy();
-      setCurrentStep(0);
     }
 
     return () => {

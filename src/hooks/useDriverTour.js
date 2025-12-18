@@ -17,6 +17,43 @@ export const useDriverTour = ({ steps = [], selectors = [], timeout = 2500, inte
   const pollRef = useRef(null);
   const mountedRef = useRef(true);
 
+  const normalizeDriverOptions = (opts) => {
+    const normalized = { ...(opts || {}) };
+
+    const getActiveIndexSafe = () => {
+      try {
+        const d = driverRef.current;
+        if (!d) return undefined;
+        if (typeof d.getActiveIndex === 'function') return d.getActiveIndex();
+        if (typeof d.getState === 'function') {
+          const state = d.getState();
+          if (state && typeof state.activeIndex === 'number') return state.activeIndex;
+        }
+      } catch (e) {}
+      return undefined;
+    };
+
+    // Back-compat for older code that used non-driver.js option names.
+    // driver.js v1.x uses: onNextClick/onPrevClick/onCloseClick/onDestroyed
+    if (typeof opts?.onDestroy === 'function' && typeof normalized.onDestroyed !== 'function') {
+      normalized.onDestroyed = (...args) => opts.onDestroy(...args);
+    }
+    if (typeof opts?.onNext === 'function' && typeof normalized.onNextClick !== 'function') {
+      normalized.onNextClick = (el, step, ...rest) => {
+        const idx = getActiveIndexSafe();
+        return opts.onNext(el, typeof idx === 'number' ? idx : 0, step, ...rest);
+      };
+    }
+    if (typeof opts?.onPrev === 'function' && typeof normalized.onPrevClick !== 'function') {
+      normalized.onPrevClick = (el, step, ...rest) => {
+        const idx = getActiveIndexSafe();
+        return opts.onPrev(el, typeof idx === 'number' ? idx : 0, step, ...rest);
+      };
+    }
+
+    return normalized;
+  };
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -59,7 +96,7 @@ export const useDriverTour = ({ steps = [], selectors = [], timeout = 2500, inte
         allowClose: true,
         overlayClickNext: false,
         showProgress: true,
-        ...driverOptions,
+        ...normalizeDriverOptions(driverOptions),
       };
       driverRef.current = new driverClass(options);
     } catch (e) {

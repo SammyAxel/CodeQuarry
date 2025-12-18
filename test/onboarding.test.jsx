@@ -17,8 +17,10 @@ class FakeDriver {
     this.setSteps = vi.fn();
     this.drive = (startIndex) => {
       // Simulate driving to last step (index 5)
-      if (this.options && typeof this.options.onNext === 'function') {
-        this.options.onNext(null, 5);
+      if (this.options && typeof this.options.onNextClick === 'function') {
+        // Active index is read from the driver instance by the hook; emulate it.
+        this.getActiveIndex = () => 3;
+        this.options.onNextClick(null, null);
       }
     };
     this.destroy = vi.fn();
