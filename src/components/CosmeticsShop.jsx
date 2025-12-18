@@ -3,7 +3,9 @@ import { Gem, Crown, Palette, Sparkles } from 'lucide-react';
 import { COSMETICS, getCosmeticById, getRarityInfo } from '../data/cosmetics';
 import { highlightSyntax, highlightSyntaxAsync } from '../utils/SyntaxHighlighter';
 import { useUser } from '../context/UserContext';
+import AnimatedThemeOverlay from './AnimatedThemeOverlay';
 import '../styles/CosmeticsShop.css';
+import '../styles/themeOverlays.css';
 
 function ThemePreview({ theme, snippet }) {
   const [asyncHighlight, setAsyncHighlight] = useState(() => ({ snippet: '', html: null }));
@@ -34,6 +36,8 @@ function ThemePreview({ theme, snippet }) {
 
   const editorStyles = theme?.editorStyles || {};
   const colors = theme?.colors || {};
+  const overlayType = editorStyles?.overlay?.type;
+  const overlayIntensity = editorStyles?.overlay?.intensity;
 
   return (
     <pre
@@ -60,6 +64,7 @@ function ThemePreview({ theme, snippet }) {
         '--cq-bracket': colors.bracket || colors.text,
       }}
     >
+      <AnimatedThemeOverlay kind={overlayType} intensity={overlayIntensity} colors={colors} />
       <code dangerouslySetInnerHTML={{ __html: html }} />
     </pre>
   );

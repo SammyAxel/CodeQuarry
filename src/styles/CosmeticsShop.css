@@ -291,6 +291,7 @@
 }
 
 .theme-preview {
+  position: relative;
   padding: 12px;
   border-radius: 6px;
   line-height: 1.6;
@@ -306,6 +307,8 @@
 
 .theme-preview code {
   display: block;
+  position: relative;
+  z-index: 1;
 }
 
 /* Keyframes used by theme backgroundAnimation (mirrors CodeEditor) */

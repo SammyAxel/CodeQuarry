@@ -14,6 +14,9 @@ export const COSMETICS = {
     //   - caretColor
     //   - backgroundImage, backgroundSize, backgroundPosition, backgroundRepeat
     //   - backgroundAnimation (expects keyframes: cq-gradient-shift, cq-flicker)
+    //   - overlay (optional):
+    //     - type: 'sakura' | 'embers' | 'orbs'
+    //     - intensity: number (0..40)
     {
       id: 'default',
       name: 'Default',
@@ -142,7 +145,11 @@ export const COSMETICS = {
         backgroundPosition: '0% 50%',
         backgroundRepeat: 'no-repeat',
         backgroundAnimation: 'cq-gradient-shift 18s ease infinite',
-        caretColor: '#ffb3e6'
+        caretColor: '#ffb3e6',
+        overlay: {
+          type: 'sakura',
+          intensity: 18
+        }
       }
     },
     {
@@ -168,7 +175,11 @@ export const COSMETICS = {
         backgroundPosition: '0% 50%',
         backgroundRepeat: 'no-repeat',
         backgroundAnimation: 'cq-gradient-shift 22s ease infinite',
-        caretColor: '#22d3ee'
+        caretColor: '#22d3ee',
+        overlay: {
+          type: 'orbs',
+          intensity: 10
+        }
       }
     },
     {
@@ -194,7 +205,11 @@ export const COSMETICS = {
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundAnimation: 'cq-flicker 0.22s infinite',
-        caretColor: '#fdba74'
+        caretColor: '#fdba74',
+        overlay: {
+          type: 'embers',
+          intensity: 16
+        }
       }
     }
   ],

@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { highlightSyntax, highlightSyntaxAsync } from '../utils/SyntaxHighlighter';
 import { useUser } from '../context/UserContext';
 import { getCosmeticById } from '../data/cosmetics';
+import AnimatedThemeOverlay from './AnimatedThemeOverlay';
+import '../styles/themeOverlays.css';
 
 export const CodeEditor = ({ code, setCode, language }) => {
   const lineNumbersRef = useRef(null);
@@ -37,6 +39,8 @@ export const CodeEditor = ({ code, setCode, language }) => {
   }, [equippedTheme]);
 
   const themeEditorStyles = equippedTheme?.editorStyles || {};
+  const overlayType = themeEditorStyles?.overlay?.type;
+  const overlayIntensity = themeEditorStyles?.overlay?.intensity;
 
   // Inject theme colors into a style tag
   useEffect(() => {
@@ -365,6 +369,7 @@ export const CodeEditor = ({ code, setCode, language }) => {
 
         {/* The Editor Area */}
         <div className="relative flex-1 h-full">
+            <AnimatedThemeOverlay kind={overlayType} intensity={overlayIntensity} colors={themeColors} />
             {/* Highlight Layer (Behind) */}
             <div
                 ref={highlightRef}

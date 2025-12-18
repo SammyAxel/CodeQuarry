@@ -1,0 +1,128 @@
+/* Theme overlay layer (purely decorative) */
+.cq-theme-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.cq-overlay-particle {
+  position: absolute;
+  top: -12%;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cq-theme-overlay,
+  .cq-overlay-particle {
+    animation: none !important;
+  }
+}
+
+/* Sakura petals */
+.cq-overlay-sakura .cq-sakura-particle {
+  animation-name: cq-sakura-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.cq-overlay-sakura .cq-sakura-particle .cq-sakura-petal {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--cq-overlay-solid-primary, rgba(255, 105, 180, 0.6));
+  border-radius: 60% 40% 60% 40%;
+  transform-origin: center;
+  animation-name: cq-sakura-spin;
+  animation-duration: var(--cq-spin, 10s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  box-shadow: 0 0 12px var(--cq-overlay-primary, rgba(255, 105, 180, 0.25));
+}
+
+.cq-overlay-sakura .cq-sakura-particle .cq-sakura-petal::before {
+  content: '';
+  position: absolute;
+  inset: 18% 22% 28% 22%;
+  border-radius: 999px;
+  background: var(--cq-overlay-secondary, rgba(160, 200, 255, 0.22));
+  filter: blur(0.6px);
+  opacity: 0.8;
+}
+
+@keyframes cq-sakura-fall {
+  0% {
+    transform: translate3d(0, -5%, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--cq-drift, 0px), 125%, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes cq-sakura-spin {
+  0% {
+    transform: rotate(0deg) scale(0.95);
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+  }
+  100% {
+    transform: rotate(360deg) scale(0.98);
+  }
+}
+
+/* Embers */
+.cq-overlay-embers .cq-ember-particle {
+  bottom: -10%;
+  top: auto;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--cq-overlay-solid-accent, rgba(255, 200, 120, 0.6)) 0%, transparent 65%);
+  animation-name: cq-ember-rise;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes cq-ember-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--cq-drift, 0px), -135%, 0) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Floating orbs */
+.cq-overlay-orbs .cq-orb-particle {
+  top: auto;
+  bottom: -15%;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--cq-overlay-primary, rgba(50, 220, 200, 0.25)) 0%, transparent 70%);
+  animation-name: cq-orb-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes cq-orb-float {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--cq-drift, 0px), -130%, 0);
+    opacity: 0;
+  }
+}
