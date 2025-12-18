@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { highlightSyntax } from '../utils/SyntaxHighlighter';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
+import { highlightSyntax, highlightSyntaxAsync } from '../utils/SyntaxHighlighter';
 import { useUser } from '../context/UserContext';
 import { getCosmeticById } from '../data/cosmetics';
 
@@ -8,6 +8,8 @@ export const CodeEditor = ({ code, setCode, language }) => {
   const editorRef = useRef(null);
   const highlightRef = useRef(null);
   const styleRef = useRef(null);
+  const highlightJobRef = useRef(0);
+  const [asyncHighlight, setAsyncHighlight] = useState(() => ({ key: '', html: null }));
   
   const { equippedCosmetics } = useUser();
 
@@ -15,15 +17,14 @@ export const CodeEditor = ({ code, setCode, language }) => {
   const lineCount = code ? code.split('\n').length : 1;
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
-  // Get the equipped theme colors
-  const getThemeColors = () => {
-    if (equippedCosmetics?.equipped_theme) {
-      const theme = getCosmeticById(equippedCosmetics.equipped_theme);
-      if (theme?.colors) {
-        return theme.colors;
-      }
-    }
-    // Default colors
+  const equippedThemeId = equippedCosmetics?.equipped_theme || null;
+  const equippedTheme = useMemo(() => {
+    if (!equippedThemeId) return null;
+    return getCosmeticById(equippedThemeId);
+  }, [equippedThemeId]);
+
+  const themeColors = useMemo(() => {
+    if (equippedTheme?.colors) return equippedTheme.colors;
     return {
       bg: '#0d1117',
       text: '#c9d1d9',
@@ -33,9 +34,9 @@ export const CodeEditor = ({ code, setCode, language }) => {
       number: '#79c0ff',
       bracket: '#c9d1d9'
     };
-  };
+  }, [equippedTheme]);
 
-  const themeColors = getThemeColors();
+  const themeEditorStyles = equippedTheme?.editorStyles || {};
 
   // Inject theme colors into a style tag
   useEffect(() => {
@@ -50,6 +51,18 @@ export const CodeEditor = ({ code, setCode, language }) => {
       .code-editor-wrapper {
         background-color: ${themeColors.bg} !important;
         color: ${themeColors.text} !important;
+      }
+
+      @keyframes cq-flicker {
+        0% { opacity: 1; }
+        50% { opacity: 0.92; }
+        100% { opacity: 1; }
+      }
+
+      @keyframes cq-gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
       
       /* Keywords - red/pink */
@@ -106,6 +119,17 @@ export const CodeEditor = ({ code, setCode, language }) => {
       .code-editor-wrapper .hljs-tag {
         color: ${themeColors.bracket} !important;
       }
+
+      /* Shiki (CSS-driven categories) */
+      .code-editor-wrapper .cq-tok.cq-keyword { color: ${themeColors.keyword} !important; }
+      .code-editor-wrapper .cq-tok.cq-string { color: ${themeColors.string} !important; }
+      .code-editor-wrapper .cq-tok.cq-comment { color: ${themeColors.comment} !important; }
+      .code-editor-wrapper .cq-tok.cq-number { color: ${themeColors.number} !important; }
+      .code-editor-wrapper .cq-tok.cq-function { color: ${themeColors.keyword} !important; }
+      .code-editor-wrapper .cq-tok.cq-type { color: ${themeColors.string} !important; }
+      .code-editor-wrapper .cq-tok.cq-property { color: ${themeColors.text} !important; }
+      .code-editor-wrapper .cq-tok.cq-punctuation { color: ${themeColors.bracket} !important; }
+      .code-editor-wrapper .cq-tok.cq-plain { color: ${themeColors.text} !important; }
     `;
     styleRef.current.textContent = css;
 
@@ -118,6 +142,33 @@ export const CodeEditor = ({ code, setCode, language }) => {
     };
   }, [themeColors]);
 
+  const codeValue = useMemo(() => (code || '') + '\n', [code]);
+  const highlightKey = useMemo(() => `${language || ''}\n${codeValue}`, [language, codeValue]);
+
+  const syncHighlightHtml = useMemo(() => {
+    return highlightSyntax(codeValue, language);
+  }, [codeValue, language]);
+
+  // Async highlight pass: render highlight.js immediately, then upgrade to Shiki if available.
+  useEffect(() => {
+    const jobId = ++highlightJobRef.current;
+    const timer = window.setTimeout(async () => {
+      try {
+        const html = await highlightSyntaxAsync(codeValue, language);
+        if (highlightJobRef.current !== jobId) return;
+        setAsyncHighlight({ key: highlightKey, html });
+      } catch {
+        // ignore
+      }
+    }, 120);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [codeValue, language, highlightKey]);
+
+  const highlightHtml = asyncHighlight.key === highlightKey && asyncHighlight.html ? asyncHighlight.html : syncHighlightHtml;
+
   const handleScroll = () => {
     if (editorRef.current && highlightRef.current && lineNumbersRef.current) {
       const { scrollTop, scrollLeft } = editorRef.current;
@@ -129,7 +180,7 @@ export const CodeEditor = ({ code, setCode, language }) => {
 
   // A single style object to guarantee pixel-perfect alignment.
   const sharedStyles = {
-    fontFamily: 'monospace',
+    fontFamily: themeEditorStyles.fontFamily || 'monospace',
     fontSize: '14px',
     lineHeight: '1.5rem',
     padding: '24px',
@@ -140,6 +191,7 @@ export const CodeEditor = ({ code, setCode, language }) => {
     WebkitTabSize: 4,
     whiteSpace: 'pre-wrap',
     wordWrap: 'break-word',
+    letterSpacing: themeEditorStyles.letterSpacing || undefined,
   };
 
   // Helper: insert text at selection and update caret/selection
@@ -291,7 +343,17 @@ export const CodeEditor = ({ code, setCode, language }) => {
   };
 
   return (
-    <div className="code-editor-wrapper flex h-full w-full font-mono text-sm relative group overflow-hidden" style={{ backgroundColor: themeColors.bg }}>
+    <div
+      className="code-editor-wrapper flex h-full w-full font-mono text-sm relative group overflow-hidden"
+      style={{
+        backgroundColor: themeColors.bg,
+        backgroundImage: themeEditorStyles.backgroundImage || undefined,
+        backgroundSize: themeEditorStyles.backgroundSize || undefined,
+        backgroundPosition: themeEditorStyles.backgroundPosition || undefined,
+        backgroundRepeat: themeEditorStyles.backgroundRepeat || undefined,
+        animation: themeEditorStyles.backgroundAnimation || undefined,
+      }}
+    >
         {/* Line Numbers Gutter */}
         <div 
             ref={lineNumbersRef}
@@ -307,8 +369,12 @@ export const CodeEditor = ({ code, setCode, language }) => {
             <div
                 ref={highlightRef}
                 className="absolute inset-0 overflow-auto pointer-events-none"
-                style={sharedStyles}
-                dangerouslySetInnerHTML={{ __html: highlightSyntax(code + '\n', language) }} // Add newline to prevent last line from being cut off
+                style={{
+                  ...sharedStyles,
+                  color: themeColors.text,
+                  textShadow: themeEditorStyles.textShadow || undefined,
+                }}
+                dangerouslySetInnerHTML={{ __html: highlightHtml }}
             />
             {/* Input Layer (Front) */}
             <textarea
@@ -317,8 +383,11 @@ export const CodeEditor = ({ code, setCode, language }) => {
                 onChange={(e) => setCode(e.target.value)}
               onKeyDown={handleKeyDown}
                 onScroll={handleScroll}
-                className="absolute inset-0 w-full h-full bg-transparent text-transparent resize-none z-10 caret-white overflow-auto"
-                style={sharedStyles}
+                className="absolute inset-0 w-full h-full bg-transparent text-transparent resize-none z-10 overflow-auto"
+                style={{
+                  ...sharedStyles,
+                  caretColor: themeEditorStyles.caretColor || 'white',
+                }}
                 spellCheck="false"
             />
         </div>

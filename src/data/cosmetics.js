@@ -7,6 +7,13 @@ export const COSMETICS = {
   // EDITOR THEMES (SSR - Super Super Rare)
   // ============================================
   themes: [
+    // Theme metadata
+    // - `colors`: CSS-driven token colors used by both highlight.js and Shiki (via cq-* token classes)
+    // - `editorStyles` (optional):
+    //   - fontFamily, letterSpacing, textShadow
+    //   - caretColor
+    //   - backgroundImage, backgroundSize, backgroundPosition, backgroundRepeat
+    //   - backgroundAnimation (expects keyframes: cq-gradient-shift, cq-flicker)
     {
       id: 'default',
       name: 'Default',
@@ -40,7 +47,13 @@ export const COSMETICS = {
       },
       editorStyles: {
         textShadow: '0 0 10px rgba(0, 255, 136, 0.5)',
-        letterSpacing: '0.5px'
+        letterSpacing: '0.5px',
+        backgroundImage: 'linear-gradient(135deg, #0a0e27, #0a0e27, #ff006e22, #00ff8822)',
+        backgroundSize: '400% 400%',
+        backgroundPosition: '0% 50%',
+        backgroundRepeat: 'no-repeat',
+        backgroundAnimation: 'cq-gradient-shift 14s ease infinite',
+        caretColor: '#00ff88'
       }
     },
     {
@@ -61,7 +74,12 @@ export const COSMETICS = {
       editorStyles: {
         fontFamily: '"Courier New", monospace',
         textShadow: '0 0 8px rgba(0, 221, 0, 0.8)',
-        animation: 'flicker 0.15s infinite'
+        backgroundImage: 'radial-gradient(circle at 50% 50%, #00dd0010 0%, transparent 55%), linear-gradient(#1a1a1a, #1a1a1a)',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAnimation: 'cq-flicker 0.15s infinite',
+        caretColor: '#00ff00'
       }
     },
     {

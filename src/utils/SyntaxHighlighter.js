@@ -1,4 +1,5 @@
 import hljs from 'highlight.js';
+import { highlightWithShiki } from './shikiHighlighter.js';
 
 /**
  * Robust syntax highlighter powered by highlight.js library
@@ -27,4 +28,19 @@ export const highlightSyntax = (code, language) => {
     // On error, fallback to simple escaped text.
     return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
+};
+
+/**
+ * Async highlighter that prefers Shiki tokenization (CSS-driven) and falls back
+ * to highlight.js synchronously if Shiki is unavailable.
+ */
+export const highlightSyntaxAsync = async (code, language) => {
+  try {
+    const shikiHtml = await highlightWithShiki(code, language);
+    if (shikiHtml) return shikiHtml.trimEnd();
+  } catch {
+    // ignore and fallback
+  }
+
+  return highlightSyntax(code, language);
 };

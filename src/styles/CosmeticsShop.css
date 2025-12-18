@@ -291,17 +291,76 @@
 }
 
 .theme-preview {
-  background: #1e2139;
   padding: 12px;
   border-radius: 6px;
-  color: #c9d1d9;
   line-height: 1.6;
   font-size: 11px;
+  margin: 0;
+  white-space: pre;
+  overflow: hidden;
 }
 
-.theme-preview div {
+.theme-preview code {
   font-family: 'Courier New', monospace;
 }
+
+.theme-preview code {
+  display: block;
+}
+
+/* Keyframes used by theme backgroundAnimation (mirrors CodeEditor) */
+@keyframes cq-flicker {
+  0% { opacity: 1; }
+  50% { opacity: 0.92; }
+  100% { opacity: 1; }
+}
+
+@keyframes cq-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Shiki (CSS-driven categories) */
+.theme-preview .cq-tok.cq-keyword { color: var(--cq-keyword, #ff7b72); }
+.theme-preview .cq-tok.cq-string { color: var(--cq-string, #a5d6ff); }
+.theme-preview .cq-tok.cq-comment { color: var(--cq-comment, #8b949e); }
+.theme-preview .cq-tok.cq-number { color: var(--cq-number, #79c0ff); }
+.theme-preview .cq-tok.cq-function { color: var(--cq-keyword, #ff7b72); }
+.theme-preview .cq-tok.cq-type { color: var(--cq-string, #a5d6ff); }
+.theme-preview .cq-tok.cq-property { color: var(--cq-text, #c9d1d9); }
+.theme-preview .cq-tok.cq-punctuation { color: var(--cq-bracket, #c9d1d9); }
+.theme-preview .cq-tok.cq-plain { color: var(--cq-text, #c9d1d9); }
+
+/* highlight.js fallback mapping (when Shiki isn't available) */
+.theme-preview .hljs { background: transparent; color: var(--cq-text, #c9d1d9); }
+.theme-preview .hljs-keyword,
+.theme-preview .hljs-selector-tag,
+.theme-preview .hljs-literal,
+.theme-preview .hljs-section,
+.theme-preview .hljs-link { color: var(--cq-keyword, #ff7b72); }
+
+.theme-preview .hljs-string,
+.theme-preview .hljs-title,
+.theme-preview .hljs-name,
+.theme-preview .hljs-type,
+.theme-preview .hljs-attr,
+.theme-preview .hljs-variable,
+.theme-preview .hljs-template-variable,
+.theme-preview .hljs-class .hljs-title,
+.theme-preview .hljs-class .hljs-inheritance > .hljs-parent { color: var(--cq-string, #a5d6ff); }
+
+.theme-preview .hljs-comment,
+.theme-preview .hljs-quote { color: var(--cq-comment, #8b949e); }
+
+.theme-preview .hljs-number,
+.theme-preview .hljs-symbol,
+.theme-preview .hljs-bullet { color: var(--cq-number, #79c0ff); }
+
+.theme-preview .hljs-punctuation,
+.theme-preview .hljs-operator,
+.theme-preview .hljs-meta,
+.theme-preview .hljs-tag { color: var(--cq-bracket, #c9d1d9); }
 
 .title-preview {
   color: #c9d1d9;

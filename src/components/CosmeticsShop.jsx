@@ -1,7 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Gem, Crown, Palette, Sparkles } from 'lucide-react';
 import { COSMETICS, getCosmeticById, getRarityInfo } from '../data/cosmetics';
+import { highlightSyntax, highlightSyntaxAsync } from '../utils/SyntaxHighlighter';
 import '../styles/CosmeticsShop.css';
+
+function ThemePreview({ theme, snippet }) {
+  const [asyncHighlight, setAsyncHighlight] = useState(() => ({ snippet: '', html: null }));
+
+  const codeValue = useMemo(() => (snippet || '') + '\n', [snippet]);
+  const syncHtml = useMemo(() => highlightSyntax(codeValue, 'javascript'), [codeValue]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const upgraded = await highlightSyntaxAsync(codeValue, 'javascript');
+        if (cancelled) return;
+        setAsyncHighlight({ snippet: snippet || '', html: upgraded });
+      } catch {
+        // ignore
+      }
+    }, 80);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [snippet, codeValue]);
+
+  const html = asyncHighlight.snippet === (snippet || '') && asyncHighlight.html ? asyncHighlight.html : syncHtml;
+
+  const editorStyles = theme?.editorStyles || {};
+  const colors = theme?.colors || {};
+
+  return (
+    <pre
+      className="theme-preview"
+      style={{
+        backgroundColor: colors.bg,
+        color: colors.text,
+
+        backgroundImage: editorStyles.backgroundImage || undefined,
+        backgroundSize: editorStyles.backgroundSize || undefined,
+        backgroundPosition: editorStyles.backgroundPosition || undefined,
+        backgroundRepeat: editorStyles.backgroundRepeat || undefined,
+        animation: editorStyles.backgroundAnimation || undefined,
+
+        fontFamily: editorStyles.fontFamily || undefined,
+        textShadow: editorStyles.textShadow || undefined,
+        letterSpacing: editorStyles.letterSpacing || undefined,
+
+        '--cq-text': colors.text,
+        '--cq-keyword': colors.keyword,
+        '--cq-string': colors.string,
+        '--cq-comment': colors.comment,
+        '--cq-number': colors.number,
+        '--cq-bracket': colors.bracket || colors.text,
+      }}
+    >
+      <code dangerouslySetInnerHTML={{ __html: html }} />
+    </pre>
+  );
+}
 
 export default function CosmeticsShop() {
   const [activeTab, setActiveTab] = useState('themes');
@@ -11,15 +72,22 @@ export default function CosmeticsShop() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [purchasing, setPurchasing] = useState(null);
+
+  const themePreviewSnippet = useMemo(
+    () =>
+      [
+        'const greet = (name) => {',
+        '  console.log("hello, " + name);',
+        '};',
+        '',
+        'greet("quarry");',
+      ].join('\n'),
+    []
+  );
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-  // Fetch user data on mount
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('userToken');
@@ -48,7 +116,12 @@ export default function CosmeticsShop() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL]);
+
+  // Fetch user data on mount
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
 
   const handlePurchase = async (cosmetic) => {
     if (userGems < cosmetic.cost) {
@@ -191,11 +264,7 @@ export default function CosmeticsShop() {
         {/* Preview */}
         <div className="cosmetic-preview">
           {activeTab === 'themes' && (
-            <div className="theme-preview" style={{ backgroundColor: cosmetic.colors.bg }}>
-              <div style={{ color: cosmetic.colors.keyword }}>const</div>
-              <div style={{ color: cosmetic.colors.string }}>hello =</div>
-              <div style={{ color: cosmetic.colors.string }}>"world"</div>
-            </div>
+            <ThemePreview theme={cosmetic} snippet={themePreviewSnippet} />
           )}
           {activeTab === 'titles' && (
             <div className="title-preview">{cosmetic.display}</div>

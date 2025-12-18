@@ -19,19 +19,36 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Split vendor code into separate chunks for better caching
-          if (id.includes('node_modules/react')) {
+          // Split vendor code into separate chunks for better caching.
+          // IMPORTANT: do NOT force *all* node_modules into one mega chunk;
+          // it makes the initial payload huge and defeats code-splitting.
+
+          // React core
+          if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) {
             return 'vendor-react';
           }
-          if (id.includes('node_modules/react-router-dom')) {
+
+          // Router
+          if (id.includes('/node_modules/react-router/') || id.includes('/node_modules/react-router-dom/')) {
             return 'vendor-react-router';
           }
-          if (id.includes('node_modules/lucide-react')) {
+
+          // Icons/UI
+          if (id.includes('/node_modules/lucide-react/')) {
             return 'vendor-ui';
           }
-          if (id.includes('node_modules')) {
-            return 'vendor-other';
+
+          if (id.includes('/node_modules/highlight.js/')) {
+            return 'vendor-highlight';
           }
+
+          // Tours
+          if (id.includes('/node_modules/driver.js/')) {
+            return 'vendor-driver';
+          }
+
+          // Everything else: let Rollup decide optimal splitting.
+          return undefined;
         }
       }
     },
