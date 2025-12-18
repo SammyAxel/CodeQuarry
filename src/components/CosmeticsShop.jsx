@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Gem, Crown, Palette, Sparkles } from 'lucide-react';
 import { COSMETICS, getCosmeticById, getRarityInfo } from '../data/cosmetics';
 import { highlightSyntax, highlightSyntaxAsync } from '../utils/SyntaxHighlighter';
+import { useUser } from '../context/UserContext';
 import '../styles/CosmeticsShop.css';
 
 function ThemePreview({ theme, snippet }) {
@@ -65,10 +66,11 @@ function ThemePreview({ theme, snippet }) {
 }
 
 export default function CosmeticsShop() {
+  const { equippedCosmetics, setEquippedCosmetics, refreshEquippedCosmetics } = useUser();
+
   const [activeTab, setActiveTab] = useState('themes');
   const [userGems, setUserGems] = useState(0);
   const [ownedCosmetics, setOwnedCosmetics] = useState([]);
-  const [equippedCosmetics, setEquippedCosmetics] = useState({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [purchasing, setPurchasing] = useState(null);
@@ -93,10 +95,9 @@ export default function CosmeticsShop() {
       const token = localStorage.getItem('userToken');
       const headers = token ? { 'x-user-token': token } : {};
       
-      const [gemsRes, inventoryRes, equippedRes] = await Promise.all([
+      const [gemsRes, inventoryRes] = await Promise.all([
         fetch(`${API_URL}/api/user/gems`, { headers }),
         fetch(`${API_URL}/api/user/cosmetics/inventory`, { headers }),
-        fetch(`${API_URL}/api/user/cosmetics/equipped`, { headers })
       ]);
 
       if (gemsRes.ok) {
@@ -107,16 +108,15 @@ export default function CosmeticsShop() {
         const data = await inventoryRes.json();
         setOwnedCosmetics(data.inventory || []);
       }
-      if (equippedRes.ok) {
-        const data = await equippedRes.json();
-        setEquippedCosmetics(data.equipped || {});
-      }
+
+      // Keep global equipped cosmetics in sync for instant app-wide theme updates
+      await refreshEquippedCosmetics();
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, refreshEquippedCosmetics]);
 
   // Fetch user data on mount
   useEffect(() => {
@@ -173,9 +173,8 @@ export default function CosmeticsShop() {
       const data = await res.json();
       if (res.ok) {
         setMessage(`✅ Equipped ${cosmetic.name}!`);
+        // Update global equipped cosmetics so editor updates immediately
         setEquippedCosmetics(data.equipped);
-        // Refresh data to ensure UI is in sync
-        fetchUserData();
         setTimeout(() => setMessage(''), 2000);
       } else {
         setMessage(`❌ ${data.error}`);
@@ -201,9 +200,8 @@ export default function CosmeticsShop() {
       const data = await res.json();
       if (res.ok) {
         setMessage(`✅ Unequipped!`);
+        // Update global equipped cosmetics so editor updates immediately
         setEquippedCosmetics(data.equipped);
-        // Refresh data to ensure UI is in sync
-        fetchUserData();
         setTimeout(() => setMessage(''), 2000);
       } else {
         setMessage(`❌ ${data.error}`);

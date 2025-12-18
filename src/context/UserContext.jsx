@@ -35,9 +35,31 @@ export const UserProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminRole, setAdminRole] = useState(null);
   const [showAuthPage, setShowAuthPage] = useState('login'); // 'login' | 'register'
-  const [equippedCosmetics, setEquippedCosmetics] = useState({});
+  const [equippedCosmetics, setEquippedCosmeticsState] = useState({});
   const [hasVisitedPractice, setHasVisitedPractice] = useState(false); // Loaded from server
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false); // Persisted preference
+
+  const refreshEquippedCosmetics = useCallback(async () => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('userToken');
+      const res = await fetch(`${API_URL}/api/user/cosmetics/equipped`, {
+        headers: token ? { 'x-user-token': token } : {}
+      });
+      if (!res.ok) return null;
+      const cosmeticData = await res.json();
+      const equipped = cosmeticData.equipped || {};
+      setEquippedCosmeticsState(equipped);
+      return equipped;
+    } catch (err) {
+      console.log('Failed to load equipped cosmetics');
+      return null;
+    }
+  }, []);
+
+  const setEquippedCosmetics = useCallback((nextEquipped) => {
+    setEquippedCosmeticsState(nextEquipped || {});
+  }, []);
 
   /**
    * Initialize user session from stored token
@@ -62,19 +84,7 @@ export const UserProvider = ({ children }) => {
           });
 
           // Load equipped cosmetics
-          try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('userToken');
-            const res = await fetch(`${API_URL}/api/user/cosmetics/equipped`, {
-              headers: token ? { 'x-user-token': token } : {}
-            });
-            if (res.ok) {
-              const cosmeticData = await res.json();
-              setEquippedCosmetics(cosmeticData.equipped || {});
-            }
-          } catch (err) {
-            console.log('Failed to load equipped cosmetics');
-          }
+          await refreshEquippedCosmetics();
         }
       } catch (error) {
         console.log('Session expired or invalid');
@@ -86,7 +96,7 @@ export const UserProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, []);
+  }, [refreshEquippedCosmetics]);
 
   /**
    * Login user (called after successful API login)
@@ -111,12 +121,15 @@ export const UserProvider = ({ children }) => {
     } catch (err) {
       console.error('Failed to load progress:', err);
     }
+
+    // Load equipped cosmetics for this session so theme changes apply immediately
+    await refreshEquippedCosmetics();
     
     logSecurityEvent('user_session_started', {
       username: user.username,
       timestamp: new Date().toISOString()
     });
-  }, []);
+  }, [refreshEquippedCosmetics]);
 
   /**
    * Handle admin login with role
@@ -340,6 +353,8 @@ export const UserProvider = ({ children }) => {
     showAuthPage,
     setShowAuthPage,
     equippedCosmetics,
+    setEquippedCosmetics,
+    refreshEquippedCosmetics,
     login,
     adminLogin,
     logout,

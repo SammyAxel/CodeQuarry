@@ -117,6 +117,85 @@ export const COSMETICS = {
         number: '#bd93f9',
         bracket: '#f8f8f2'
       }
+    },
+    {
+      id: 'anime-sakura-night',
+      name: 'Anime Sakura Night',
+      description: 'Soft neon sakura vibes with a drifting night-sky gradient.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#0b1020',
+        text: '#f8f7ff',
+        keyword: '#ff4fd8',
+        string: '#7dd3fc',
+        comment: '#a78bfa',
+        number: '#fbbf24',
+        bracket: '#f8f7ff'
+      },
+      editorStyles: {
+        textShadow: '0 0 12px rgba(255, 79, 216, 0.25)',
+        letterSpacing: '0.6px',
+        backgroundImage:
+          'radial-gradient(circle at 18% 22%, rgba(255, 79, 216, 0.18) 0%, transparent 35%), radial-gradient(circle at 82% 18%, rgba(125, 211, 252, 0.16) 0%, transparent 38%), radial-gradient(circle at 70% 78%, rgba(167, 139, 250, 0.14) 0%, transparent 40%), linear-gradient(135deg, #0b1020, #141a3a, #2a155a, #0b1020)',
+        backgroundSize: '400% 400%',
+        backgroundPosition: '0% 50%',
+        backgroundRepeat: 'no-repeat',
+        backgroundAnimation: 'cq-gradient-shift 18s ease infinite',
+        caretColor: '#ffb3e6'
+      }
+    },
+    {
+      id: 'aurora-zen',
+      name: 'Aurora Zen',
+      description: 'Calm aurora gradients with clean, readable tokens.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#06161b',
+        text: '#e6fffb',
+        keyword: '#34d399',
+        string: '#22d3ee',
+        comment: '#5eead4',
+        number: '#a3e635',
+        bracket: '#e6fffb'
+      },
+      editorStyles: {
+        textShadow: '0 0 10px rgba(34, 211, 238, 0.18)',
+        backgroundImage:
+          'radial-gradient(circle at 10% 20%, rgba(34, 211, 238, 0.20) 0%, transparent 45%), radial-gradient(circle at 90% 35%, rgba(52, 211, 153, 0.18) 0%, transparent 48%), linear-gradient(135deg, #06161b, #062c30, #0a3d2b, #06161b)',
+        backgroundSize: '400% 400%',
+        backgroundPosition: '0% 50%',
+        backgroundRepeat: 'no-repeat',
+        backgroundAnimation: 'cq-gradient-shift 22s ease infinite',
+        caretColor: '#22d3ee'
+      }
+    },
+    {
+      id: 'ember-forge',
+      name: 'Ember Forge',
+      description: 'Molten glow and subtle flicker — like coding by the forge.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#0f0a07',
+        text: '#fff7ed',
+        keyword: '#fb7185',
+        string: '#fdba74',
+        comment: '#a78bfa',
+        number: '#fbbf24',
+        bracket: '#fff7ed'
+      },
+      editorStyles: {
+        textShadow: '0 0 10px rgba(253, 186, 116, 0.25)',
+        backgroundImage:
+          'radial-gradient(circle at 30% 25%, rgba(251, 113, 133, 0.22) 0%, transparent 45%), radial-gradient(circle at 75% 70%, rgba(253, 186, 116, 0.18) 0%, transparent 50%), linear-gradient(135deg, #0f0a07, #1b0f0a, #24110a, #0f0a07)',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAnimation: 'cq-flicker 0.22s infinite',
+        caretColor: '#fdba74'
+      }
     }
   ],
 
