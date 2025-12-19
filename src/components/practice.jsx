@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'; 
+import React, { useState, useRef, useEffect, useMemo } from 'react'; 
 import { 
   Trophy, ChevronRight, ChevronLeft, PanelLeftOpen, Code2, RotateCcw,
   Play, PanelLeftClose, BookOpen, FileCode, AlertCircle, Gem, CheckCircle2,
@@ -15,13 +15,72 @@ import { useLanguage } from '../context/LanguageContext';
 import { useUser } from '../context/UserContext';
 import { hasSeenPracticeTour } from '../utils/practiceTourState';
 import ThemedSurface from './ThemedSurface.jsx';
+import { getCosmeticById } from '../data/cosmetics';
+
+const DEFAULT_THEME = {
+  bg: '#0d1117',
+  text: '#c9d1d9',
+  keyword: '#ff7b72',
+  string: '#a5d6ff',
+  comment: '#8b949e',
+  number: '#79c0ff',
+  bracket: '#c9d1d9'
+};
 
 export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted, onOpenRefinery }) => { 
   // IMPORTANT: All hooks must be called at the top, unconditionally
   const { t } = useLanguage();
-  const { shouldShowPracticeTutorial, isLoading, hasVisitedPractice, currentUser } = useUser();
+  const { shouldShowPracticeTutorial, isLoading, hasVisitedPractice, currentUser, equippedCosmetics } = useUser();
   const userKey = currentUser?.id || currentUser?.userId || currentUser?.username || 'anon';
   const { output, setOutput, isEngineLoading, engineError, runCode, initializeEngines } = useCodeEngine(module);
+
+  const equippedThemeId = equippedCosmetics?.equipped_theme || null;
+  const equippedTheme = useMemo(() => {
+    if (!equippedThemeId) return null;
+    return getCosmeticById(equippedThemeId);
+  }, [equippedThemeId]);
+  const themeColors = equippedTheme?.colors || DEFAULT_THEME;
+  const themeEditorStyles = equippedTheme?.editorStyles || {};
+
+  const themedPanelStyle = useMemo(
+    () => ({
+      backgroundColor: themeColors.bg,
+      color: themeColors.text,
+      backgroundImage: themeEditorStyles.backgroundImage || undefined,
+      backgroundSize: themeEditorStyles.backgroundSize || undefined,
+      backgroundPosition: themeEditorStyles.backgroundPosition || undefined,
+      backgroundRepeat: themeEditorStyles.backgroundRepeat || undefined,
+      animation: themeEditorStyles.backgroundAnimation || undefined,
+    }),
+    [
+      themeColors.bg,
+      themeColors.text,
+      themeEditorStyles.backgroundAnimation,
+      themeEditorStyles.backgroundImage,
+      themeEditorStyles.backgroundPosition,
+      themeEditorStyles.backgroundRepeat,
+      themeEditorStyles.backgroundSize,
+    ]
+  );
+
+  const themedPanelChromeStyle = useMemo(
+    () => ({
+      backgroundColor: themeColors.bg,
+      color: themeColors.text,
+      backgroundImage: themeEditorStyles.backgroundImage || undefined,
+      backgroundSize: themeEditorStyles.backgroundSize || undefined,
+      backgroundPosition: themeEditorStyles.backgroundPosition || undefined,
+      backgroundRepeat: themeEditorStyles.backgroundRepeat || undefined,
+    }),
+    [
+      themeColors.bg,
+      themeColors.text,
+      themeEditorStyles.backgroundImage,
+      themeEditorStyles.backgroundPosition,
+      themeEditorStyles.backgroundRepeat,
+      themeEditorStyles.backgroundSize,
+    ]
+  );
   
   const [code, setCode] = useState(module.initialCode || '');
   const [isLoadingCode, setIsLoadingCode] = useState(true);
@@ -491,10 +550,13 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
 
          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
          {/* Sidebar Instructions */}
-         <div className={`${isSidebarOpen ? 'w-full lg:w-[400px] border-r' : 'w-0 border-r-0'} bg-[#010409] border-gray-800 flex flex-col transition-all duration-300 ease-out relative shrink-0 z-20 overflow-hidden`}>
+         <div
+           className={`${isSidebarOpen ? 'w-full lg:w-[400px] border-r' : 'w-0 border-r-0'} border-gray-800 flex flex-col transition-all duration-300 ease-out relative shrink-0 z-20 overflow-hidden`}
+           style={themedPanelStyle}
+         >
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-800/50 shrink-0 bg-[#010409]">
+            <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-800/50 shrink-0" style={themedPanelChromeStyle}>
               <button
                 id="field-guide-tab"
                 onClick={() => setActiveTab('theory')}
@@ -632,13 +694,13 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
          </div>
          
          {/* Code Editor Area */}
-         <div className="flex-1 bg-[#0d1117] h-full border-r border-gray-800 flex flex-col">
+         <div className="flex-1 h-full border-r border-gray-800 flex flex-col" style={themedPanelStyle}>
              <CodeEditor code={code} setCode={handleCodeChange} language={module.language} />
          </div> 
 
          {/* Terminal Output */}
-         <div className="h-48 lg:h-auto lg:w-[30%] bg-[#010409] flex flex-col font-mono text-sm shrink-0 border-t lg:border-t-0">
-           <div className="px-5 py-3 bg-[#0d1117] border-b border-gray-800 text-gray-500 text-xs font-bold uppercase tracking-wider flex items-center justify-between">
+         <div className="h-48 lg:h-auto lg:w-[30%] flex flex-col font-mono text-sm shrink-0 border-t lg:border-t-0" style={themedPanelStyle}>
+           <div className="px-5 py-3 border-b border-gray-800 text-gray-500 text-xs font-bold uppercase tracking-wider flex items-center justify-between" style={themedPanelChromeStyle}>
               <div className="flex items-center gap-2"><Terminal className="w-3 h-3" /> Output</div>
               <button onClick={() => setOutput(['> Terminal ready...'])} className="hover:text-red-400 transition-colors" title="Clear Console"><Trash2 className="w-3 h-3" /></button>
            </div>

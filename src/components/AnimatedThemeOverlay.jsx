@@ -44,7 +44,7 @@ const mulberry32 = (a) => {
   };
 };
 
-export default function AnimatedThemeOverlay({ kind, intensity = 14, colors, className = '' }) {
+function AnimatedThemeOverlay({ kind, intensity = 14, colors, className = '' }) {
   const safeKind = typeof kind === 'string' ? kind : '';
   const safeIntensity = clamp(Number(intensity || 0), 0, 40);
 
@@ -177,7 +177,7 @@ export default function AnimatedThemeOverlay({ kind, intensity = 14, colors, cla
 
   if (safeKind === 'aurora') {
     // Aurora uses a few large animated ribbons; intensity controls subtle extra shimmer particles.
-    const shimmerCount = clamp(Math.floor((safeIntensity || 0) / 6), 0, 10);
+    const shimmerCount = clamp(Math.floor((safeIntensity || 0) / 10), 0, 4);
     const rng = mulberry32(xfnv1a(`aurora-shimmer:${shimmerCount}`));
     const shimmers = Array.from({ length: shimmerCount }, (_, i) => ({
       key: `aurora-shimmer-${i}`,
@@ -193,7 +193,6 @@ export default function AnimatedThemeOverlay({ kind, intensity = 14, colors, cla
       <div className={`cq-theme-overlay cq-overlay-aurora ${className}`.trim()} style={baseStyle} aria-hidden="true">
         <span className="cq-aurora-ribbon" />
         <span className="cq-aurora-ribbon" />
-        <span className="cq-aurora-ribbon" />
         {shimmers.map((p) => (
           <span
             key={p.key}
@@ -203,7 +202,6 @@ export default function AnimatedThemeOverlay({ kind, intensity = 14, colors, cla
               width: `${p.size * 1.2}px`,
               height: `${p.size * 1.2}px`,
               opacity: p.opacity,
-              filter: `blur(3px)`,
               animationDuration: `${p.fall}s`,
               animationDelay: `${p.delay}s`,
               '--cq-drift': `${p.drift}px`,
@@ -242,3 +240,5 @@ export default function AnimatedThemeOverlay({ kind, intensity = 14, colors, cla
 
   return null;
 }
+
+export default React.memo(AnimatedThemeOverlay);

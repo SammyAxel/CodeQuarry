@@ -5,6 +5,74 @@ import { getCosmeticById } from '../data/cosmetics';
 import AnimatedThemeOverlay from './AnimatedThemeOverlay';
 import '../styles/themeOverlays.css';
 
+const AnimeGirlSticker = React.memo(function AnimeGirlSticker({ themeColors }) {
+  const hair = themeColors?.comment || '#8b949e';
+  const accent = themeColors?.keyword || '#ff7b72';
+  const glow = themeColors?.string || '#a5d6ff';
+  const skin = '#f5d0c5';
+  const hoodie = themeColors?.number || '#79c0ff';
+
+  return (
+    <div
+      className="pointer-events-none absolute bottom-3 right-3"
+      style={{ zIndex: 0, opacity: 0.92 }}
+      aria-hidden="true"
+    >
+      <svg width="132" height="132" viewBox="0 0 132 132" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="cq-anime-glow" x1="16" y1="16" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+            <stop stopColor={glow} stopOpacity="0.35" />
+            <stop offset="1" stopColor={accent} stopOpacity="0.25" />
+          </linearGradient>
+        </defs>
+
+        {/* soft glow */}
+        <circle cx="76" cy="72" r="54" fill="url(#cq-anime-glow)" />
+
+        {/* laptop */}
+        <rect x="38" y="86" width="76" height="24" rx="8" fill={hair} opacity="0.55" />
+        <rect x="44" y="90" width="64" height="16" rx="6" fill={hair} opacity="0.35" />
+        <rect x="52" y="95" width="16" height="3" rx="1.5" fill={accent} opacity="0.8" />
+
+        {/* hoodie */}
+        <path
+          d="M44 92c2-18 12-34 32-34s30 16 32 34c-7 7-18 12-32 12s-25-5-32-12z"
+          fill={hoodie}
+          opacity="0.55"
+        />
+
+        {/* face */}
+        <ellipse cx="76" cy="58" rx="20" ry="18" fill={skin} opacity="0.92" />
+
+        {/* hair */}
+        <path
+          d="M56 60c0-18 10-30 27-30 15 0 25 10 25 25 0 3-1 8-3 11-3-8-10-12-18-14-9-2-20 1-31 8z"
+          fill={hair}
+          opacity="0.8"
+        />
+        <path
+          d="M58 44c6-8 14-12 24-12 12 0 21 6 26 16-8-6-18-8-26-7-10 1-17 4-24 10z"
+          fill={accent}
+          opacity="0.22"
+        />
+
+        {/* eyes */}
+        <ellipse cx="70" cy="58" rx="2.3" ry="3" fill={hair} opacity="0.8" />
+        <ellipse cx="84" cy="58" rx="2.3" ry="3" fill={hair} opacity="0.8" />
+        <circle cx="69.4" cy="57.2" r="0.8" fill="#fff" opacity="0.85" />
+        <circle cx="83.4" cy="57.2" r="0.8" fill="#fff" opacity="0.85" />
+
+        {/* blush */}
+        <ellipse cx="64" cy="64" rx="5" ry="2.8" fill={accent} opacity="0.18" />
+        <ellipse cx="88" cy="64" rx="5" ry="2.8" fill={accent} opacity="0.18" />
+
+        {/* mouth */}
+        <path d="M74 67c2 2 6 2 8 0" stroke={hair} strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+});
+
 export const CodeEditor = ({ code, setCode, language }) => {
   const lineNumbersRef = useRef(null);
   const editorRef = useRef(null);
@@ -41,6 +109,14 @@ export const CodeEditor = ({ code, setCode, language }) => {
   const themeEditorStyles = equippedTheme?.editorStyles || {};
   const overlayType = themeEditorStyles?.overlay?.type;
   const overlayIntensity = themeEditorStyles?.overlay?.intensity;
+
+  const isAnimeTheme =
+    overlayType === 'anime' ||
+    overlayType === 'kawaii' ||
+    (typeof equippedThemeId === 'string' && equippedThemeId.startsWith('anime-'));
+
+  const effectiveOverlayIntensity =
+    overlayType === 'aurora' ? Math.min(Number(overlayIntensity ?? 0), 10) : overlayIntensity;
 
   // Inject theme colors into a style tag
   useEffect(() => {
@@ -369,7 +445,8 @@ export const CodeEditor = ({ code, setCode, language }) => {
 
         {/* The Editor Area */}
         <div className="relative flex-1 h-full">
-            <AnimatedThemeOverlay kind={overlayType} intensity={overlayIntensity} colors={themeColors} />
+          <AnimatedThemeOverlay kind={overlayType} intensity={effectiveOverlayIntensity} colors={themeColors} />
+          {isAnimeTheme && <AnimeGirlSticker themeColors={themeColors} />}
             {/* Highlight Layer (Behind) */}
             <div
                 ref={highlightRef}
