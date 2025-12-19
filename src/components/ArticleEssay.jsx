@@ -3,6 +3,7 @@ import { FileText, Clock, ChevronLeft, ChevronRight, CheckCircle2, Code2, Zap, A
 
 import NavigationControls from './NavControl.jsx';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import ThemedSurface from './ThemedSurface.jsx';
 
 /* ========================================================================
    COMPONENT: ARTICLE ESSAY
@@ -10,7 +11,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
    ======================================================================== */
 export const ArticleEssay = ({ module, navProps, onMarkComplete, isCompleted }) => {
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0d1117] overflow-y-auto">
+    <ThemedSurface className="flex-1 flex flex-col h-full overflow-y-auto">
       {/* Professional Header */}
       <div className="h-20 bg-gradient-to-r from-[#0d1117] via-purple-950/30 to-[#0d1117] backdrop-blur-md border-b border-purple-500/20 flex items-center justify-between px-8 shrink-0 shadow-lg shadow-black/50 sticky top-0 z-30">
         {/* Left: Back button and breadcrumb */}
@@ -93,6 +94,6 @@ export const ArticleEssay = ({ module, navProps, onMarkComplete, isCompleted }) 
            </button>
         </div>
       </div>
-    </div>
+    </ThemedSurface>
   );
 };

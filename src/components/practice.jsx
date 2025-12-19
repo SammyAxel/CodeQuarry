@@ -14,6 +14,7 @@ import { getSavedCode, saveModuleProgress } from '../utils/userApi';
 import { useLanguage } from '../context/LanguageContext';
 import { useUser } from '../context/UserContext';
 import { hasSeenPracticeTour } from '../utils/practiceTourState';
+import ThemedSurface from './ThemedSurface.jsx';
 
 export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComplete, isCompleted, onOpenRefinery }) => { 
   // IMPORTANT: All hooks must be called at the top, unconditionally
@@ -340,7 +341,7 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
   const scrollStyle = "[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-800 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-700";
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0d1117] relative bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]">
+    <ThemedSurface className="flex-1 flex flex-col h-full overflow-hidden">
        {/* Success Modal */}
        {showSuccessModal && (
           <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 p-4">
@@ -663,6 +664,6 @@ export const PracticeMode = ({ module, courseId, navProps, onOpenMap, onMarkComp
            onTabChange={setActiveTab}
          />
       </div>
-    </div>
+    </ThemedSurface>
   );
 };

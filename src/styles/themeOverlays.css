@@ -11,6 +11,7 @@
   position: absolute;
   top: -12%;
   will-change: transform, opacity;
+  mix-blend-mode: screen;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -123,6 +124,89 @@
   }
   100% {
     transform: translate3d(var(--cq-drift, 0px), -130%, 0);
+    opacity: 0;
+  }
+}
+
+/* Aurora ribbons (more "aurora" than simple orbs) */
+.cq-overlay-aurora {
+  opacity: 0.85;
+}
+
+.cq-overlay-aurora .cq-aurora-ribbon {
+  position: absolute;
+  left: -25%;
+  right: -25%;
+  height: 38%;
+  top: 6%;
+  border-radius: 999px;
+  filter: blur(22px);
+  transform: rotate(-12deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--cq-overlay-secondary, rgba(120, 255, 230, 0.20)),
+    var(--cq-overlay-primary, rgba(80, 220, 255, 0.22)),
+    var(--cq-overlay-accent, rgba(160, 255, 120, 0.18)),
+    transparent
+  );
+  background-size: 220% 100%;
+  animation: cq-aurora-sweep 14s ease-in-out infinite;
+}
+
+.cq-overlay-aurora .cq-aurora-ribbon:nth-child(2) {
+  top: 34%;
+  height: 44%;
+  opacity: 0.8;
+  transform: rotate(8deg);
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+
+.cq-overlay-aurora .cq-aurora-ribbon:nth-child(3) {
+  top: 58%;
+  height: 34%;
+  opacity: 0.65;
+  transform: rotate(-4deg);
+  animation-duration: 20s;
+}
+
+@keyframes cq-aurora-sweep {
+  0% {
+    transform: translate3d(-8%, 0, 0) rotate(var(--cq-aurora-rot, -12deg));
+    background-position: 0% 50%;
+  }
+  50% {
+    transform: translate3d(8%, 0, 0) rotate(var(--cq-aurora-rot, -12deg));
+    background-position: 100% 50%;
+  }
+  100% {
+    transform: translate3d(-8%, 0, 0) rotate(var(--cq-aurora-rot, -12deg));
+    background-position: 0% 50%;
+  }
+}
+
+/* Kawaii/anime: floating sparkles/hearts/music notes */
+.cq-overlay-kawaii .cq-kawaii-particle {
+  animation-name: cq-kawaii-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  font-weight: 800;
+  color: var(--cq-overlay-solid-primary, rgba(255, 120, 220, 0.8));
+  text-shadow: 0 0 12px var(--cq-overlay-primary, rgba(255, 120, 220, 0.35));
+  user-select: none;
+}
+
+@keyframes cq-kawaii-float {
+  0% {
+    transform: translate3d(0, 120%, 0) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--cq-drift, 0px), -30%, 0) rotate(240deg) scale(1.05);
     opacity: 0;
   }
 }

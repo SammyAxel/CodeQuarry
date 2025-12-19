@@ -2,6 +2,7 @@ import React from 'react';
 import { PlayCircle, ChevronLeft, CheckCircle2, Code2, Loader2, RefreshCw, Zap, AlertTriangle } from 'lucide-react';
 
 import NavigationControls from './NavControl.jsx'; // <--- Import the component!
+import ThemedSurface from './ThemedSurface.jsx';
 
 /* ========================================================================
    COMPONENT: VIDEO ESSAY
@@ -9,7 +10,7 @@ import NavigationControls from './NavControl.jsx'; // <--- Import the component!
    ======================================================================== */
 export const VideoEssay = ({ module, navProps, onMarkComplete, isCompleted }) => {
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#050505] overflow-y-auto">
+    <ThemedSurface className="flex-1 flex flex-col h-full overflow-y-auto">
       {/* Professional Header */}
       <div className="h-20 bg-gradient-to-r from-[#0d1117] via-purple-950/30 to-[#0d1117] backdrop-blur-md border-b border-purple-500/20 flex items-center justify-between px-8 shrink-0 shadow-lg shadow-black/50">
         {/* Left: Back button and breadcrumb */}
@@ -96,6 +97,6 @@ export const VideoEssay = ({ module, navProps, onMarkComplete, isCompleted }) =>
            </div>
         </div>
       </div>
-    </div>
+    </ThemedSurface>
   );
 };

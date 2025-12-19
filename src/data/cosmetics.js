@@ -123,8 +123,8 @@ export const COSMETICS = {
     },
     {
       id: 'anime-sakura-night',
-      name: 'Anime Sakura Night',
-      description: 'Soft neon sakura vibes with a drifting night-sky gradient.',
+      name: 'Sakura Night',
+      description: 'Falling petals over a drifting night-sky gradient.',
       rarity: 'ssr',
       cost: 150,
       colors: {
@@ -177,8 +177,39 @@ export const COSMETICS = {
         backgroundAnimation: 'cq-gradient-shift 22s ease infinite',
         caretColor: '#22d3ee',
         overlay: {
-          type: 'orbs',
-          intensity: 10
+          type: 'aurora',
+          intensity: 18
+        }
+      }
+    },
+    {
+      id: 'anime-neon-signs',
+      name: 'Anime Neon Signs',
+      description: 'Kawaii neon sparkles and signs — pure anime opener energy.',
+      rarity: 'ssr',
+      cost: 150,
+      colors: {
+        bg: '#070b1a',
+        text: '#e9e9ff',
+        keyword: '#ff3df2',
+        string: '#00e5ff',
+        comment: '#9b8cff',
+        number: '#ffe66d',
+        bracket: '#e9e9ff'
+      },
+      editorStyles: {
+        textShadow: '0 0 14px rgba(255, 61, 242, 0.22)',
+        letterSpacing: '0.7px',
+        backgroundImage:
+          'radial-gradient(circle at 18% 30%, rgba(255, 61, 242, 0.18) 0%, transparent 38%), radial-gradient(circle at 84% 18%, rgba(0, 229, 255, 0.15) 0%, transparent 40%), linear-gradient(135deg, #070b1a, #140a33, #090f2b, #070b1a)',
+        backgroundSize: '400% 400%',
+        backgroundPosition: '0% 50%',
+        backgroundRepeat: 'no-repeat',
+        backgroundAnimation: 'cq-gradient-shift 16s ease infinite',
+        caretColor: '#00e5ff',
+        overlay: {
+          type: 'kawaii',
+          intensity: 20
         }
       }
     },

@@ -175,5 +175,70 @@ export default function AnimatedThemeOverlay({ kind, intensity = 14, colors, cla
     );
   }
 
+  if (safeKind === 'aurora') {
+    // Aurora uses a few large animated ribbons; intensity controls subtle extra shimmer particles.
+    const shimmerCount = clamp(Math.floor((safeIntensity || 0) / 6), 0, 10);
+    const rng = mulberry32(xfnv1a(`aurora-shimmer:${shimmerCount}`));
+    const shimmers = Array.from({ length: shimmerCount }, (_, i) => ({
+      key: `aurora-shimmer-${i}`,
+      left: Math.round(rng() * 10000) / 100,
+      size: 6 + rng() * 10,
+      drift: (rng() - 0.5) * 60,
+      fall: 10 + rng() * 8,
+      delay: -rng() * 14,
+      opacity: 0.25 + rng() * 0.35,
+    }));
+
+    return (
+      <div className={`cq-theme-overlay cq-overlay-aurora ${className}`.trim()} style={baseStyle} aria-hidden="true">
+        <span className="cq-aurora-ribbon" />
+        <span className="cq-aurora-ribbon" />
+        <span className="cq-aurora-ribbon" />
+        {shimmers.map((p) => (
+          <span
+            key={p.key}
+            className="cq-overlay-particle cq-orb-particle"
+            style={{
+              left: `${p.left}%`,
+              width: `${p.size * 1.2}px`,
+              height: `${p.size * 1.2}px`,
+              opacity: p.opacity,
+              filter: `blur(3px)`,
+              animationDuration: `${p.fall}s`,
+              animationDelay: `${p.delay}s`,
+              '--cq-drift': `${p.drift}px`,
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (safeKind === 'kawaii' || safeKind === 'anime') {
+    const symbols = ['✦', '★', '♡', '♪', '✧'];
+
+    return (
+      <div className={`cq-theme-overlay cq-overlay-kawaii ${className}`.trim()} style={baseStyle} aria-hidden="true">
+        {particles.map((p, i) => (
+          <span
+            key={p.key}
+            className="cq-overlay-particle cq-kawaii-particle"
+            style={{
+              left: `${p.left}%`,
+              fontSize: `${Math.max(10, p.size * 0.9)}px`,
+              opacity: p.opacity,
+              filter: p.blur ? `blur(${p.blur}px)` : undefined,
+              animationDuration: `${Math.max(6, p.fall)}s`,
+              animationDelay: `${p.delay}s`,
+              '--cq-drift': `${p.drift * 0.5}px`,
+            }}
+          >
+            {symbols[i % symbols.length]}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   return null;
 }

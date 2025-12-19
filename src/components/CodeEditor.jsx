@@ -376,6 +376,7 @@ export const CodeEditor = ({ code, setCode, language }) => {
                 className="absolute inset-0 overflow-auto pointer-events-none"
                 style={{
                   ...sharedStyles,
+                  zIndex: 1,
                   color: themeColors.text,
                   textShadow: themeEditorStyles.textShadow || undefined,
                 }}
@@ -388,9 +389,10 @@ export const CodeEditor = ({ code, setCode, language }) => {
                 onChange={(e) => setCode(e.target.value)}
               onKeyDown={handleKeyDown}
                 onScroll={handleScroll}
-                className="absolute inset-0 w-full h-full bg-transparent text-transparent resize-none z-10 overflow-auto"
+                className="absolute inset-0 w-full h-full bg-transparent text-transparent resize-none overflow-auto"
                 style={{
                   ...sharedStyles,
+                  zIndex: 2,
                   caretColor: themeEditorStyles.caretColor || 'white',
                 }}
                 spellCheck="false"
