@@ -81,7 +81,7 @@ export const COSMETICS = {
         backgroundSize: '100% 100%',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAnimation: 'cq-flicker 0.15s infinite',
+        backgroundAnimation: 'cq-crt-flicker 9s steps(1, end) infinite',
         caretColor: '#00ff00'
       }
     },

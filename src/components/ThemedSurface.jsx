@@ -27,6 +27,7 @@ export default function ThemedSurface({ children, className = '', style = {} }) 
   const editorStyles = equippedTheme?.editorStyles || {};
   const overlayType = editorStyles?.overlay?.type;
   const overlayIntensity = editorStyles?.overlay?.intensity;
+  const resolvedOverlayIntensity = overlayType ? Number(overlayIntensity ?? 14) : 0;
 
   return (
     <div
@@ -42,7 +43,7 @@ export default function ThemedSurface({ children, className = '', style = {} }) 
         ...style,
       }}
     >
-      <AnimatedThemeOverlay kind={overlayType} intensity={overlayIntensity} colors={themeColors} />
+      <AnimatedThemeOverlay kind={overlayType} intensity={resolvedOverlayIntensity} colors={themeColors} />
       <div style={{ position: 'relative', zIndex: 1, height: '100%' }}>{children}</div>
     </div>
   );

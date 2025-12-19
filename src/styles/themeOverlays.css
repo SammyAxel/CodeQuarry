@@ -1,4 +1,80 @@
 /* Theme overlay layer (purely decorative) */
+
+/* Shared theme keyframes (used by both CodeEditor and ThemedSurface) */
+@keyframes cq-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes cq-flicker {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* CRT flicker that feels "random" without rapid blinking.
+   Long stable sections + a few brief dips per cycle. */
+@keyframes cq-crt-flicker {
+  0%,
+  6%,
+  10%,
+  22%,
+  32%,
+  49%,
+  60%,
+  73%,
+  84%,
+  100% {
+    opacity: 1;
+  }
+  7% {
+    opacity: 0.9;
+  }
+  8% {
+    opacity: 0.98;
+  }
+  23% {
+    opacity: 0.86;
+  }
+  23.7% {
+    opacity: 0.97;
+  }
+  33% {
+    opacity: 0.92;
+  }
+  50% {
+    opacity: 0.88;
+  }
+  50.8% {
+    opacity: 0.99;
+  }
+  61.5% {
+    opacity: 0.9;
+  }
+  74.2% {
+    opacity: 0.85;
+  }
+  75% {
+    opacity: 0.98;
+  }
+  86% {
+    opacity: 0.9;
+  }
+}
+
 .cq-theme-overlay {
   position: absolute;
   inset: 0;
@@ -162,14 +238,14 @@
   height: 38%;
   top: 6%;
   border-radius: 999px;
-  filter: blur(14px);
+  filter: blur(12px);
   transform: rotate(-12deg);
   background: linear-gradient(
     90deg,
     transparent,
-    var(--cq-overlay-secondary, rgba(120, 255, 230, 0.20)),
-    var(--cq-overlay-primary, rgba(80, 220, 255, 0.22)),
-    var(--cq-overlay-accent, rgba(160, 255, 120, 0.18)),
+    var(--cq-overlay-solid-secondary, rgba(120, 255, 230, 0.38)),
+    var(--cq-overlay-solid-primary, rgba(80, 220, 255, 0.38)),
+    var(--cq-overlay-solid-accent, rgba(160, 255, 120, 0.32)),
     transparent
   );
   background-size: 220% 100%;

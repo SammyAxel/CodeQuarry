@@ -115,8 +115,8 @@ export const CodeEditor = ({ code, setCode, language }) => {
     overlayType === 'kawaii' ||
     (typeof equippedThemeId === 'string' && equippedThemeId.startsWith('anime-'));
 
-  const effectiveOverlayIntensity =
-    overlayType === 'aurora' ? Math.min(Number(overlayIntensity ?? 0), 10) : overlayIntensity;
+  const resolvedOverlayIntensity = overlayType ? Number(overlayIntensity ?? 14) : 0;
+  const effectiveOverlayIntensity = overlayType === 'aurora' ? Math.min(resolvedOverlayIntensity, 8) : resolvedOverlayIntensity;
 
   // Inject theme colors into a style tag
   useEffect(() => {
@@ -438,7 +438,16 @@ export const CodeEditor = ({ code, setCode, language }) => {
         <div 
             ref={lineNumbersRef}
             className="text-right py-6 pl-3 pr-4 select-none border-r border-gray-800 w-16 flex-shrink-0 overflow-hidden"
-            style={{ lineHeight: '1.5rem', backgroundColor: themeColors.bg, color: themeColors.comment }} 
+          style={{
+            lineHeight: '1.5rem',
+            backgroundColor: themeColors.bg,
+            backgroundImage: themeEditorStyles.backgroundImage || undefined,
+            backgroundSize: themeEditorStyles.backgroundSize || undefined,
+            backgroundPosition: themeEditorStyles.backgroundPosition || undefined,
+            backgroundRepeat: themeEditorStyles.backgroundRepeat || undefined,
+            animation: themeEditorStyles.backgroundAnimation || undefined,
+            color: themeColors.comment,
+          }}
         >
             {lineNumbers.map(num => <div key={num}>{num}</div>)}
         </div>
