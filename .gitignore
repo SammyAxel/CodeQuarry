@@ -32,3 +32,14 @@ dist-ssr
 # Database
 codequarry.db
 codequarry.db-journal
+export-db.js
+export-railway-db.ps1
+export-railway-db.sh
+fix-and-import.sql
+HEROKU_DEPLOYMENT.md
+HEROKU_ENV_VARS.md
+heroku_import_template.sql
+HEROKU_QUICKSTART.md
+railway_backup_1767685819299.sql
+railway_backup.sql
+railwayVar
