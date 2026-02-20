@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages, Users, Crown, Trophy, ShoppingCart
+  Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages, Users, Crown, Trophy, ShoppingCart, MonitorPlay
 } from 'lucide-react';
 
 import { COURSES, useCourses } from './data/courses';
@@ -25,6 +25,9 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const CosmeticsShop = lazy(() => import('./components/CosmeticsShop'));
 const Leaderboard = lazy(() => import('./components/Leaderboard'));
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const BootcampSchedulePage = lazy(() => import('./bootcamp/pages/BootcampSchedulePage'));
+const BootcampManagePage = lazy(() => import('./bootcamp/pages/BootcampManagePage'));
+const ClassroomPage = lazy(() => import('./bootcamp/components/ClassroomPage'));
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
@@ -154,6 +157,17 @@ export default function App() {
       }
     }
   }, [currentUser]);
+
+  // Sync currentPage from URL on mount (for direct navigation / refresh)
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/dashboard') setCurrentPage('dashboard');
+    else if (path === '/profile') setCurrentPage('profile');
+    else if (path === '/shop') setCurrentPage('shop');
+    else if (path === '/leaderboard') setCurrentPage('leaderboard');
+    else if (path.startsWith('/bootcamp')) setCurrentPage('bootcamp');
+    else if (path.startsWith('/admin/users')) setCurrentPage('users');
+  }, []);
 
   const { language, toggleLanguage, t } = useLanguage();
 
@@ -356,6 +370,20 @@ export default function App() {
     );
   }
 
+  // Bootcamp classroom requires login but uses its own full-screen layout
+  if (location.pathname.match(/^\/bootcamp\/classroom\/\d+$/)) {
+    if (!currentUser) {
+      sessionStorage.setItem('intendedUrl', location.pathname);
+      window.history.pushState({}, '', '/login');
+      return <LoginPage onLogin={handleLogin} onAdminLogin={handleAdminLogin} onShowRegister={() => { setShowAuthPage('register'); window.history.pushState({}, '', '/register'); }} />;
+    }
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#0d1117] flex items-center justify-center text-purple-400">Joining class...</div>}>
+        <ClassroomPage />
+      </Suspense>
+    );
+  }
+
   if (!currentUser) {
     if (showAuthPage === 'register') {
       // Update URL to /register
@@ -475,6 +503,17 @@ export default function App() {
           >
             <Trophy className="w-4 h-4" /> {t('nav.leaderboard')}
           </button>
+          <button
+            onClick={() => { navigate('/bootcamp'); setCurrentPage('bootcamp'); }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+              currentPage === 'bootcamp' 
+                ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="Bootcamp"
+          >
+            <MonitorPlay className="w-4 h-4" /> Bootcamp
+          </button>
           <button 
             onClick={() => { navigateHome(); setCurrentPage('shop'); window.history.pushState({}, '', '/shop'); }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
@@ -552,6 +591,11 @@ export default function App() {
         )}
         {currentPage === 'users' && view === VIEWS.HOME && (
           <AdminUserManagement />
+        )}
+        {currentPage === 'bootcamp' && view === VIEWS.HOME && (
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+            {location.pathname === '/bootcamp/manage' ? <BootcampManagePage /> : <BootcampSchedulePage />}
+          </Suspense>
         )}
         {currentPage === 'home' && view === VIEWS.HOME && <HomePage courses={getMergedCourses()} onSelectCourse={navigateToSyllabus} />}
         {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => { navigateHome(); setCurrentPage('home'); }} onSelectModule={navigateToLearning} completedModules={completedModules} />}

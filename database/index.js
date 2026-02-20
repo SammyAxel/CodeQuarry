@@ -16,6 +16,7 @@ import * as Cosmetic from './models/Cosmetic.js';
 import * as Course from './models/Course.js';
 import * as Draft from './models/Draft.js';
 import * as Admin from './models/Admin.js';
+import * as Bootcamp from './models/Bootcamp.js';
 
 const { Pool } = pg;
 
@@ -232,6 +233,73 @@ const initDatabase = async () => {
       )
     `);
 
+    // Bootcamp sessions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bootcamp_sessions (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        instructor_id INTEGER NOT NULL,
+        instructor_name TEXT NOT NULL,
+        room_id TEXT UNIQUE,
+        provider TEXT DEFAULT 'jitsi',
+        provider_room_data JSONB DEFAULT '{}',
+        scheduled_at TIMESTAMP NOT NULL,
+        duration_minutes INTEGER DEFAULT 75,
+        status TEXT DEFAULT 'scheduled',
+        max_participants INTEGER DEFAULT 50,
+        tags TEXT[] DEFAULT '{}',
+        recording_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (instructor_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Bootcamp enrollments table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bootcamp_enrollments (
+        id SERIAL PRIMARY KEY,
+        session_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        attended BOOLEAN DEFAULT false,
+        joined_at TIMESTAMP,
+        left_at TIMESTAMP,
+        UNIQUE(session_id, user_id),
+        FOREIGN KEY (session_id) REFERENCES bootcamp_sessions(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Bootcamp live interactions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bootcamp_interactions (
+        id SERIAL PRIMARY KEY,
+        session_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        payload JSONB NOT NULL,
+        triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        closed_at TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES bootcamp_sessions(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Bootcamp responses table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bootcamp_responses (
+        id SERIAL PRIMARY KEY,
+        interaction_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        response JSONB NOT NULL,
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        score INTEGER,
+        UNIQUE(interaction_id, user_id),
+        FOREIGN KEY (interaction_id) REFERENCES bootcamp_interactions(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
 
@@ -316,6 +384,9 @@ export default {
   // Admin operations
   ...Admin,
   reseedCourses,
+
+  // Bootcamp operations
+  ...Bootcamp,
   
   // Pool for advanced queries
   pool
