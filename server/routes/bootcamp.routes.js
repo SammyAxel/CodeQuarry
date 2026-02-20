@@ -258,8 +258,10 @@ router.post('/sessions/:id/join', verifyUserSession, async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    const isInstructor = session.instructor_id === req.user.id;
+    const isAdmin = req.user.role === 'admin';
     const isEnrolled = await db.isUserEnrolled(sessionId, req.user.id);
-    if (!isEnrolled) {
+    if (!isEnrolled && !isInstructor && !isAdmin) {
       return res.status(403).json({ error: 'You must be enrolled to join' });
     }
 
