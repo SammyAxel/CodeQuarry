@@ -137,8 +137,8 @@ export const useRouting = (courses) => {
     // Don't update URL during restoration
     if (isNavigatingRef.current) return;
     
-    // Don't interfere with public routes (user profiles, leaderboard)
-    if (location.pathname.startsWith('/user/') || location.pathname === '/leaderboard') {
+    // Don't interfere with public routes (user profiles, leaderboard, bootcamp)
+    if (location.pathname.startsWith('/user/') || location.pathname === '/leaderboard' || location.pathname.startsWith('/bootcamp')) {
       return;
     }
     
