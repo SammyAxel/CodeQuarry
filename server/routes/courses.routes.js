@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { verifySession, requireAdmin } from '../middleware/auth.middleware.js';
+import { verifyUserSession } from '../middleware/auth.middleware.js';
 import db from '../../database/index.js';
 
 const router = Router();
@@ -74,8 +74,12 @@ router.get('/:courseId', async (req, res) => {
  * POST /api/courses
  * Create a new course (admin only)
  */
-router.post('/', verifySession, requireAdmin, async (req, res) => {
+router.post('/', verifyUserSession, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
     const courseData = req.body;
     
     if (!courseData.id || !courseData.title) {
@@ -88,7 +92,7 @@ router.post('/', verifySession, requireAdmin, async (req, res) => {
       return res.status(409).json({ error: 'Course with this ID already exists' });
     }
     
-    courseData.authorId = req.session.user_id;
+    courseData.authorId = req.user.id;
     const course = await db.createCourse(courseData);
     res.status(201).json(course);
   } catch (error) {
@@ -101,8 +105,12 @@ router.post('/', verifySession, requireAdmin, async (req, res) => {
  * PUT /api/courses/:courseId
  * Update a course (admin only)
  */
-router.put('/:courseId', verifySession, requireAdmin, async (req, res) => {
+router.put('/:courseId', verifyUserSession, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
     const { courseId } = req.params;
     const updates = req.body;
     
@@ -123,8 +131,12 @@ router.put('/:courseId', verifySession, requireAdmin, async (req, res) => {
  * DELETE /api/courses/:courseId/db
  * Delete a course (admin only)
  */
-router.delete('/:courseId/db', verifySession, requireAdmin, async (req, res) => {
+router.delete('/:courseId/db', verifyUserSession, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
     const { courseId } = req.params;
     
     const course = await db.getCourse(courseId);
@@ -144,8 +156,12 @@ router.delete('/:courseId/db', verifySession, requireAdmin, async (req, res) => 
  * POST /api/courses/reseed
  * Force reseed all courses with comprehensive content (admin only)
  */
-router.post('/reseed', verifySession, requireAdmin, async (req, res) => {
+router.post('/reseed', verifyUserSession, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
     const result = await db.reseedCourses();
     res.json(result);
   } catch (error) {

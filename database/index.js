@@ -55,16 +55,20 @@ const initDatabase = async () => {
       ADD COLUMN IF NOT EXISTS total_gems INTEGER DEFAULT 0
     `);
 
-    // Add has_visited_practice column separately (may take longer on large tables)
+    // Add has_visited_practice and has_completed_onboarding columns separately
     try {
       await client.query(`
         ALTER TABLE users 
         ADD COLUMN IF NOT EXISTS has_visited_practice BOOLEAN DEFAULT false
       `);
+      await client.query(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS has_completed_onboarding BOOLEAN DEFAULT false
+      `);
     } catch (err) {
       // Column may already exist, that's OK
       if (err.code !== '42701') { // 42701 = duplicate column
-        console.warn('⚠️  Warning adding has_visited_practice column:', err.message);
+        console.warn('⚠️  Warning adding onboarding columns:', err.message);
       }
     }
 

@@ -166,7 +166,7 @@ export const createSession = async (userId, token, expiresInHours = 24 * 7) => {
 
 export const findSession = async (token) => {
   const result = await pool.query(
-    `SELECT s.*, u.id as user_id, u.username, u.email, u.display_name
+    `SELECT s.*, u.id as user_id, u.username, u.email, u.display_name, u.role
      FROM user_sessions s
      JOIN users u ON s.user_id = u.id
      WHERE s.token = $1 AND s.expires_at > NOW()`,

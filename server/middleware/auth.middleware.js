@@ -84,7 +84,8 @@ export const verifyUserSession = async (req, res, next) => {
     id: session.user_id,
     username: session.username,
     email: session.email,
-    displayName: session.display_name
+    displayName: session.display_name,
+    role: session.role
   };
   req.userToken = token;
   

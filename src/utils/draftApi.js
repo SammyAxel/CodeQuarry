@@ -6,10 +6,10 @@
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
 /**
- * Get session token from sessionStorage
+ * Get user authentication token from localStorage
  */
-export const getSessionToken = () => {
-  return sessionStorage.getItem('adminSessionToken') || '';
+const getUserToken = () => {
+  return localStorage.getItem('userToken') || '';
 };
 
 /**
@@ -17,7 +17,7 @@ export const getSessionToken = () => {
  */
 export const getAllDrafts = async () => {
   const response = await fetch(`${API_BASE}/drafts`, {
-    headers: { 'X-Session-Token': getSessionToken() }
+    headers: { 'x-user-token': getUserToken() }
   });
   
   if (!response.ok) {
@@ -33,7 +33,7 @@ export const getAllDrafts = async () => {
  */
 export const getDraft = async (draftId) => {
   const response = await fetch(`${API_BASE}/drafts/${draftId}`, {
-    headers: { 'X-Session-Token': getSessionToken() }
+    headers: { 'x-user-token': getUserToken() }
   });
   
   if (!response.ok) {
@@ -49,7 +49,7 @@ export const getDraft = async (draftId) => {
  */
 export const getDraftsByCourse = async (courseId) => {
   const response = await fetch(`${API_BASE}/drafts/course/${courseId}`, {
-    headers: { 'X-Session-Token': getSessionToken() }
+    headers: { 'x-user-token': getUserToken() }
   });
   
   if (!response.ok) {
@@ -68,7 +68,7 @@ export const createDraft = async (draftData) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Session-Token': getSessionToken()
+      'x-user-token': getUserToken()
     },
     body: JSON.stringify(draftData)
   });
@@ -89,7 +89,7 @@ export const updateDraft = async (draftId, updates) => {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'X-Session-Token': getSessionToken()
+      'x-user-token': getUserToken()
     },
     body: JSON.stringify(updates)
   });
@@ -110,7 +110,7 @@ export const addCollaborator = async (draftId, userId, userName) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Session-Token': getSessionToken()
+      'x-user-token': getUserToken()
     },
     body: JSON.stringify({ userId, userName })
   });
@@ -129,7 +129,7 @@ export const addCollaborator = async (draftId, userId, userName) => {
 export const removeCollaborator = async (draftId, userId) => {
   const response = await fetch(`${API_BASE}/drafts/${draftId}/collaborators/${userId}`, {
     method: 'DELETE',
-    headers: { 'X-Session-Token': getSessionToken() }
+    headers: { 'x-user-token': getUserToken() }
   });
   
   if (!response.ok) {
@@ -148,7 +148,7 @@ export const publishDraft = async (draftId) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Session-Token': getSessionToken()
+      'x-user-token': getUserToken()
     }
   });
   
@@ -166,7 +166,7 @@ export const publishDraft = async (draftId) => {
 export const deleteDraft = async (draftId) => {
   const response = await fetch(`${API_BASE}/drafts/${draftId}`, {
     method: 'DELETE',
-    headers: { 'X-Session-Token': getSessionToken() }
+    headers: { 'x-user-token': getUserToken() }
   });
   
   if (!response.ok) {

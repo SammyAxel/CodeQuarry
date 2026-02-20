@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { verifySession } from '../middleware/auth.middleware.js';
+import { verifyUserSession } from '../middleware/auth.middleware.js';
 import db from '../../database/index.js';
 
 const router = Router();
@@ -14,16 +14,15 @@ const router = Router();
  * GET /api/drafts
  * Get all drafts (admin sees all, mods see only their own)
  */
-router.get('/', verifySession, async (req, res) => {
+router.get('/', verifyUserSession, async (req, res) => {
   try {
-    // Admin can see all drafts, mods can only see their own and shared ones
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     let filters = {};
     
-    if (req.session.role === 'mod') {
-      // For mods: we can't filter by userId since we don't have it in session
-      // So we fetch all and let them see everything (mods are trusted)
-      // In production, you'd want to add userId to the session
-    }
+    // Mods are trusted and can see all drafts
     
     const drafts = await db.getAllDrafts(filters);
     res.json({ drafts });
@@ -37,8 +36,12 @@ router.get('/', verifySession, async (req, res) => {
  * GET /api/drafts/:id
  * Get a specific draft by ID
  */
-router.get('/:id', verifySession, async (req, res) => {
+router.get('/:id', verifyUserSession, async (req, res) => {
   try {
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     const draft = await db.getDraft(parseInt(req.params.id));
     
     if (!draft) {
@@ -56,8 +59,12 @@ router.get('/:id', verifySession, async (req, res) => {
  * GET /api/drafts/course/:courseId
  * Get all drafts for a specific course
  */
-router.get('/course/:courseId', verifySession, async (req, res) => {
+router.get('/course/:courseId', verifyUserSession, async (req, res) => {
   try {
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     const drafts = await db.getDraftsByCourse(req.params.courseId);
     res.json({ drafts });
   } catch (error) {
@@ -70,14 +77,16 @@ router.get('/course/:courseId', verifySession, async (req, res) => {
  * POST /api/drafts
  * Create a new draft
  */
-router.post('/', verifySession, async (req, res) => {
+router.post('/', verifyUserSession, async (req, res) => {
   try {
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     const { courseId, title, description, icon, customIconUrl, language, difficulty, tier, modules, commission } = req.body;
     
-    // For now, use session role as creator identifier
-    // In production, admin/mod should have individual user IDs
-    const creatorId = req.session.role === 'admin' ? 1 : 2; // Placeholder IDs
-    const creatorName = req.session.role === 'admin' ? 'Admin' : 'Mod';
+    const creatorId = req.user.id;
+    const creatorName = req.user.displayName || req.user.username;
     
     if (!title) {
       return res.status(400).json({ error: 'Missing required field: title' });
@@ -109,14 +118,18 @@ router.post('/', verifySession, async (req, res) => {
  * PUT /api/drafts/:id
  * Update a draft (content, status, completion)
  */
-router.put('/:id', verifySession, async (req, res) => {
+router.put('/:id', verifyUserSession, async (req, res) => {
   try {
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     const draftId = parseInt(req.params.id);
     const { title, description, icon, customIconUrl, language, difficulty, tier, modules, status, reviewNotes, completionPercentage } = req.body;
     
     // Get editor info
-    const editorId = req.user?.id;
-    const editorName = req.user?.username || 'Unknown';
+    const editorId = req.user.id;
+    const editorName = req.user.displayName || req.user.username;
     
     // Check permissions: creator, collaborator, or admin can edit
     const draft = await db.getDraft(draftId);
@@ -126,7 +139,7 @@ router.put('/:id', verifySession, async (req, res) => {
     
     const isCreator = draft.createdBy === editorId;
     const isCollaborator = draft.collaborators.some(c => c.id === editorId);
-    const isAdmin = req.user?.role === 'admin';
+    const isAdmin = req.user.role === 'admin';
     
     if (!isCreator && !isCollaborator && !isAdmin) {
       return res.status(403).json({ error: 'You do not have permission to edit this draft' });
@@ -159,8 +172,12 @@ router.put('/:id', verifySession, async (req, res) => {
  * POST /api/drafts/:id/collaborators
  * Add a collaborator to a draft
  */
-router.post('/:id/collaborators', verifySession, async (req, res) => {
+router.post('/:id/collaborators', verifyUserSession, async (req, res) => {
   try {
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     const draftId = parseInt(req.params.id);
     const { userId, userName } = req.body;
     
@@ -174,7 +191,7 @@ router.post('/:id/collaborators', verifySession, async (req, res) => {
       return res.status(404).json({ error: 'Draft not found' });
     }
     
-    if (draft.createdBy !== req.user?.id && req.user?.role !== 'admin') {
+    if (draft.createdBy !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Only the draft creator or admin can add collaborators' });
     }
     
@@ -190,8 +207,12 @@ router.post('/:id/collaborators', verifySession, async (req, res) => {
  * DELETE /api/drafts/:id/collaborators/:userId
  * Remove a collaborator from a draft
  */
-router.delete('/:id/collaborators/:userId', verifySession, async (req, res) => {
+router.delete('/:id/collaborators/:userId', verifyUserSession, async (req, res) => {
   try {
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     const draftId = parseInt(req.params.id);
     const userId = parseInt(req.params.userId);
     
@@ -201,7 +222,7 @@ router.delete('/:id/collaborators/:userId', verifySession, async (req, res) => {
       return res.status(404).json({ error: 'Draft not found' });
     }
     
-    if (draft.createdBy !== req.user?.id && req.user?.role !== 'admin') {
+    if (draft.createdBy !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Only the draft creator or admin can remove collaborators' });
     }
     
@@ -217,12 +238,12 @@ router.delete('/:id/collaborators/:userId', verifySession, async (req, res) => {
  * POST /api/drafts/:id/publish
  * Publish a draft (admin only) - converts to published course
  */
-router.post('/:id/publish', verifySession, async (req, res) => {
+router.post('/:id/publish', verifyUserSession, async (req, res) => {
   try {
     const draftId = parseInt(req.params.id);
     
     // Admin only
-    if (req.user?.role !== 'admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Only admins can publish drafts' });
     }
     
@@ -245,8 +266,12 @@ router.post('/:id/publish', verifySession, async (req, res) => {
  * DELETE /api/drafts/:id
  * Delete a draft
  */
-router.delete('/:id', verifySession, async (req, res) => {
+router.delete('/:id', verifyUserSession, async (req, res) => {
   try {
+    if (!['admin', 'mod'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or moderator access required' });
+    }
+    
     const draftId = parseInt(req.params.id);
     
     const draft = await db.getDraft(draftId);
@@ -255,7 +280,7 @@ router.delete('/:id', verifySession, async (req, res) => {
     }
     
     // Check permissions: creator or admin can delete
-    if (draft.createdBy !== req.user?.id && req.user?.role !== 'admin') {
+    if (draft.createdBy !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'You do not have permission to delete this draft' });
     }
     

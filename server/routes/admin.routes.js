@@ -178,8 +178,12 @@ router.patch('/users/:userId/custom-role', verifyUserSession, async (req, res) =
  * POST /api/admin/courses/:courseId/reset-progress
  * Reset all student progress for a course (use when updating course structure)
  */
-router.post('/courses/:courseId/reset-progress', verifySession, requireAdmin, async (req, res) => {
+router.post('/courses/:courseId/reset-progress', verifyUserSession, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
     const { courseId } = req.params;
     await db.resetCourseProgress(courseId);
     res.json({ success: true, message: `Progress reset for course ${courseId}` });
@@ -193,8 +197,12 @@ router.post('/courses/:courseId/reset-progress', verifySession, requireAdmin, as
  * POST /api/admin/users/:userId/reset-progress
  * Reset all progress for a specific user
  */
-router.post('/users/:userId/reset-progress', verifySession, requireAdmin, async (req, res) => {
+router.post('/users/:userId/reset-progress', verifyUserSession, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
     const { userId } = req.params;
     await db.resetUserProgress(userId);
     res.json({ success: true, message: `All progress reset for user ${userId}` });
@@ -208,8 +216,12 @@ router.post('/users/:userId/reset-progress', verifySession, requireAdmin, async 
  * POST /api/admin/users/:userId/reset-course/:courseId
  * Reset progress for a specific user in a specific course
  */
-router.post('/users/:userId/reset-course/:courseId', verifySession, requireAdmin, async (req, res) => {
+router.post('/users/:userId/reset-course/:courseId', verifyUserSession, async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
     const { userId, courseId } = req.params;
     await db.resetUserCourseProgress(userId, courseId);
     res.json({ success: true, message: `Progress reset for user ${userId} in course ${courseId}` });
