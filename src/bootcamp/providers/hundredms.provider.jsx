@@ -40,9 +40,29 @@ function HMSRoom({ roomId, displayName, isInstructor, onLeave, sessionTitle }) {
 
   const [isJoining, setIsJoining] = useState(true);
   const [error, setError] = useState(null);
+  const notification = useHMSNotifications();
+
+  // Listen for HMS error notifications
+  useEffect(() => {
+    if (!notification) return;
+    if (notification.type === HMSNotificationTypes.ERROR) {
+      const msg = notification.data?.message || notification.data?.description || 'Connection error';
+      console.error('100ms notification error:', notification.data);
+      setError(msg);
+      setIsJoining(false);
+    }
+  }, [notification]);
+
+  // Set connected once HMS reports connected
+  useEffect(() => {
+    if (isConnected) {
+      setIsJoining(false);
+    }
+  }, [isConnected]);
 
   // Join on mount
   useEffect(() => {
+    let timeout;
     const join = async () => {
       try {
         // Get auth token from our backend
@@ -68,6 +88,12 @@ function HMSRoom({ roomId, displayName, isInstructor, onLeave, sessionTitle }) {
 
         const { authToken } = await res.json();
 
+        // 20 second timeout — HMS errors come via notifications, not rejections
+        timeout = setTimeout(() => {
+          setError('Connection timed out. Check your 100ms credentials or room config.');
+          setIsJoining(false);
+        }, 20000);
+
         await hmsActions.join({
           authToken,
           userName: displayName || 'Student',
@@ -77,8 +103,10 @@ function HMSRoom({ roomId, displayName, isInstructor, onLeave, sessionTitle }) {
           }
         });
 
+        clearTimeout(timeout);
         setIsJoining(false);
       } catch (err) {
+        clearTimeout(timeout);
         console.error('100ms join error:', err);
         setError(err.message);
         setIsJoining(false);
@@ -88,6 +116,7 @@ function HMSRoom({ roomId, displayName, isInstructor, onLeave, sessionTitle }) {
     join();
 
     return () => {
+      clearTimeout(timeout);
       if (isConnected) {
         hmsActions.leave();
       }
