@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Users, MessageSquare, MonitorPlay, 
   Code2, HelpCircle, Radio, WifiOff, X, 
@@ -19,8 +19,9 @@ import { ClassroomInteraction } from './ClassroomInteraction';
 import { InstructorControls } from './InstructorControls';
 
 export default function ClassroomPage() {
-  const { sessionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const sessionId = location.pathname.split('/').pop();
   const { currentUser } = useUser();
   
   const [session, setSession] = useState(null);
