@@ -266,6 +266,15 @@ export default function App() {
   };
 
   const handleEnterAdminMode = () => {
+    // DB admin: enter directly without needing a password re-entry
+    if (currentUser?.role === 'admin') {
+      setAdminRole('admin');
+      setLastAdminRole('admin');
+      localStorage.setItem('lastAdminRole', 'admin');
+      setIsAdminMode(true);
+      return;
+    }
+    // Previously authenticated via password dialog: reuse stored role
     if (lastAdminRole) {
       setAdminRole(lastAdminRole);
       setIsAdminMode(true);
