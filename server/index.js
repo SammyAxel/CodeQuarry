@@ -30,6 +30,8 @@ import adminRoutes from './routes/admin.routes.js';
 import translationsRoutes from './routes/translations.routes.js';
 import compileRoutes from './routes/compile.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
+import bootcampRoutes from './routes/bootcamp.routes.js';
+import { initBootcampWebSocket } from './bootcamp/websocket.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,10 +71,17 @@ app.use('/api/cosmetics', cosmeticsRoutes); // Public shop endpoint
 app.use('/api/admin', adminRoutes);
 app.use('/api/translations', translationsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/bootcamp', bootcampRoutes);
 app.use('/api', compileRoutes); // Compile endpoints at root level
 
-// Start server (database initializes on import)
-app.listen(PORT, () => {
+// Start server with WebSocket support (database initializes on import)
+import { createServer } from 'http';
+const server = createServer(app);
+
+// Initialize bootcamp WebSocket on the same HTTP server
+initBootcampWebSocket(server);
+
+server.listen(PORT, () => {
   console.log(`✅ CodeQuarry API server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${NODE_ENV}`);
   console.log(`🔗 CORS Origins: ${CORS_ORIGINS.join(', ')}`);
