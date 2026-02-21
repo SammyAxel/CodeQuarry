@@ -6,11 +6,24 @@
 import React, { useState } from 'react';
 import { 
   Play, Square, HelpCircle, Code2, BarChart3, 
-  Plus, X, Send, Radio, AlertTriangle 
+  Plus, X, Send, Radio, AlertTriangle, ChevronDown 
 } from 'lucide-react';
 import { goLive, endSession, triggerInteraction as apiTriggerInteraction, closeInteraction as apiCloseInteraction } from '../api/bootcampApi';
 
-export function InstructorControls({ sessionId, session, setSession, triggerInteraction, closeInteraction, activeInteraction }) {
+const CODE_LANGUAGES = [
+  { id: 'javascript', label: 'JavaScript' },
+  { id: 'python', label: 'Python' },
+  { id: 'c', label: 'C' },
+  { id: 'cpp', label: 'C++' },
+  { id: 'java', label: 'Java' },
+  { id: 'typescript', label: 'TypeScript' },
+  { id: 'ruby', label: 'Ruby' },
+  { id: 'go', label: 'Go' },
+  { id: 'rust', label: 'Rust' },
+  { id: 'php', label: 'PHP' },
+];
+
+export function InstructorControls({ sessionId, session, setSession, triggerInteraction, closeInteraction, activeInteraction, sendSessionStatus }) {
   const [showCreatePanel, setShowCreatePanel] = useState(false);
   const [interactionType, setInteractionType] = useState('quiz');
   const [question, setQuestion] = useState('');
@@ -18,6 +31,7 @@ export function InstructorControls({ sessionId, session, setSession, triggerInte
   const [correctAnswer, setCorrectAnswer] = useState(0);
   const [codeInstructions, setCodeInstructions] = useState('');
   const [starterCode, setStarterCode] = useState('');
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleGoLive = async () => {
@@ -30,10 +44,12 @@ export function InstructorControls({ sessionId, session, setSession, triggerInte
   };
 
   const handleEndSession = async () => {
-    if (!confirm('End this session? Students will be disconnected.')) return;
+    if (!confirm('End this session? All students will be disconnected.')) return;
     try {
       const updated = await endSession(sessionId);
       setSession(updated);
+      // Broadcast session ended to all participants via WebSocket
+      if (sendSessionStatus) sendSessionStatus('ended');
     } catch (err) {
       console.error('Failed to end session:', err);
     }
@@ -52,7 +68,8 @@ export function InstructorControls({ sessionId, session, setSession, triggerInte
       payload = {
         question,
         instructions: codeInstructions,
-        starterCode
+        starterCode,
+        language: codeLanguage
       };
     } else if (interactionType === 'poll') {
       payload = {
@@ -76,6 +93,7 @@ export function InstructorControls({ sessionId, session, setSession, triggerInte
       setOptions(['', '', '', '']);
       setStarterCode('');
       setCodeInstructions('');
+      setCodeLanguage('javascript');
     } catch (err) {
       console.error('Failed to trigger interaction:', err);
     } finally {
@@ -205,6 +223,19 @@ export function InstructorControls({ sessionId, session, setSession, triggerInte
           {/* Code editor fields */}
           {interactionType === 'code_editor' && (
             <>
+              {/* Language selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 font-bold">Language:</span>
+                <select
+                  value={codeLanguage}
+                  onChange={(e) => setCodeLanguage(e.target.value)}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-300 focus:outline-none focus:border-purple-500"
+                >
+                  {CODE_LANGUAGES.map(lang => (
+                    <option key={lang.id} value={lang.id}>{lang.label}</option>
+                  ))}
+                </select>
+              </div>
               <textarea
                 value={codeInstructions}
                 onChange={(e) => setCodeInstructions(e.target.value)}

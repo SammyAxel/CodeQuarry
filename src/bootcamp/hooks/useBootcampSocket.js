@@ -145,6 +145,10 @@ export function useBootcampSocket(sessionId, user, isAdmin = false) {
     sendMessage({ type: 'typing' });
   }, [sendMessage]);
 
+  const sendSessionStatus = useCallback((status) => {
+    sendMessage({ type: 'session_status', status });
+  }, [sendMessage]);
+
   // Connect on mount
   useEffect(() => {
     connect();
@@ -167,6 +171,7 @@ export function useBootcampSocket(sessionId, user, isAdmin = false) {
     triggerInteraction,
     closeInteraction,
     submitResponse,
-    sendTyping
+    sendTyping,
+    sendSessionStatus
   };
 }

@@ -164,23 +164,60 @@ function HMSRoom({ roomId, displayName, isInstructor, onLeave, sessionTitle }) {
 
   return (
     <div className="flex flex-col h-full bg-gray-950 rounded-xl overflow-hidden border border-purple-500/20">
-      {/* Video Grid */}
-      <div className="flex-1 p-2 overflow-hidden">
-        <div className={`grid gap-2 h-full ${
-          peers.length <= 1 ? 'grid-cols-1' :
-          peers.length <= 4 ? 'grid-cols-2' :
-          peers.length <= 9 ? 'grid-cols-3' :
-          'grid-cols-4'
-        }`}>
-          {peers.map((peer) => (
-            <PeerTile
-              key={peer.id}
-              peer={peer}
-              isLocal={peer.id === localPeer?.id}
-              isDominant={dominantSpeaker?.id === peer.id}
-            />
-          ))}
-        </div>
+      {/* Main Host Video */}
+      <div className="flex-1 relative overflow-hidden">
+        {(() => {
+          const hostPeer = peers.find(p => p.roleName === 'host' || p.roleName === 'broadcaster');
+          const guestPeers = peers.filter(p => p.roleName !== 'host' && p.roleName !== 'broadcaster');
+          
+          return (
+            <>
+              {/* Host takes full stage */}
+              {hostPeer ? (
+                <div className="w-full h-full">
+                  <PeerTile
+                    peer={hostPeer}
+                    isLocal={hostPeer.id === localPeer?.id}
+                    isDominant={true}
+                    isLarge={true}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                  <div className="text-gray-500 text-sm">Waiting for instructor...</div>
+                </div>
+              )}
+
+              {/* Participant thumbnails strip (host sees all, participants hidden from each other) */}
+              {isInstructor && guestPeers.length > 0 && (
+                <div className="absolute bottom-2 left-2 right-2 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                  {guestPeers.map((peer) => (
+                    <div key={peer.id} className="w-28 h-20 shrink-0 rounded-lg overflow-hidden border border-gray-700/50 shadow-lg">
+                      <PeerTile
+                        peer={peer}
+                        isLocal={peer.id === localPeer?.id}
+                        isDominant={dominantSpeaker?.id === peer.id}
+                        isLarge={false}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Self-view for participants (small corner) */}
+              {!isInstructor && localPeer && (
+                <div className="absolute bottom-2 right-2 w-36 h-24 rounded-lg overflow-hidden border border-purple-500/30 shadow-lg">
+                  <PeerTile
+                    peer={localPeer}
+                    isLocal={true}
+                    isDominant={false}
+                    isLarge={false}
+                  />
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Controls Bar */}
@@ -240,7 +277,7 @@ function HMSRoom({ roomId, displayName, isInstructor, onLeave, sessionTitle }) {
 /**
  * Individual peer video tile
  */
-function PeerTile({ peer, isLocal, isDominant }) {
+function PeerTile({ peer, isLocal, isDominant, isLarge = true }) {
   const videoRef = React.useRef(null);
   const hmsActions = useHMSActions();
 
@@ -269,17 +306,17 @@ function PeerTile({ peer, isLocal, isDominant }) {
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-purple-600/30 flex items-center justify-center text-2xl font-bold text-purple-300">
+          <div className={`${isLarge ? 'w-16 h-16 text-2xl' : 'w-8 h-8 text-sm'} rounded-full bg-purple-600/30 flex items-center justify-center font-bold text-purple-300`}>
             {(peer.name || '?')[0].toUpperCase()}
           </div>
         </div>
       )}
 
       {/* Name overlay */}
-      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-        <span className="px-2 py-0.5 bg-black/60 rounded text-xs text-white font-medium truncate">
+      <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between">
+        <span className={`px-1.5 py-0.5 bg-black/60 rounded ${isLarge ? 'text-xs' : 'text-[10px]'} text-white font-medium truncate`}>
           {peer.name}{isLocal ? ' (You)' : ''}
-          {peer.roleName === 'host' && ' ★'}
+          {(peer.roleName === 'host' || peer.roleName === 'broadcaster') && ' ★'}
         </span>
         <div className="flex gap-1">
           {!peer.isAudioEnabled && (

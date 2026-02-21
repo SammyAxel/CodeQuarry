@@ -1,0 +1,77 @@
+{
+  "id": "js-m13-refinery-example",
+  "title": "FizzBuzz - Refinery Challenge",
+  "type": "practice",
+  "theory": "## The Classic FizzBuzz with Optimization\n\nNow that you've solved FizzBuzz, can you make it more elegant?\n\n### The Challenge\nWrite FizzBuzz in the most efficient way possible:\n- Minimum lines of code\n- No nested loops (there shouldn't be any anyway)\n- Clean, readable logic\n\n### Pro Tips\n- Think about the order of your conditions\n- Can you combine any logic?\n- Is every line necessary?",
+  "instruction": "**Refinery Mode Available!**\n\nSolve FizzBuzz first, then enter The Refinery to optimize your code.\n\n**Basic Challenge:**\n- Loop from 1 to 15\n- Print \"FizzBuzz\" for multiples of 15\n- Print \"Fizz\" for multiples of 3\n- Print \"Buzz\" for multiples of 5\n- Otherwise print the number\n\n**Refinery Challenge:**\n- Do it in 8 lines or less\n- Keep it readable",
+  "initialCode": "// The FizzBuzz Refinery Challenge\n// First make it work, then make it elegant!\n\n",
+  "language": "javascript",
+  "expectedOutput": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz",
+  "hints": [
+    "Start with a for loop from 1 to 15",
+    "Check for divisibility by 15 first",
+    "Then check for 3, then 5",
+    "Use else for the default case",
+    "For the Refinery: Can you use ternary operators?",
+    "For the Refinery: Think about using template literals"
+  ],
+  "solution": "for (let i = 1; i <= 15; i++) {\n  if (i % 15 === 0) console.log('FizzBuzz');\n  else if (i % 3 === 0) console.log('Fizz');\n  else if (i % 5 === 0) console.log('Buzz');\n  else console.log(i);\n}",
+  "refineryCriteria": {
+    "maxLines": 8,
+    "noNestedLoops": true,
+    "description": "Refine your FizzBuzz to 8 lines or less with clean logic",
+    "forbiddenPatterns": [
+      {
+        "name": "nested loops",
+        "regex": "for\\s*\\([^)]*\\)\\s*\\{[^}]*for\\s*\\([^)]*\\)",
+        "message": "No nested loops allowed (not needed for FizzBuzz)"
+      }
+    ]
+  }
+}
+
+/**
+ * Example for Python Course
+ */
+{
+  "id": "py-m13-refinery-sum",
+  "title": "Sum of Evens - Refinery Challenge",
+  "type": "practice",
+  "theory": "## Sum of Even Numbers\n\nCalculate the sum of all even numbers from 1 to 100.\n\n### The Refinery Challenge\nAfter solving it, optimize for:\n- Use list comprehension (Python's superpower!)\n- Minimize lines\n- Show off Pythonic style",
+  "instruction": "Calculate the sum of all even numbers from 1 to 100.\n\nPrint the result.\n\n**Refinery Goal:** Do it in 2 lines or less using list comprehension!",
+  "initialCode": "# Sum of even numbers 1-100\n\n",
+  "language": "python",
+  "expectedOutput": "2550",
+  "solution": "total = sum(i for i in range(2, 101, 2))\nprint(total)",
+  "refineryCriteria": {
+    "maxLines": 2,
+    "description": "Achieve peak Python: 2 lines max using comprehension",
+    "requiredPatterns": [
+      {
+        "name": "comprehension or generator",
+        "regex": "(\\[.*for.*in.*\\]|\\(.*for.*in.*\\))",
+        "message": "Use list comprehension or generator expression"
+      }
+    ]
+  }
+}
+
+/**
+ * Example for C Course
+ */
+{
+  "id": "c-m9-refinery-factorial",
+  "title": "Factorial - Refinery Challenge",
+  "type": "practice",
+  "theory": "## Calculate Factorial\n\nWrite a function to calculate factorial of a number.\n\n### The Refinery Challenge\n- Keep it under 10 lines\n- Use recursion for elegance (advanced)\n- Or optimize the loop version",
+  "instruction": "Write a factorial function and call it with n=5.\nPrint the result (should be 120).\n\n**Refinery:** Optimize to 10 lines or less!",
+  "initialCode": "#include <stdio.h>\n\n// Your code here\n\nint main() {\n    // Call your function with 5\n    return 0;\n}\n",
+  "language": "c",
+  "expectedOutput": "120",
+  "solution": "#include <stdio.h>\n\nint factorial(int n) {\n    if (n <= 1) return 1;\n    return n * factorial(n - 1);\n}\n\nint main() {\n    printf(\"%d\", factorial(5));\n    return 0;\n}",
+  "refineryCriteria": {
+    "maxLines": 10,
+    "maxComplexity": 4,
+    "description": "Elegant factorial: 10 lines, low complexity"
+  }
+}

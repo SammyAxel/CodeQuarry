@@ -43,7 +43,7 @@ export const UserProvider = ({ children }) => {
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('userToken');
-      const res = await fetch(`${API_URL}/api/user/cosmetics/equipped`, {
+      const res = await fetch(`${API_URL}/api/cosmetics/equipped`, {
         headers: token ? { 'x-user-token': token } : {}
       });
       if (!res.ok) return null;

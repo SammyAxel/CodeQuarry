@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import {
   Gem, Map as MapIcon, Pickaxe, LogOut, BarChart3, User, Languages, Users, Crown, Trophy, ShoppingCart, MonitorPlay
 } from 'lucide-react';
@@ -94,22 +94,6 @@ export default function App() {
       }
     }
   }, []);
-
-  // Get merged courses (API courses + local edits + custom published courses)
-  const getMergedCourses = () => {
-    const baseCourses = apiCourses || COURSES;
-    const editedOriginals = baseCourses.map(course => {
-      if (publishedCourseEdits[course.id]) {
-        return { ...course, ...publishedCourseEdits[course.id] };
-      }
-      return course;
-    });
-    // Add custom courses that aren't already in the list
-    const customFiltered = customCourses.filter(
-      custom => !editedOriginals.some(orig => orig.id === custom.id)
-    );
-    return [...editedOriginals, ...customFiltered];
-  };
 
   // Handler for when admin updates published courses
   const handleUpdatePublishedCourses = (edits) => {
@@ -299,8 +283,7 @@ export default function App() {
     logout();
     navigateHome();
     setCurrentPage('home');
-    // Reset URL to home
-    window.history.pushState({}, '', '/');
+    navigate('/');
   };
 
   // ALL CONDITIONAL RETURNS MUST COME AFTER ALL HOOKS
@@ -374,8 +357,7 @@ export default function App() {
   if (location.pathname.match(/^\/bootcamp\/classroom\/\d+$/)) {
     if (!currentUser) {
       sessionStorage.setItem('intendedUrl', location.pathname);
-      window.history.pushState({}, '', '/login');
-      return <LoginPage onLogin={handleLogin} onAdminLogin={handleAdminLogin} onShowRegister={() => { setShowAuthPage('register'); window.history.pushState({}, '', '/register'); }} />;
+      return <Navigate to="/login" replace />;
     }
     return (
       <Suspense fallback={<div className="min-h-screen bg-[#0d1117] flex items-center justify-center text-purple-400">Joining class...</div>}>
@@ -386,16 +368,12 @@ export default function App() {
 
   if (!currentUser) {
     if (showAuthPage === 'register') {
-      // Update URL to /register
-      if (location.pathname !== '/register' && !location.pathname.startsWith('/user/')) {
-        window.history.pushState({}, '', '/register');
-      }
       return (
         <RegisterPage 
           onRegisterSuccess={handleRegisterSuccess} 
           onBackToLogin={() => {
             setShowAuthPage('login');
-            window.history.pushState({}, '', '/login');
+            navigate('/login');
           }} 
         />
       );
@@ -404,7 +382,6 @@ export default function App() {
     // Save the intended URL so we can restore it after login
     if (location.pathname !== '/login' && !location.pathname.startsWith('/user/') && location.pathname !== '/leaderboard') {
       sessionStorage.setItem('intendedUrl', location.pathname);
-      window.history.pushState({}, '', '/login');
     }
     return (
       <LoginPage 
@@ -412,7 +389,7 @@ export default function App() {
         onAdminLogin={handleAdminLogin} 
         onShowRegister={() => {
           setShowAuthPage('register');
-          window.history.pushState({}, '', '/register');
+          navigate('/register');
         }}
       />
     );
@@ -432,10 +409,10 @@ export default function App() {
         {/* Left: Logo and Brand */}
         <div 
           className="flex items-center gap-3 cursor-pointer group" 
-          onClick={() => { navigateHome(); setCurrentPage('home'); window.history.pushState({}, '', '/'); }} 
+          onClick={() => { navigateHome(); setCurrentPage('home'); navigate('/'); }}
           role="button" 
           tabIndex="0" 
-          onKeyDown={(e) => e.key === 'Enter' && (navigateHome(), setCurrentPage('home'), window.history.pushState({}, '', '/'))}
+          onKeyDown={(e) => e.key === 'Enter' && (navigateHome(), setCurrentPage('home'), navigate('/'))}
           aria-label="CodeQuarry Home"
         >
           <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:shadow-purple-400/50 transition-shadow">
@@ -459,7 +436,7 @@ export default function App() {
             </button>
           )}
           <button 
-            onClick={() => { navigateHome(); setCurrentPage('dashboard'); window.history.pushState({}, '', '/dashboard'); }}
+            onClick={() => { navigateHome(); setCurrentPage('dashboard'); navigate('/dashboard'); }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
               currentPage === 'dashboard' 
                 ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
@@ -473,7 +450,7 @@ export default function App() {
           {currentUser?.role === 'admin' && (
             <>
               <button 
-                onClick={() => { navigateHome(); setCurrentPage('users'); window.history.pushState({}, '', '/admin/users'); }}
+                onClick={() => { navigateHome(); setCurrentPage('users'); navigate('/admin/users'); }}
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
                   currentPage === 'users' 
                     ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
@@ -493,7 +470,7 @@ export default function App() {
             </>
           )}
           <button
-            onClick={() => { navigateHome(); setCurrentPage('leaderboard'); window.history.pushState({}, '', '/leaderboard'); }}
+            onClick={() => { navigateHome(); setCurrentPage('leaderboard'); navigate('/leaderboard'); }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
               currentPage === 'leaderboard' 
                 ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
@@ -515,7 +492,7 @@ export default function App() {
             <MonitorPlay className="w-4 h-4" /> Bootcamp
           </button>
           <button 
-            onClick={() => { navigateHome(); setCurrentPage('shop'); window.history.pushState({}, '', '/shop'); }}
+            onClick={() => { navigateHome(); setCurrentPage('shop'); navigate('/shop'); }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
               currentPage === 'shop' 
                 ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
@@ -550,7 +527,7 @@ export default function App() {
             </button>
           )}
           <button 
-            onClick={() => { navigateHome(); setCurrentPage('profile'); window.history.pushState({}, '', '/profile'); }}
+            onClick={() => { navigateHome(); setCurrentPage('profile'); navigate('/profile'); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
               currentPage === 'profile' 
                 ? 'text-purple-400 bg-purple-500/20 border border-purple-500/50' 
@@ -568,7 +545,7 @@ export default function App() {
         {currentPage === 'dashboard' && view === VIEWS.HOME && (
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
             <DashboardPage 
-              courses={getMergedCourses()} 
+              courses={mergedCourses} 
               onSelectCourse={(course) => { setCurrentPage('home'); navigateToSyllabus(course); }}
               onBack={() => setCurrentPage('home')}
             />
@@ -597,7 +574,7 @@ export default function App() {
             {location.pathname === '/bootcamp/manage' ? <BootcampManagePage /> : <BootcampSchedulePage />}
           </Suspense>
         )}
-        {currentPage === 'home' && view === VIEWS.HOME && <HomePage courses={getMergedCourses()} onSelectCourse={navigateToSyllabus} />}
+        {currentPage === 'home' && view === VIEWS.HOME && <HomePage courses={mergedCourses} onSelectCourse={navigateToSyllabus} />}
         {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => { navigateHome(); setCurrentPage('home'); }} onSelectModule={navigateToLearning} completedModules={completedModules} />}
         
         {view === VIEWS.LEARNING && (

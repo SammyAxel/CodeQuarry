@@ -3,12 +3,12 @@
  * Combines video (Jitsi), chat, and interactive panels (quiz/code editor)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Users, MessageSquare, MonitorPlay, 
   Code2, HelpCircle, Radio, WifiOff, X, 
-  ChevronRight, ChevronLeft, Send
+  ChevronRight, ChevronLeft, Send, ClipboardList, Heart
 } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 import { VideoProvider } from '../providers/index.js';
@@ -17,6 +17,7 @@ import { fetchSession, joinSession } from '../api/bootcampApi';
 import { ClassroomChat } from './ClassroomChat';
 import { ClassroomInteraction } from './ClassroomInteraction';
 import { InstructorControls } from './InstructorControls';
+import { ResponsesPanel } from './ResponsesPanel';
 
 export default function ClassroomPage() {
   const navigate = useNavigate();
@@ -28,8 +29,10 @@ export default function ClassroomPage() {
   const [roomInfo, setRoomInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sidePanel, setSidePanel] = useState('chat'); // 'chat', 'participants', 'interaction', null
+  const [sidePanel, setSidePanel] = useState('chat'); // 'chat', 'participants', 'interaction', 'responses', null
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [responses, setResponses] = useState([]); // real-time responses for host
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -44,7 +47,8 @@ export default function ClassroomPage() {
     triggerInteraction,
     closeInteraction,
     submitResponse,
-    sendTyping
+    sendTyping,
+    sendSessionStatus
   } = useBootcampSocket(sessionId, currentUser, isAdmin);
 
   // Load session and join
@@ -72,8 +76,32 @@ export default function ClassroomPage() {
     if (activeInteraction) {
       setSidePanel('interaction');
       setIsPanelOpen(true);
+      // Clear old responses when a new interaction starts
+      setResponses([]);
     }
   }, [activeInteraction]);
+
+  // Listen for student responses (host only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const handleResponse = (e) => {
+      const resp = e.detail;
+      setResponses(prev => [...prev, resp]);
+    };
+    window.addEventListener('bootcamp:response', handleResponse);
+    return () => window.removeEventListener('bootcamp:response', handleResponse);
+  }, [isAdmin]);
+
+  // Listen for session ended (participants get kicked)
+  useEffect(() => {
+    const handleSessionStatus = (e) => {
+      if (e.detail?.status === 'ended') {
+        setSessionEnded(true);
+      }
+    };
+    window.addEventListener('bootcamp:session_status', handleSessionStatus);
+    return () => window.removeEventListener('bootcamp:session_status', handleSessionStatus);
+  }, []);
 
   const handleLeaveClass = useCallback(() => {
     navigate('/bootcamp');
@@ -101,6 +129,26 @@ export default function ClassroomPage() {
             className="px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-colors"
           >
             Back to Schedule
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Session ended screen for participants (host stays to see results)
+  if (sessionEnded && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+        <div className="text-center p-10 bg-gray-900 rounded-2xl border border-purple-500/30 max-w-md">
+          <Heart className="w-14 h-14 text-purple-400 mx-auto mb-4" />
+          <div className="text-2xl font-bold text-white mb-2">Session Ended</div>
+          <div className="text-gray-400 mb-2">Thank you for attending!</div>
+          <div className="text-gray-600 text-sm mb-6">{session?.title}</div>
+          <button
+            onClick={() => navigate('/bootcamp')}
+            className="px-8 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold transition-colors text-white"
+          >
+            Back to Bootcamp
           </button>
         </div>
       </div>
@@ -169,6 +217,17 @@ export default function ClassroomPage() {
               <Code2 className="w-3.5 h-3.5" /> Activity
             </button>
           )}
+          {/* Responses tab - host only */}
+          {isAdmin && (
+            <button
+              onClick={() => { setSidePanel('responses'); setIsPanelOpen(true); }}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                sidePanel === 'responses' && isPanelOpen ? 'bg-green-600 text-white' : 'text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              <ClipboardList className="w-3.5 h-3.5" /> Responses {responses.length > 0 ? `(${responses.length})` : ''}
+            </button>
+          )}
           <button
             onClick={() => setIsPanelOpen(!isPanelOpen)}
             className="p-1.5 hover:bg-gray-800 rounded-lg text-gray-400 transition-colors"
@@ -204,6 +263,7 @@ export default function ClassroomPage() {
               triggerInteraction={triggerInteraction}
               closeInteraction={closeInteraction}
               activeInteraction={activeInteraction}
+              sendSessionStatus={sendSessionStatus}
             />
           )}
         </div>
@@ -252,6 +312,12 @@ export default function ClassroomPage() {
                   onSubmit={submitResponse}
                   isAdmin={isAdmin}
                   onClose={() => closeInteraction(activeInteraction.id)}
+                />
+              )}
+              {sidePanel === 'responses' && isAdmin && (
+                <ResponsesPanel
+                  responses={responses}
+                  activeInteraction={activeInteraction}
                 />
               )}
             </div>

@@ -4,18 +4,22 @@
   <strong>An interactive, gamified learning platform to master programming fundamentals.</strong>
   <br />
   <br />
+  <em>Originally created as a campus project for COMP6100001 – Software Engineering at Binus University (2025/2026 Odd Year). Now maintained as an open platform.</em>
+  <br />
+  <br />
 </div>
 
 ## About The Project
 
-CodeQuarry is a web-based application designed to make learning to code an engaging and rewarding experience. Instead of passive reading, users "mine" for knowledge by completing interactive coding challenges directly in the browser. The app features a custom-built code editor, a live execution environment for multiple languages, and a persistent progress system, all wrapped in a fun, thematic "mining" UI.
+CodeQuarry is a web-based application designed to make learning to code an engaging and rewarding experience. Instead of passive reading, users "mine" for knowledge by completing interactive coding challenges directly in the browser. The app features a custom-built code editor, a live execution environment for multiple languages, a live bootcamp classroom with real-time quizzes and code challenges, and a persistent progress system — all wrapped in a fun, thematic "mining" UI.
 
 Deployed preview may be accessed using this link: https://codequarry.app
 
-This app is made for COMP6100001 - LC09 - Software Engineering class of Binus University 2025/2026 Odd Year.
+> **Origin:** This project began as a campus assignment for COMP6100001 – LC09 – Software Engineering at Binus University (2025/2026 Odd Year) and has since grown into a full-featured learning platform.
 
 ### Features
 
+*   **Live Bootcamp Classroom**: Real-time sessions with video, chat, live quizzes, code challenges, and polls powered by 100ms and WebSockets.
 *   **Interactive Code Editor**: A custom-built, syntax-highlighted code editor with Tab indentation, auto-pairing, and smart Enter handling.
 *   **Live Code Execution**: Run Python, JavaScript, and C code directly in the browser.
     - **Python**: Powered by Pyodide (v0.25.0)
@@ -131,7 +135,9 @@ server/
     ├── cosmetics.routes.js    # Shop, inventory, equipping
     ├── admin.routes.js        # Admin user management
     ├── translations.routes.js # Internationalization support
-    └── compile.routes.js      # Code compilation endpoints
+    ├── compile.routes.js      # Code compilation & multi-language execution
+    ├── leaderboard.routes.js  # Leaderboard
+    └── bootcamp.routes.js     # Bootcamp sessions, enrollment, interactions
 
 database/
 ├── connection.js              # PostgreSQL pool configuration

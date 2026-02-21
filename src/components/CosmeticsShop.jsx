@@ -102,7 +102,7 @@ export default function CosmeticsShop() {
       
       const [gemsRes, inventoryRes] = await Promise.all([
         fetch(`${API_URL}/api/user/gems`, { headers }),
-        fetch(`${API_URL}/api/user/cosmetics/inventory`, { headers }),
+        fetch(`${API_URL}/api/cosmetics/inventory`, { headers }),
       ]);
 
       if (gemsRes.ok) {
@@ -137,7 +137,7 @@ export default function CosmeticsShop() {
     try {
       setPurchasing(cosmetic.id);
       const token = localStorage.getItem('userToken');
-      const res = await fetch(`${API_URL}/api/user/cosmetics/purchase`, {
+      const res = await fetch(`${API_URL}/api/cosmetics/purchase`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -166,7 +166,7 @@ export default function CosmeticsShop() {
   const handleEquip = async (type, cosmetic) => {
     try {
       const token = localStorage.getItem('userToken');
-      const res = await fetch(`${API_URL}/api/user/cosmetics/equip`, {
+      const res = await fetch(`${API_URL}/api/cosmetics/equip`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ export default function CosmeticsShop() {
   const handleUnequip = async (type) => {
     try {
       const token = localStorage.getItem('userToken');
-      const res = await fetch(`${API_URL}/api/user/cosmetics/equip`, {
+      const res = await fetch(`${API_URL}/api/cosmetics/equip`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',

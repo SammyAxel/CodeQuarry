@@ -66,8 +66,7 @@ app.use('/api/user', usersRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/courses', coursesRoutes);
 app.use('/api/drafts', draftsRoutes);
-app.use('/api/user/cosmetics', cosmeticsRoutes); // User cosmetics operations
-app.use('/api/cosmetics', cosmeticsRoutes); // Public shop endpoint
+app.use('/api/cosmetics', cosmeticsRoutes); // Cosmetics shop, inventory, equip
 app.use('/api/admin', adminRoutes);
 app.use('/api/translations', translationsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);

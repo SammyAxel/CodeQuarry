@@ -321,11 +321,6 @@ const Leaderboard = () => {
               <div className="pt-4 border-t border-white/10">
                 <a
                   href={`/user/${selectedUser.userId}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.history.pushState({}, '', `/user/${selectedUser.userId}`);
-                    window.location.href = `/user/${selectedUser.userId}`;
-                  }}
                   className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg text-white font-semibold text-center transition shadow-lg"
                 >
                   View Full Profile

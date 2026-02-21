@@ -142,13 +142,44 @@ router.post('/100ms/token', verifyUserSession, async (req, res) => {
 /**
  * GET /api/bootcamp/sessions
  * Get all upcoming/active sessions
+ * Ended sessions are only visible to admins or enrolled users
  */
 router.get('/sessions', async (req, res) => {
   try {
     const { status } = req.query;
-    const sessions = status 
-      ? await db.getBootcampSessions(status)
-      : await db.getUpcomingSessions();
+    let sessions;
+    
+    if (status) {
+      sessions = await db.getBootcampSessions(status);
+    } else {
+      sessions = await db.getUpcomingSessions();
+    }
+
+    // If requesting ended sessions specifically, require authentication
+    if (status === 'ended') {
+      // Try to extract user from token
+      const token = req.headers['x-user-token'];
+      if (!token) {
+        return res.json({ sessions: [] }); // No auth = no ended sessions
+      }
+      try {
+        const session = await db.findSession(token);
+        if (!session) return res.json({ sessions: [] });
+        
+        // Admins see all ended sessions
+        if (session.role === 'admin') {
+          return res.json({ sessions });
+        }
+        
+        // Regular users only see ended sessions they're enrolled in
+        const enrollments = await db.getUserEnrollments(session.user_id);
+        const enrolledIds = new Set(enrollments.map(e => e.sessionId || e.session_id));
+        sessions = sessions.filter(s => enrolledIds.has(s.id));
+      } catch (authErr) {
+        return res.json({ sessions: [] });
+      }
+    }
+
     res.json({ sessions });
   } catch (error) {
     console.error('Error fetching bootcamp sessions:', error);

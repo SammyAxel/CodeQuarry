@@ -19,7 +19,9 @@ export async function fetchSessions(status = null) {
   const url = status 
     ? `${API_URL}/api/bootcamp/sessions?status=${status}`
     : `${API_URL}/api/bootcamp/sessions`;
-  const res = await fetch(url);
+  // Include auth headers for ended sessions (visibility filtering)
+  const headers = status === 'ended' ? getHeaders() : {};
+  const res = await fetch(url, { headers });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
   return data.sessions;
