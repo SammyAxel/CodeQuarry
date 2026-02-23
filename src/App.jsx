@@ -28,6 +28,7 @@ const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const BootcampSchedulePage = lazy(() => import('./bootcamp/pages/BootcampSchedulePage'));
 const BootcampManagePage = lazy(() => import('./bootcamp/pages/BootcampManagePage'));
 const ClassroomPage = lazy(() => import('./bootcamp/components/ClassroomPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
@@ -151,6 +152,7 @@ export default function App() {
     else if (path === '/leaderboard') setCurrentPage('leaderboard');
     else if (path.startsWith('/bootcamp')) setCurrentPage('bootcamp');
     else if (path.startsWith('/admin/users')) setCurrentPage('users');
+    else if (path === '/terms') setCurrentPage('terms');
   }, []);
 
   const { language, toggleLanguage, t } = useLanguage();
@@ -574,6 +576,11 @@ export default function App() {
             {location.pathname === '/bootcamp/manage' ? <BootcampManagePage /> : <BootcampSchedulePage />}
           </Suspense>
         )}
+        {currentPage === 'terms' && view === VIEWS.HOME && (
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-purple-400">Loading...</div>}>
+            <TermsPage />
+          </Suspense>
+        )}
         {currentPage === 'home' && view === VIEWS.HOME && <HomePage courses={mergedCourses} onSelectCourse={navigateToSyllabus} />}
         {view === VIEWS.SYLLABUS && <SyllabusPage course={activeCourse} onBack={() => { navigateHome(); setCurrentPage('home'); }} onSelectModule={navigateToLearning} completedModules={completedModules} />}
         
@@ -622,6 +629,24 @@ export default function App() {
         )}
       </main>
       
+      {/* Site Footer — always visible on home-level views */}
+      {view === VIEWS.HOME && currentPage !== 'terms' && (
+        <footer className="border-t border-gray-800/60 bg-[#0d1117] py-6 px-8">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+            <span>© {new Date().getFullYear()} CodeQuarry. All rights reserved.</span>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => { setCurrentPage('terms'); navigate('/terms'); }}
+                className="hover:text-purple-400 transition-colors"
+              >
+                Syarat &amp; Ketentuan / Terms &amp; Conditions
+              </button>
+              <a href="mailto:codequarry.sammy@gmail.com" className="hover:text-purple-400 transition-colors">Contact</a>
+            </div>
+          </div>
+        </footer>
+      )}
+
       {/* Sarcastic Light Mode Footer */}
       {!isDark && (
         <div className="fixed bottom-0 left-0 right-0 bg-yellow-50 border-t-2 border-yellow-400 px-4 py-3 text-center text-sm text-gray-800 z-50 shadow-xl">

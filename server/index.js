@@ -31,6 +31,7 @@ import translationsRoutes from './routes/translations.routes.js';
 import compileRoutes from './routes/compile.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
 import bootcampRoutes from './routes/bootcamp.routes.js';
+import batchesRoutes from './routes/batches.routes.js';
 import { initBootcampWebSocket } from './bootcamp/websocket.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -71,6 +72,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/translations', translationsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/bootcamp', bootcampRoutes);
+app.use('/api/batches', batchesRoutes);
 app.use('/api', compileRoutes); // Compile endpoints at root level
 
 // Start server with WebSocket support (database initializes on import)

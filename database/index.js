@@ -17,6 +17,7 @@ import * as Course from './models/Course.js';
 import * as Draft from './models/Draft.js';
 import * as Admin from './models/Admin.js';
 import * as Bootcamp from './models/Bootcamp.js';
+import * as Batch from './models/Batch.js';
 
 const { Pool } = pg;
 
@@ -233,6 +234,29 @@ const initDatabase = async () => {
       )
     `);
 
+    // Bootcamp batches table (paid programs; sessions belong to a batch)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS bootcamp_batches (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+        currency TEXT DEFAULT 'IDR',
+        instructor_id INTEGER NOT NULL,
+        instructor_name TEXT NOT NULL,
+        max_participants INTEGER DEFAULT 30,
+        start_date DATE,
+        end_date DATE,
+        status TEXT DEFAULT 'open',
+        is_public BOOLEAN DEFAULT false,
+        bank_account JSONB DEFAULT '{}',
+        tags TEXT[] DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (instructor_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     // Bootcamp sessions table
     await client.query(`
       CREATE TABLE IF NOT EXISTS bootcamp_sessions (
@@ -254,6 +278,12 @@ const initDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (instructor_id) REFERENCES users(id) ON DELETE CASCADE
       )
+    `);
+
+    // Add batch_id to sessions if not present (safe on existing DBs)
+    await client.query(`
+      ALTER TABLE bootcamp_sessions
+        ADD COLUMN IF NOT EXISTS batch_id INTEGER REFERENCES bootcamp_batches(id) ON DELETE SET NULL
     `);
 
     // Bootcamp enrollments table
@@ -297,6 +327,30 @@ const initDatabase = async () => {
         UNIQUE(interaction_id, user_id),
         FOREIGN KEY (interaction_id) REFERENCES bootcamp_interactions(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Batch enrollments table (payment tracking for paid batches)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS batch_enrollments (
+        id SERIAL PRIMARY KEY,
+        batch_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        payment_method TEXT NOT NULL DEFAULT 'manual',
+        payment_status TEXT NOT NULL DEFAULT 'pending',
+        payment_ref TEXT,
+        transfer_notes TEXT,
+        amount_paid DECIMAL(12, 2) DEFAULT 0,
+        snap_token TEXT,
+        approved_by INTEGER,
+        approved_at TIMESTAMP,
+        rejected_reason TEXT,
+        enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(batch_id, user_id),
+        FOREIGN KEY (batch_id) REFERENCES bootcamp_batches(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
 
@@ -387,6 +441,9 @@ export default {
 
   // Bootcamp operations
   ...Bootcamp,
+
+  // Batch (paid programs) operations
+  ...Batch,
   
   // Pool for advanced queries
   pool

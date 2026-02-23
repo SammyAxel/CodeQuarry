@@ -289,11 +289,19 @@ router.post('/sessions/:id/join', verifyUserSession, async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    const isInstructor = session.instructor_id === req.user.id;
+    const isInstructor = session.instructorId === req.user.id;
     const isAdmin = req.user.role === 'admin';
-    const isEnrolled = await db.isUserEnrolled(sessionId, req.user.id);
-    if (!isEnrolled && !isInstructor && !isAdmin) {
-      return res.status(403).json({ error: 'You must be enrolled to join' });
+
+    // Gate check: if session belongs to a batch, require paid batch enrollment
+    let canJoin = false;
+    if (session.batchId) {
+      canJoin = await db.isUserEnrolledInBatch(session.batchId, req.user.id);
+    } else {
+      canJoin = await db.isUserEnrolled(sessionId, req.user.id);
+    }
+
+    if (!canJoin && !isInstructor && !isAdmin) {
+      return res.status(403).json({ error: session.batchId ? 'You must purchase this batch to join' : 'You must be enrolled to join' });
     }
 
     if (session.status !== 'live' && session.status !== 'scheduled') {
