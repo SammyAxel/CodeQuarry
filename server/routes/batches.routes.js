@@ -80,8 +80,10 @@ router.get('/admin/pending', verifyUserSession, async (req, res) => {
  * Must be publicly accessible (no auth); Midtrans POSTs here after payment.
  */
 router.post('/payment/notification', async (req, res) => {
+  // Always respond 200 immediately — Midtrans marks as failed on any non-2xx
+  res.json({ ok: true });
+
   try {
-    // Verify & decode the notification via Midtrans SDK
     const statusResponse = await snap.transaction.notification(req.body);
     const { order_id, transaction_status, fraud_status } = statusResponse;
 
@@ -94,18 +96,15 @@ router.post('/payment/notification', async (req, res) => {
     } else if (['deny', 'cancel', 'expire', 'failure'].includes(transaction_status)) {
       newStatus = 'rejected';
     } else if (transaction_status === 'pending') {
-      newStatus = 'pending'; // bank transfer waiting for payment
+      newStatus = 'pending';
     }
 
     if (newStatus) {
       await db.updateBatchEnrollmentByRef(order_id, { paymentStatus: newStatus });
       console.log(`[Midtrans] Order ${order_id} → ${newStatus}`);
     }
-
-    res.json({ ok: true });
   } catch (err) {
-    console.error('Midtrans webhook error:', err);
-    res.status(500).json({ error: 'Webhook processing failed' });
+    console.error('[Midtrans] Webhook processing error:', err.message);
   }
 });
 
