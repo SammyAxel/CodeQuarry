@@ -1,11 +1,18 @@
 /**
  * EnrollModal — Batch enrollment with hybrid payment
  * Pay Online (Midtrans Snap) or Manual Bank Transfer
+ *
+ * Toggle Midtrans on/off via VITE_MIDTRANS_ENABLED env variable:
+ *   VITE_MIDTRANS_ENABLED=true  → shows both payment options
+ *   VITE_MIDTRANS_ENABLED=false → manual bank transfer only (no Midtrans)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, CreditCard, Building2, CheckCircle2, Copy, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { X, CreditCard, Building2, CheckCircle2, Copy, Loader2, AlertCircle } from 'lucide-react';
 import { enrollOnline, enrollManual } from '../api/batchApi';
+
+// Set VITE_MIDTRANS_ENABLED=true in .env to enable online payment
+const MIDTRANS_ENABLED = import.meta.env.VITE_MIDTRANS_ENABLED === 'true';
 
 const IDR = (amount) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -23,8 +30,9 @@ function loadSnapScript(clientKey) {
 }
 
 export function EnrollModal({ batch, onClose, onEnrolled }) {
-  const [method, setMethod] = useState(null); // null | 'online' | 'manual'
-  const [step, setStep] = useState('choose'); // choose | manual-form | success | error
+  // If Midtrans is disabled, start directly on manual-form
+  const [method, setMethod] = useState(MIDTRANS_ENABLED ? null : 'manual');
+  const [step, setStep] = useState(MIDTRANS_ENABLED ? 'choose' : 'manual-form');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [transferRef, setTransferRef] = useState('');
@@ -271,10 +279,12 @@ export function EnrollModal({ batch, onClose, onEnrolled }) {
               )}
 
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => { setStep('choose'); setError(''); }}
-                  className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm font-bold text-gray-300 transition-colors">
-                  Back
-                </button>
+                {MIDTRANS_ENABLED && (
+                  <button type="button" onClick={() => { setStep('choose'); setError(''); }}
+                    className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm font-bold text-gray-300 transition-colors">
+                    Back
+                  </button>
+                )}
                 <button type="submit" disabled={loading}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-xl text-sm font-bold text-white transition-colors">
                   {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : <><CheckCircle2 className="w-4 h-4" /> Submit Transfer Proof</>}
