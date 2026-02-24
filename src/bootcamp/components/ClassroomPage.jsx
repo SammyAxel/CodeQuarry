@@ -42,6 +42,7 @@ export default function ClassroomPage() {
     participants,
     chatMessages,
     activeInteraction,
+    connectionLost,
     typingUsers,
     sendChat,
     triggerInteraction,
@@ -182,8 +183,12 @@ export default function ClassroomPage() {
             <span className="text-xs text-green-400 flex items-center gap-1">
               <span className="w-2 h-2 bg-green-400 rounded-full"></span> Live
             </span>
+          ) : connectionLost ? (
+            <span className="text-xs text-red-400 flex items-center gap-1 cursor-pointer" onClick={() => window.location.reload()} title="Click to refresh">
+              <WifiOff className="w-3 h-3" /> Connection lost — click to refresh
+            </span>
           ) : (
-            <span className="text-xs text-red-400 flex items-center gap-1">
+            <span className="text-xs text-yellow-400 flex items-center gap-1">
               <WifiOff className="w-3 h-3" /> Reconnecting...
             </span>
           )}

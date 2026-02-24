@@ -27,6 +27,7 @@ const Leaderboard = lazy(() => import('./components/Leaderboard'));
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const BootcampSchedulePage = lazy(() => import('./bootcamp/pages/BootcampSchedulePage'));
 const BootcampManagePage = lazy(() => import('./bootcamp/pages/BootcampManagePage'));
+const BatchDetailPage = lazy(() => import('./bootcamp/pages/BatchDetailPage'));
 const ClassroomPage = lazy(() => import('./bootcamp/components/ClassroomPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 import { useUser } from './context/UserContext';
@@ -351,6 +352,19 @@ export default function App() {
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
           <Leaderboard />
         </div>
+      </Suspense>
+    );
+  }
+
+  // Batch detail page requires login
+  if (location.pathname.match(/^\/bootcamp\/batch\/\d+$/)) {
+    if (!currentUser) {
+      sessionStorage.setItem('intendedUrl', location.pathname);
+      return <Navigate to="/login" replace />;
+    }
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#0d1117] flex items-center justify-center text-purple-400">Loading...</div>}>
+        <BatchDetailPage />
       </Suspense>
     );
   }

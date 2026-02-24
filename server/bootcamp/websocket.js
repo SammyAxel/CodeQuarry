@@ -8,9 +8,15 @@
  */
 
 import { WebSocketServer } from 'ws';
+import db from '../../database/index.js';
 
 // Room -> Set of connected clients
 const rooms = new Map();
+
+// ─── Constants ──────────────────────────────
+const MAX_CHAT_LENGTH = 2000; // Max characters per chat message
+const CHAT_RATE_WINDOW = 10_000; // 10 seconds
+const CHAT_RATE_MAX = 15; // Max messages per window
 
 /**
  * Initialize WebSocket server on existing HTTP server
@@ -18,18 +24,31 @@ const rooms = new Map();
 export function initBootcampWebSocket(server) {
   const wss = new WebSocketServer({ server, path: '/ws/bootcamp' });
 
-  wss.on('connection', (ws, req) => {
+  wss.on('connection', async (ws, req) => {
     // Parse query params from URL
     const url = new URL(req.url, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('sessionId');
-    const userId = url.searchParams.get('userId');
-    const username = url.searchParams.get('username');
-    const role = url.searchParams.get('role') || 'student'; // 'admin' or 'student'
+    const token = url.searchParams.get('token');
 
-    if (!sessionId || !userId) {
-      ws.close(4000, 'Missing sessionId or userId');
+    if (!sessionId || !token) {
+      ws.close(4000, 'Missing sessionId or token');
       return;
     }
+
+    // ── Server-side auth: verify token against DB ──
+    let userSession;
+    try {
+      userSession = await db.findSession(token);
+    } catch (_) { /* DB error */ }
+
+    if (!userSession) {
+      ws.close(4001, 'Invalid or expired session');
+      return;
+    }
+
+    const userId = String(userSession.user_id);
+    const username = userSession.display_name || userSession.username;
+    const role = userSession.role === 'admin' ? 'admin' : 'student';
 
     // Attach metadata to the socket
     ws.sessionId = sessionId;
@@ -37,6 +56,7 @@ export function initBootcampWebSocket(server) {
     ws.username = username;
     ws.role = role;
     ws.isAlive = true;
+    ws._chatTimestamps = []; // for rate-limiting
 
     // Add to room
     if (!rooms.has(sessionId)) {
@@ -122,16 +142,27 @@ function handleMessage(ws, message) {
 
   switch (type) {
     // Chat message from any participant
-    case 'chat':
+    case 'chat': {
+      // ── Validate length ──
+      const text = typeof message.text === 'string' ? message.text.trim() : '';
+      if (!text || text.length > MAX_CHAT_LENGTH) return;
+
+      // ── Rate-limit: max N messages per window ──
+      const now = Date.now();
+      ws._chatTimestamps = (ws._chatTimestamps || []).filter(t => now - t < CHAT_RATE_WINDOW);
+      if (ws._chatTimestamps.length >= CHAT_RATE_MAX) return; // silently drop
+      ws._chatTimestamps.push(now);
+
       broadcastToRoom(ws.sessionId, {
         type: 'chat',
         userId: ws.userId,
         username: ws.username,
         role: ws.role,
-        text: message.text,
-        timestamp: Date.now()
+        text,
+        timestamp: now
       });
       break;
+    }
 
     // Admin triggers an interaction (quiz/code/poll)
     case 'trigger_interaction':

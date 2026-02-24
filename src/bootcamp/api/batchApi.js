@@ -75,6 +75,17 @@ export async function fetchBatchEnrollment(batchId) {
   return data.enrollment; // null if not enrolled
 }
 
+/**
+ * Fetch the logged-in user's per-session attendance for a batch.
+ * Returns [{ sessionId, attended, joinedAt }]
+ */
+export async function fetchBatchAttendance(batchId) {
+  const res = await fetch(`${API_URL}/api/batches/${batchId}/attendance`, { headers: getHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data.attendance;
+}
+
 /** Start Midtrans Snap checkout. Returns { snapToken, clientKey }. */
 export async function enrollOnline(batchId) {
   const res = await fetch(`${API_URL}/api/batches/${batchId}/enroll/online`, {
@@ -118,6 +129,16 @@ export async function approveEnrollment(enrollmentId) {
 
 export async function rejectEnrollment(enrollmentId, reason) {
   const res = await fetch(`${API_URL}/api/batches/enrollments/${enrollmentId}/reject`, {
+    method: 'PUT', headers: getHeaders(),
+    body: JSON.stringify({ reason }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data.enrollment;
+}
+
+export async function refundEnrollment(enrollmentId, reason) {
+  const res = await fetch(`${API_URL}/api/batches/enrollments/${enrollmentId}/refund`, {
     method: 'PUT', headers: getHeaders(),
     body: JSON.stringify({ reason }),
   });

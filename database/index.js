@@ -266,7 +266,7 @@ const initDatabase = async () => {
         instructor_id INTEGER NOT NULL,
         instructor_name TEXT NOT NULL,
         room_id TEXT UNIQUE,
-        provider TEXT DEFAULT 'jitsi',
+        provider TEXT DEFAULT '100ms',
         provider_room_data JSONB DEFAULT '{}',
         scheduled_at TIMESTAMP NOT NULL,
         duration_minutes INTEGER DEFAULT 75,

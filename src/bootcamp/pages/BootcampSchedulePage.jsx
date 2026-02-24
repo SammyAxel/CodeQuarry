@@ -435,31 +435,63 @@ export default function BootcampSchedulePage() {
                 ) : (
                   <div className="space-y-4">
                     {myBatchEnrollments.map((enrollment) => (
-                      <div key={enrollment.id} className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 flex items-center justify-between gap-4 flex-wrap">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
+                      <div key={enrollment.id} className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="font-bold text-white text-lg">{enrollment.batchTitle || `Batch #${enrollment.batchId}`}</span>
                             {getPaymentBadge(enrollment.paymentStatus)}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          {/* Extra batch info */}
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mt-1">
+                            {enrollment.batchInstructor && (
+                              <span className="flex items-center gap-1"><UserCheck className="w-3.5 h-3.5" /> {enrollment.batchInstructor}</span>
+                            )}
+                            {enrollment.batchStartDate && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {new Date(enrollment.batchStartDate).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}
+                                {enrollment.batchEndDate && ` – ${new Date(enrollment.batchEndDate).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                              </span>
+                            )}
+                            {enrollment.sessionCount > 0 && (
+                              <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> {enrollment.sessionCount} session{enrollment.sessionCount !== 1 ? 's' : ''}</span>
+                            )}
+                          </div>
+                          {/* Next session callout */}
+                          {enrollment.paymentStatus === 'paid' && enrollment.nextSessionAt && (
+                            <div className="mt-2 text-xs text-blue-400">
+                              <Clock className="w-3 h-3 inline mr-1" />
+                              Next: {new Date(enrollment.nextSessionAt).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })} at {new Date(enrollment.nextSessionAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-600 mt-1.5">
                             Enrolled {new Date(enrollment.enrolledAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            {enrollment.paymentMethod === 'manual' && <span className="ml-2 text-gray-600">Â· Bank Transfer</span>}
+                            {enrollment.paymentMethod === 'manual' && <span className="ml-2">· Bank Transfer</span>}
                           </div>
                           {enrollment.paymentStatus === 'rejected' && enrollment.rejectedReason && (
                             <div className="mt-1 text-xs text-red-400">Reason: {enrollment.rejectedReason}</div>
                           )}
+                          {enrollment.batchTags?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {enrollment.batchTags.map((tag, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-purple-500/10 text-purple-300 rounded text-xs">{tag}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        {enrollment.paymentStatus === 'paid' && (
-                          <button
-                            onClick={() => navigate(`/bootcamp/batch/${enrollment.batchId}`)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm transition-colors shrink-0"
-                          >
-                            <MonitorPlay className="w-4 h-4" /> My Sessions
-                          </button>
-                        )}
-                        {enrollment.paymentStatus === 'pending' && (
-                          <div className="text-sm text-yellow-400 font-bold shrink-0">Waiting for confirmationâ€¦</div>
-                        )}
+                        <div className="shrink-0 flex flex-col items-end gap-2">
+                          {enrollment.paymentStatus === 'paid' && (
+                            <button
+                              onClick={() => navigate(`/bootcamp/batch/${enrollment.batchId}`)}
+                              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm transition-colors"
+                            >
+                              <MonitorPlay className="w-4 h-4" /> My Sessions
+                            </button>
+                          )}
+                          {enrollment.paymentStatus === 'pending' && (
+                            <div className="text-sm text-yellow-400 font-bold">Waiting for confirmation…</div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

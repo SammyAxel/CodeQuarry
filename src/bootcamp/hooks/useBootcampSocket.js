@@ -14,6 +14,7 @@ export function useBootcampSocket(sessionId, user, isAdmin = false) {
   const reconnectTimer = useRef(null);
 
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionLost, setConnectionLost] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [activeInteraction, setActiveInteraction] = useState(null);
@@ -25,13 +26,15 @@ export function useBootcampSocket(sessionId, user, isAdmin = false) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const wsHost = API_URL.replace(/^https?:\/\//, '');
-    const wsUrl = `${protocol}//${wsHost}/ws/bootcamp?sessionId=${sessionId}&userId=${user.id}&username=${encodeURIComponent(user.displayName || user.username)}&role=${isAdmin ? 'admin' : 'student'}`;
+    const token = localStorage.getItem('userToken') || '';
+    const wsUrl = `${protocol}//${wsHost}/ws/bootcamp?sessionId=${sessionId}&token=${encodeURIComponent(token)}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
       setIsConnected(true);
+      setConnectionLost(false);
       reconnectAttempts.current = 0;
     };
 
@@ -52,6 +55,8 @@ export function useBootcampSocket(sessionId, user, isAdmin = false) {
           reconnectAttempts.current++;
           connect();
         }, WS_RECONNECT_DELAY);
+      } else {
+        setConnectionLost(true);
       }
     };
 
@@ -163,6 +168,7 @@ export function useBootcampSocket(sessionId, user, isAdmin = false) {
 
   return {
     isConnected,
+    connectionLost,
     participants,
     chatMessages,
     activeInteraction,

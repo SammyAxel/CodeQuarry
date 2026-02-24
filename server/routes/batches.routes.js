@@ -16,8 +16,31 @@
 
 import { Router } from 'express';
 import midtransClient from 'midtrans-client';
+import rateLimit from 'express-rate-limit';
 import { verifyUserSession } from '../middleware/auth.middleware.js';
 import db from '../../database/index.js';
+import { sendPaymentApprovedEmail, sendPaymentRejectedEmail } from '../utils/email.js';
+
+// ─────────────────────────────────────────────
+// Rate limiters
+// ─────────────────────────────────────────────
+const enrollLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  keyGenerator: (req) => `enroll-${req.user?.id || req.ip}`,
+  message: { error: 'Too many enrollment requests. Please wait a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyGenerator: (req) => req.ip,
+  message: { error: 'Too many requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const router = Router();
 
@@ -79,7 +102,7 @@ router.get('/admin/pending', verifyUserSession, async (req, res) => {
  * Midtrans payment notification webhook.
  * Must be publicly accessible (no auth); Midtrans POSTs here after payment.
  */
-router.post('/payment/notification', async (req, res) => {
+router.post('/payment/notification', webhookLimiter, async (req, res) => {
   // Always respond 200 immediately — Midtrans marks as failed on any non-2xx
   res.json({ ok: true });
 
@@ -123,6 +146,16 @@ router.put('/enrollments/:id/approve', verifyUserSession, async (req, res) => {
       approvedAt: new Date(),
     });
     if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+
+    // Send approval email (fire-and-forget)
+    const user = await db.getUserById(enrollment.userId);
+    sendPaymentApprovedEmail({
+      email: user?.email || enrollment.email,
+      displayName: user?.display_name || enrollment.displayName || enrollment.username,
+      batchTitle: enrollment.batchTitle || `Batch #${enrollment.batchId}`,
+      amount: enrollment.amountPaid,
+    }).catch(() => {});
+
     res.json({ success: true, enrollment });
   } catch (err) {
     console.error('Error approving enrollment:', err);
@@ -147,10 +180,45 @@ router.put('/enrollments/:id/reject', verifyUserSession, async (req, res) => {
       rejectedReason: reason || 'Rejected by admin',
     });
     if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+
+    // Send rejection email (fire-and-forget)
+    const user = await db.getUserById(enrollment.userId);
+    sendPaymentRejectedEmail({
+      email: user?.email || enrollment.email,
+      displayName: user?.display_name || enrollment.displayName || enrollment.username,
+      batchTitle: enrollment.batchTitle || `Batch #${enrollment.batchId}`,
+      reason: reason || 'Rejected by admin',
+    }).catch(() => {});
+
     res.json({ success: true, enrollment });
   } catch (err) {
     console.error('Error rejecting enrollment:', err);
     res.status(500).json({ error: 'Failed to reject enrollment' });
+  }
+});
+
+/**
+ * PUT /api/batches/enrollments/:id/refund
+ * Admin marks a paid enrollment as refunded.
+ */
+router.put('/enrollments/:id/refund', verifyUserSession, async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const { reason } = req.body;
+    const enrollment = await db.updateBatchEnrollmentStatus(parseInt(req.params.id), {
+      paymentStatus: 'refunded',
+      approvedBy: admin.id,
+      approvedAt: new Date(),
+      rejectedReason: reason || 'Refunded by admin',
+    });
+    if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+
+    res.json({ success: true, enrollment });
+  } catch (err) {
+    console.error('Error refunding enrollment:', err);
+    res.status(500).json({ error: 'Failed to refund enrollment' });
   }
 });
 
@@ -271,6 +339,20 @@ router.get('/:id/enrollment', verifyUserSession, async (req, res) => {
 });
 
 /**
+ * GET /api/batches/:id/attendance
+ * Returns the logged-in user's per-session attendance for a batch.
+ */
+router.get('/:id/attendance', verifyUserSession, async (req, res) => {
+  try {
+    const attendance = await db.getUserSessionAttendance(parseInt(req.params.id), req.user.id);
+    res.json({ attendance });
+  } catch (err) {
+    console.error('Error fetching attendance:', err);
+    res.status(500).json({ error: 'Failed to fetch attendance' });
+  }
+});
+
+/**
  * GET /api/batches/:id/enrollments
  * All enrollments for a batch (admin only).
  */
@@ -293,7 +375,7 @@ router.get('/:id/enrollments', verifyUserSession, async (req, res) => {
  * Start Midtrans Snap checkout for a batch.
  * Returns { snapToken, clientKey, enrollmentId }.
  */
-router.post('/:id/enroll/online', verifyUserSession, async (req, res) => {
+router.post('/:id/enroll/online', verifyUserSession, enrollLimiter, async (req, res) => {
   try {
     const batchId = parseInt(req.params.id);
     const userId = req.user.id;
@@ -306,8 +388,16 @@ router.post('/:id/enroll/online', verifyUserSession, async (req, res) => {
     if (existing?.paymentStatus === 'paid') {
       return res.status(400).json({ error: 'You are already enrolled in this batch' });
     }
+    // Return existing Snap token if there's already a pending Midtrans enrollment
+    if (existing?.paymentStatus === 'pending' && existing?.snapToken) {
+      return res.json({
+        snapToken: existing.snapToken,
+        clientKey: process.env.MIDTRANS_CLIENT_KEY,
+        enrollmentId: existing.id,
+      });
+    }
 
-    // Check capacity
+    // Check capacity (non-binding pre-check; atomicEnroll does the authoritative check)
     if (batch.enrollmentCount >= batch.maxParticipants) {
       return res.status(400).json({ error: 'This batch is full' });
     }
@@ -340,8 +430,8 @@ router.post('/:id/enroll/online', verifyUserSession, async (req, res) => {
 
     const transaction = await snap.createTransaction(parameter);
 
-    // Create/update enrollment as pending
-    const enrollment = await db.createOrUpdateBatchEnrollment({
+    // Atomic capacity check + enrollment insert
+    const result = await db.atomicEnroll({
       batchId, userId,
       paymentMethod: 'midtrans',
       paymentStatus: 'pending',
@@ -349,11 +439,12 @@ router.post('/:id/enroll/online', verifyUserSession, async (req, res) => {
       amountPaid: batch.price,
       snapToken: transaction.token,
     });
+    if (result.error) return res.status(400).json({ error: result.error });
 
     res.json({
       snapToken: transaction.token,
       clientKey: process.env.MIDTRANS_CLIENT_KEY,
-      enrollmentId: enrollment.id,
+      enrollmentId: result.enrollment.id,
     });
   } catch (err) {
     console.error('Midtrans enrollment error:', err);
@@ -367,7 +458,7 @@ router.post('/:id/enroll/online', verifyUserSession, async (req, res) => {
  * Body: { transferRef, transferNotes }
  * Creates a pending enrollment; admin must approve.
  */
-router.post('/:id/enroll/manual', verifyUserSession, async (req, res) => {
+router.post('/:id/enroll/manual', verifyUserSession, enrollLimiter, async (req, res) => {
   try {
     const batchId = parseInt(req.params.id);
     const userId = req.user.id;
@@ -380,6 +471,10 @@ router.post('/:id/enroll/manual', verifyUserSession, async (req, res) => {
     if (existing?.paymentStatus === 'paid') {
       return res.status(400).json({ error: 'You are already enrolled in this batch' });
     }
+    // If already pending manual transfer, just return the existing enrollment
+    if (existing?.paymentStatus === 'pending' && existing?.paymentMethod === 'manual') {
+      return res.json({ success: true, enrollment: existing, alreadyPending: true });
+    }
 
     if (batch.enrollmentCount >= batch.maxParticipants) {
       return res.status(400).json({ error: 'This batch is full' });
@@ -391,7 +486,8 @@ router.post('/:id/enroll/manual', verifyUserSession, async (req, res) => {
     }
 
     const ref = `MANUAL-${batchId}-${userId}-${Date.now()}`;
-    const enrollment = await db.createOrUpdateBatchEnrollment({
+    // Atomic capacity check + enrollment insert
+    const result = await db.atomicEnroll({
       batchId, userId,
       paymentMethod: 'manual',
       paymentStatus: 'pending',
@@ -399,8 +495,9 @@ router.post('/:id/enroll/manual', verifyUserSession, async (req, res) => {
       transferNotes: `Ref: ${transferRef.trim()}${transferNotes ? ` | Notes: ${transferNotes}` : ''}`,
       amountPaid: batch.price,
     });
+    if (result.error) return res.status(400).json({ error: result.error });
 
-    res.json({ success: true, enrollment });
+    res.json({ success: true, enrollment: result.enrollment });
   } catch (err) {
     console.error('Manual enrollment error:', err);
     res.status(500).json({ error: 'Failed to register enrollment' });

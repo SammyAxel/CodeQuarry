@@ -87,3 +87,36 @@ server.listen(PORT, () => {
   console.log(`📝 Environment: ${NODE_ENV}`);
   console.log(`🔗 CORS Origins: ${CORS_ORIGINS.join(', ')}`);
 });
+
+// ─────────────────────────────────────────────
+// Graceful shutdown — fixes Heroku R12 (Exit timeout)
+// Heroku sends SIGTERM on dyno restart/deploy. Without a handler the process
+// hangs until SIGKILL (30 s later), causing R12 errors in logs.
+// ─────────────────────────────────────────────
+const shutdown = (signal) => {
+  console.log(`⚠️  ${signal} received — shutting down gracefully`);
+  server.close((err) => {
+    if (err) {
+      console.error('Error during server close:', err);
+      process.exit(1);
+    }
+    console.log('✅ HTTP server closed');
+    // Give the DB pool a chance to drain, then exit cleanly
+    import('../database/connection.js')
+      .then(({ default: pool }) => pool.end())
+      .catch(() => {})
+      .finally(() => {
+        console.log('✅ DB pool closed — exiting');
+        process.exit(0);
+      });
+  });
+
+  // Safety net: if shutdown takes longer than 10 s, force-exit
+  setTimeout(() => {
+    console.error('⛔ Graceful shutdown timed out — forcing exit');
+    process.exit(1);
+  }, 10_000).unref();
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));

@@ -17,7 +17,8 @@ import {
 } from '../api/bootcampApi';
 import {
   fetchBatches, createBatch, updateBatch, deleteBatch,
-  fetchPendingEnrollments, approveEnrollment, rejectEnrollment
+  fetchPendingEnrollments, approveEnrollment, rejectEnrollment,
+  refundEnrollment, fetchBatchEnrollments
 } from '../api/batchApi';
 
 const IDR = (amount) =>
@@ -46,13 +47,20 @@ export default function BootcampManagePage() {
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
+  // ââ Batch enrollees state ââ
+  const [viewBatchEnrollees, setViewBatchEnrollees] = useState(null);
+  const [batchEnrollees, setBatchEnrollees] = useState([]);
+  const [refundingId, setRefundingId] = useState(null);
+  const [refundReason, setRefundReason] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
 
   // Shared form state (reused for session & batch create/edit)
   const [sessionForm, setSessionForm] = useState({
     title: '', description: '', scheduledAt: '', durationMinutes: 75,
-    maxParticipants: 50, tags: ''
+    maxParticipants: 50, tags: '', batchId: '', recordingUrl: ''
   });
   const [batchForm, setBatchForm] = useState({
     title: '', description: '', price: '', startDate: '', endDate: '',
@@ -69,12 +77,13 @@ export default function BootcampManagePage() {
     setLoading(true);
     setError('');
     try {
+      // Always fetch batches so the batch-selector dropdown has data
+      const batchData = await fetchBatches(true);
+      setBatches(batchData);
+
       if (tab === 'sessions') {
         const data = await fetchSessions();
         setSessions(data);
-      } else if (tab === 'batches') {
-        const data = await fetchBatches(true); // true = include non-public
-        setBatches(data);
       } else if (tab === 'payments') {
         const data = await fetchPendingEnrollments();
         setPendingPayments(data);
@@ -90,43 +99,60 @@ export default function BootcampManagePage() {
   const handleCreateSession = async (e) => {
     e.preventDefault();
     try {
-      await createSession({ ...sessionForm, tags: sessionForm.tags.split(',').map(t => t.trim()).filter(Boolean) });
+      await createSession({
+        ...sessionForm,
+        tags: sessionForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+        batchId: sessionForm.batchId ? parseInt(sessionForm.batchId) : null,
+      });
       setShowCreateSession(false);
-      setSessionForm({ title: '', description: '', scheduledAt: '', durationMinutes: 75, maxParticipants: 50, tags: '' });
+      setSessionForm({ title: '', description: '', scheduledAt: '', durationMinutes: 75, maxParticipants: 50, tags: '', batchId: '', recordingUrl: '' });
       loadTab();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   const handleUpdateSession = async (id) => {
     try {
-      const data = { ...sessionForm, tags: typeof sessionForm.tags === 'string' ? sessionForm.tags.split(',').map(t => t.trim()).filter(Boolean) : sessionForm.tags };
+      setActionError('');
+      const data = {
+        ...sessionForm,
+        tags: typeof sessionForm.tags === 'string' ? sessionForm.tags.split(',').map(t => t.trim()).filter(Boolean) : sessionForm.tags,
+        batchId: sessionForm.batchId ? parseInt(sessionForm.batchId) : null,
+        recordingUrl: sessionForm.recordingUrl || null,
+      };
       await updateSession(id, data);
       setEditingId(null);
       loadTab();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   const handleDeleteSession = async (id) => {
     if (!confirm('Delete this session?')) return;
-    try { await deleteSession(id); loadTab(); } catch (err) { alert(err.message); }
+    try { setActionError(''); await deleteSession(id); loadTab(); } catch (err) { setActionError(err.message); }
   };
 
   const handleGoLive = async (id) => {
-    try { await goLive(id); loadTab(); } catch (err) { alert(err.message); }
+    try { setActionError(''); await goLive(id); loadTab(); } catch (err) { setActionError(err.message); }
   };
 
   const handleEndSession = async (id) => {
     if (!confirm('End this session?')) return;
-    try { await endSession(id); loadTab(); } catch (err) { alert(err.message); }
+    try { setActionError(''); await endSession(id); loadTab(); } catch (err) { setActionError(err.message); }
   };
 
   const handleViewEnrollments = async (id) => {
-    try { const data = await fetchSessionEnrollments(id); setEnrollments(data); setViewEnrollments(id); } catch (err) { alert(err.message); }
+    try { setActionError(''); const data = await fetchSessionEnrollments(id); setEnrollments(data); setViewEnrollments(id); } catch (err) { setActionError(err.message); }
   };
 
   const startEditSession = (s) => {
     setEditingId(s.id);
-    setSessionForm({ title: s.title, description: s.description || '', scheduledAt: new Date(s.scheduledAt).toISOString().slice(0, 16), durationMinutes: s.durationMinutes, maxParticipants: s.maxParticipants, tags: s.tags?.join(', ') || '' });
+    setSessionForm({
+      title: s.title, description: s.description || '',
+      scheduledAt: new Date(s.scheduledAt).toISOString().slice(0, 16),
+      durationMinutes: s.durationMinutes, maxParticipants: s.maxParticipants,
+      tags: s.tags?.join(', ') || '',
+      batchId: s.batchId || '',
+      recordingUrl: s.recordingUrl || '',
+    });
   };
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€ BATCH HANDLERS â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -148,11 +174,12 @@ export default function BootcampManagePage() {
       setShowCreateBatch(false);
       resetBatchForm();
       loadTab();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   const handleUpdateBatch = async (id) => {
     try {
+      setActionError('');
       const payload = {
         title: batchForm.title, description: batchForm.description,
         price: parseFloat(batchForm.price), startDate: batchForm.startDate, endDate: batchForm.endDate,
@@ -163,12 +190,12 @@ export default function BootcampManagePage() {
       await updateBatch(id, payload);
       setEditingBatchId(null);
       loadTab();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setActionError(err.message); }
   };
 
   const handleDeleteBatch = async (id) => {
     if (!confirm('Delete this batch? This cannot be undone.')) return;
-    try { await deleteBatch(id); loadTab(); } catch (err) { alert(err.message); }
+    try { setActionError(''); await deleteBatch(id); loadTab(); } catch (err) { setActionError(err.message); }
   };
 
   const startEditBatch = (b) => {
@@ -184,14 +211,37 @@ export default function BootcampManagePage() {
 
   const resetBatchForm = () => setBatchForm({ title: '', description: '', price: '', startDate: '', endDate: '', maxParticipants: 30, status: 'open', tags: '', bankName: '', bankAccount: '', bankAccountName: '' });
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€ PAYMENT HANDLERS â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────── PAYMENT HANDLERS ───────────
   const handleApprove = async (id) => {
-    try { await approveEnrollment(id); loadTab(); } catch (err) { alert(err.message); }
+    try { setActionError(''); await approveEnrollment(id); loadTab(); } catch (err) { setActionError(err.message); }
   };
 
   const handleReject = async (id) => {
-    if (!rejectReason.trim()) { alert('Please enter a rejection reason.'); return; }
-    try { await rejectEnrollment(id, rejectReason.trim()); setRejectingId(null); setRejectReason(''); loadTab(); } catch (err) { alert(err.message); }
+    if (!rejectReason.trim()) { setActionError('Please enter a rejection reason.'); return; }
+    try { setActionError(''); await rejectEnrollment(id, rejectReason.trim()); setRejectingId(null); setRejectReason(''); loadTab(); } catch (err) { setActionError(err.message); }
+  };
+
+  // ─────────── BATCH ENROLLEES HANDLERS ───────────
+  const handleViewBatchEnrollees = async (batchId) => {
+    try {
+      setActionError('');
+      const data = await fetchBatchEnrollments(batchId);
+      setBatchEnrollees(data);
+      setViewBatchEnrollees(batchId);
+    } catch (err) { setActionError(err.message); }
+  };
+
+  const handleRefund = async (enrollmentId) => {
+    if (!refundReason.trim()) { setActionError('Please enter a refund reason.'); return; }
+    try {
+      setActionError('');
+      await refundEnrollment(enrollmentId, refundReason.trim());
+      setRefundingId(null);
+      setRefundReason('');
+      // Refresh the current modal data
+      if (viewBatchEnrollees) handleViewBatchEnrollees(viewBatchEnrollees);
+      loadTab();
+    } catch (err) { setActionError(err.message); }
   };
 
   const formatDate = (d) => new Date(d).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -307,6 +357,14 @@ export default function BootcampManagePage() {
           </div>
         )}
 
+        {/* Inline action error banner (replaces alert()) */}
+        {actionError && (
+          <div className="flex items-center justify-between gap-2 mb-4 p-3 bg-red-900/20 border border-red-800/40 rounded-xl text-red-400 text-sm">
+            <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" />{actionError}</div>
+            <button onClick={() => setActionError('')} className="text-red-400 hover:text-white"><X className="w-4 h-4" /></button>
+          </div>
+        )}
+
         {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SESSIONS TAB â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
         {tab === 'sessions' && (
           <>
@@ -324,6 +382,14 @@ export default function BootcampManagePage() {
                     <label className="text-xs text-gray-400 font-bold mb-1 block">Description</label>
                     <textarea value={sessionForm.description} onChange={e => setSessionForm({...sessionForm, description: e.target.value})}
                       className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500 h-20 resize-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 font-bold mb-1 block">Assign to Batch</label>
+                    <select value={sessionForm.batchId} onChange={e => setSessionForm({...sessionForm, batchId: e.target.value})}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500">
+                      <option value="">— No batch (free event) —</option>
+                      {batches.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 font-bold mb-1 block">Date & Time *</label>
@@ -373,6 +439,23 @@ export default function BootcampManagePage() {
                           <input type="number" value={sessionForm.maxParticipants} onChange={e => setSessionForm({...sessionForm, maxParticipants: parseInt(e.target.value)})}
                             className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500" />
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-400 font-bold mb-1 block">Assign to Batch</label>
+                            <select value={sessionForm.batchId} onChange={e => setSessionForm({...sessionForm, batchId: e.target.value})}
+                              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500">
+                              <option value="">— No batch (free) —</option>
+                              {batches.map(b => <option key={b.id} value={b.id}>{b.title}</option>)}
+                            </select>
+                          </div>
+                          {session.status === 'ended' && (
+                            <div>
+                              <label className="text-xs text-gray-400 font-bold mb-1 block">Recording URL</label>
+                              <input type="url" value={sessionForm.recordingUrl} onChange={e => setSessionForm({...sessionForm, recordingUrl: e.target.value})}
+                                placeholder="https://youtube.com/..." className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                            </div>
+                          )}
+                        </div>
                         <div className="flex gap-2 justify-end">
                           <button onClick={() => setEditingId(null)} className="p-1.5 text-gray-400"><X className="w-4 h-4" /></button>
                           <button onClick={() => handleUpdateSession(session.id)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-bold"><Save className="w-3.5 h-3.5" /> Save</button>
@@ -386,6 +469,11 @@ export default function BootcampManagePage() {
                             {session.status === 'live' && <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold"><Radio className="w-3 h-3 animate-pulse" />LIVE</span>}
                             {session.status === 'scheduled' && <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full text-xs font-bold">Scheduled</span>}
                             {session.status === 'ended' && <span className="px-2 py-0.5 bg-gray-600/20 text-gray-400 rounded-full text-xs font-bold">Ended</span>}
+                            {session.batchId && batches.find(b => b.id === session.batchId) && (
+                              <span className="px-2 py-0.5 bg-purple-500/15 text-purple-300 rounded-full text-xs font-bold">
+                                {batches.find(b => b.id === session.batchId)?.title}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
                             <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDate(session.scheduledAt)}</span>
@@ -463,6 +551,7 @@ export default function BootcampManagePage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => handleViewBatchEnrollees(batch.id)} className="flex items-center gap-1 px-2 py-1.5 text-gray-500 hover:text-white text-xs"><Users className="w-3.5 h-3.5" /> Enrollees</button>
                           <button onClick={() => startEditBatch(batch)} className="p-1.5 text-gray-500 hover:text-white"><Edit3 className="w-4 h-4" /></button>
                           <button onClick={() => handleDeleteBatch(batch.id)} className="p-1.5 text-gray-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                         </div>
@@ -562,6 +651,60 @@ export default function BootcampManagePage() {
                         {e.attended && <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded font-bold">ATTENDED</span>}
                         <span className="text-xs text-gray-600">{new Date(e.enrolledAt).toLocaleDateString()}</span>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Batch Enrollees Modal (with refund) */}
+        {viewBatchEnrollees && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => { setViewBatchEnrollees(null); setRefundingId(null); setRefundReason(''); }}>
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-xl w-full max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">Batch Enrollees</h3>
+                <button onClick={() => { setViewBatchEnrollees(null); setRefundingId(null); setRefundReason(''); }} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+              {batchEnrollees.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">No enrollees yet</div>
+              ) : (
+                <div className="space-y-2">
+                  {batchEnrollees.map((e) => (
+                    <div key={e.id} className="px-3 py-2.5 bg-gray-800 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-white font-medium">{e.displayName || e.username}</span>
+                          <span className="text-xs text-gray-500">@{e.username}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                            e.paymentStatus === 'paid' ? 'bg-green-500/20 text-green-400' :
+                            e.paymentStatus === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                            e.paymentStatus === 'refunded' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>{e.paymentStatus?.toUpperCase()}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600">{new Date(e.enrolledAt).toLocaleDateString()}</span>
+                          {e.paymentStatus === 'paid' && refundingId !== e.id && (
+                            <button onClick={() => { setRefundingId(e.id); setRefundReason(''); }}
+                              className="text-[10px] px-2 py-0.5 bg-gray-700 hover:bg-red-600/30 text-gray-400 hover:text-red-400 rounded font-bold transition-colors">
+                              Refund
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {refundingId === e.id && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <input type="text" value={refundReason} onChange={ev => setRefundReason(ev.target.value)}
+                            placeholder="Refund reason…" autoFocus
+                            className="flex-1 bg-gray-700 border border-red-800/40 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-500" />
+                          <button onClick={() => { setRefundingId(null); setRefundReason(''); }}
+                            className="p-1.5 text-gray-400 hover:text-white"><X className="w-4 h-4" /></button>
+                          <button onClick={() => handleRefund(e.id)}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold transition-colors">Confirm</button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

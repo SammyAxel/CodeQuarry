@@ -58,6 +58,15 @@ const formatEnrollment = (row) => ({
   displayName: row.display_name,
   email: row.email,
   batchTitle: row.batch_title,
+  // Extra batch fields (from getUserBatchEnrollments)
+  batchPrice: parseFloat(row.price) || undefined,
+  batchCurrency: row.currency || undefined,
+  batchStartDate: row.start_date || undefined,
+  batchEndDate: row.end_date || undefined,
+  batchInstructor: row.instructor_name || undefined,
+  batchTags: row.tags || undefined,
+  sessionCount: row.session_count !== undefined ? parseInt(row.session_count) : undefined,
+  nextSessionAt: row.next_session_at || undefined,
 });
 
 // ─────────────────────────────────────────────
@@ -201,6 +210,63 @@ export const createOrUpdateBatchEnrollment = async (data) => {
   return formatEnrollment(result.rows[0]);
 };
 
+/**
+ * Atomically check capacity & insert enrollment inside a transaction.
+ * Returns { enrollment } on success or { error } if batch is full/invalid.
+ */
+export const atomicEnroll = async (data) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Lock the batch row to prevent concurrent over-enrollment
+    const batchRes = await client.query(
+      `SELECT bb.max_participants,
+         (SELECT COUNT(*) FROM batch_enrollments
+          WHERE batch_id = bb.id AND payment_status IN ('paid','pending')) AS current_count
+       FROM bootcamp_batches bb
+       WHERE bb.id = $1
+       FOR UPDATE`,
+      [data.batchId]
+    );
+    if (!batchRes.rows[0]) {
+      await client.query('ROLLBACK');
+      return { error: 'Batch not found' };
+    }
+    const { max_participants, current_count } = batchRes.rows[0];
+    if (parseInt(current_count) >= max_participants) {
+      await client.query('ROLLBACK');
+      return { error: 'This batch is full' };
+    }
+
+    const { batchId, userId, paymentMethod, paymentStatus, paymentRef, amountPaid, snapToken, transferNotes } = data;
+    const result = await client.query(
+      `INSERT INTO batch_enrollments
+         (batch_id, user_id, payment_method, payment_status, payment_ref, amount_paid, snap_token, transfer_notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (batch_id, user_id) DO UPDATE SET
+         payment_method = EXCLUDED.payment_method,
+         payment_status = EXCLUDED.payment_status,
+         payment_ref    = EXCLUDED.payment_ref,
+         amount_paid    = EXCLUDED.amount_paid,
+         snap_token     = EXCLUDED.snap_token,
+         transfer_notes = EXCLUDED.transfer_notes,
+         updated_at     = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [batchId, userId, paymentMethod, paymentStatus || 'pending', paymentRef || null,
+       amountPaid || 0, snapToken || null, transferNotes || null]
+    );
+
+    await client.query('COMMIT');
+    return { enrollment: formatEnrollment(result.rows[0]) };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 export const updateBatchEnrollmentStatus = async (enrollmentId, updates) => {
   const result = await pool.query(
     `UPDATE batch_enrollments
@@ -226,7 +292,10 @@ export const updateBatchEnrollmentByRef = async (paymentRef, updates) => {
 export const getUserBatchEnrollments = async (userId) => {
   const result = await pool.query(
     `SELECT be.*, bb.title AS batch_title, bb.price, bb.currency,
-       bb.start_date, bb.end_date, bb.instructor_name, bb.tags
+       bb.start_date, bb.end_date, bb.instructor_name, bb.tags,
+       (SELECT COUNT(*) FROM bootcamp_sessions WHERE batch_id = bb.id) AS session_count,
+       (SELECT MIN(scheduled_at) FROM bootcamp_sessions
+        WHERE batch_id = bb.id AND status IN ('scheduled','live') AND scheduled_at >= NOW()) AS next_session_at
      FROM batch_enrollments be
      JOIN bootcamp_batches bb ON be.batch_id = bb.id
      WHERE be.user_id = $1
@@ -268,4 +337,23 @@ export const isUserEnrolledInBatch = async (batchId, userId) => {
     [batchId, userId]
   );
   return result.rows.length > 0;
+};
+
+/**
+ * Get which sessions a user attended within a batch.
+ * Returns a Map-friendly array: [{ sessionId, attended, joinedAt }]
+ */
+export const getUserSessionAttendance = async (batchId, userId) => {
+  const result = await pool.query(
+    `SELECT be.session_id, be.attended, be.joined_at
+     FROM bootcamp_enrollments be
+     JOIN bootcamp_sessions bs ON bs.id = be.session_id
+     WHERE bs.batch_id = $1 AND be.user_id = $2`,
+    [batchId, userId]
+  );
+  return result.rows.map(row => ({
+    sessionId: row.session_id,
+    attended: row.attended || false,
+    joinedAt: row.joined_at,
+  }));
 };

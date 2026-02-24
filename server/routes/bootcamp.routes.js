@@ -370,7 +370,7 @@ router.post('/sessions', verifyUserSession, async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { title, description, scheduledAt, durationMinutes, maxParticipants, tags } = req.body;
+    const { title, description, scheduledAt, durationMinutes, maxParticipants, tags, batchId } = req.body;
 
     if (!title || !scheduledAt) {
       return res.status(400).json({ error: 'Title and scheduledAt are required' });
@@ -389,7 +389,8 @@ router.post('/sessions', verifyUserSession, async (req, res) => {
       scheduledAt,
       durationMinutes: durationMinutes || 75,
       maxParticipants: maxParticipants || 50,
-      tags: tags || []
+      tags: tags || [],
+      batchId: batchId || null
     });
 
     res.json({ success: true, session });

@@ -44,3 +44,55 @@ A compact, actionable roadmap to implement advanced editor themes, Shiki-based s
 - No regression in current editor features (indentation, auto-pairing, keyboard shortcuts)
 
 ---
+
+# TODO: Bootcamp / Online Class Features
+
+Main revenue feature — complete the full student + instructor lifecycle.
+
+## Priority: Critical (unblocks paid users)
+- [x] `/bootcamp/batch/:id` — Batch Detail Page
+  - Route is already navigated to from the "My Sessions" button in My Classes tab but the page + route don't exist
+  - Show all sessions belonging to the batch (scheduled, live, ended)
+  - "Join Live" button for live sessions the user is enrolled in
+  - "Watch Recording" button for ended sessions that have a `recordingUrl`
+  - Guard: redirect to `/bootcamp` if user is not a paid enrollee of that batch
+
+- [x] Backend: batch session access control
+  - `POST /api/bootcamp/sessions/:id/join` must verify the user has a `paid` enrollment in the session's parent batch
+  - Already implemented — checks `isUserEnrolledInBatch` when session has `batchId`
+
+## Priority: High
+- [x] Admin UI: assign `batch_id` when creating/editing a session
+  - Batch selector dropdown in create/edit session forms, populated from `fetchBatches()`
+  - Session list shows batch name badge next to session title
+
+- [x] Admin UI: set recording URL on ended sessions
+  - Recording URL input appears in edit form when session `status === 'ended'`
+
+- [x] Prevent duplicate enrollment rows on double-click / double enroll
+  - Both `/enroll/online` and `/enroll/manual` routes detect existing pending enrollments and return them
+
+## Priority: Medium
+- [x] Email notification on manual payment approve / reject
+  - Nodemailer utility at `server/utils/email.js` with bilingual (ID) templates
+  - Wired into approve/reject endpoints (fire-and-forget)
+
+- [x] My Classes tab: richer enrollment card
+  - Shows batch dates, session count, next upcoming session, instructor name, tags
+
+- [ ] Midtrans approval post-actions
+  - Once `VITE_MIDTRANS_ENABLED=true` is live: send payment receipt email from the webhook handler
+  - Document the exact Cloudflare Pages env vars to set: `VITE_MIDTRANS_ENABLED=true`, `VITE_MIDTRANS_CLIENT_KEY`
+
+## Priority: Low (post-launch)
+- [x] Attendance tracking per session
+  - `markAttendance` already records join in `bootcamp_enrollments`
+  - New `GET /api/batches/:id/attendance` returns per-session attendance for logged-in user
+  - BatchDetailPage shows "Attended" badge per session and X/Y attendance summary in header
+  - Admin enrollments modal already shows ATTENDED badge
+
+- [ ] Completion certificate / badge on batch finish
+  - Trigger when all sessions in a batch are `ended` and user attended ≥ threshold
+  - Simple PDF or shareable image generated server-side
+
+---

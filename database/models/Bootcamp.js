@@ -14,15 +14,15 @@ export const createBootcampSession = async (sessionData) => {
   const {
     title, description, instructorId, instructorName,
     roomId, provider, scheduledAt, durationMinutes,
-    maxParticipants, tags
+    maxParticipants, tags, batchId
   } = sessionData;
 
   const result = await pool.query(
     `INSERT INTO bootcamp_sessions 
-      (title, description, instructor_id, instructor_name, room_id, provider, scheduled_at, duration_minutes, max_participants, tags)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      (title, description, instructor_id, instructor_name, room_id, provider, scheduled_at, duration_minutes, max_participants, tags, batch_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
-    [title, description, instructorId, instructorName, roomId, provider || 'jitsi', scheduledAt, durationMinutes || 75, maxParticipants || 50, tags || []]
+    [title, description, instructorId, instructorName, roomId, provider || 'jitsi', scheduledAt, durationMinutes || 75, maxParticipants || 50, tags || [], batchId || null]
   );
   return formatSession(result.rows[0]);
 };
@@ -90,12 +90,12 @@ export const updateBootcampSession = async (sessionId, updates) => {
   const values = [];
   let paramIndex = 1;
 
-  const allowedFields = ['title', 'description', 'scheduled_at', 'duration_minutes', 'max_participants', 'tags', 'status', 'room_id', 'provider', 'recording_url'];
+  const allowedFields = ['title', 'description', 'scheduled_at', 'duration_minutes', 'max_participants', 'tags', 'status', 'room_id', 'provider', 'recording_url', 'batch_id'];
   const fieldMap = {
     title: 'title', description: 'description', scheduledAt: 'scheduled_at',
     durationMinutes: 'duration_minutes', maxParticipants: 'max_participants',
     tags: 'tags', status: 'status', roomId: 'room_id', provider: 'provider',
-    recordingUrl: 'recording_url'
+    recordingUrl: 'recording_url', batchId: 'batch_id'
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -312,6 +312,7 @@ const formatSession = (row) => ({
   maxParticipants: row.max_participants,
   tags: row.tags,
   recordingUrl: row.recording_url,
+  batchId: row.batch_id || null,
   enrollmentCount: row.enrollment_count ? parseInt(row.enrollment_count) : undefined,
   createdAt: row.created_at,
   updatedAt: row.updated_at
