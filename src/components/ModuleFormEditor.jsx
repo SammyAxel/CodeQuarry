@@ -1,9 +1,28 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, Plus, X, Info, Sparkles, Gem, Zap, AlertTriangle } from 'lucide-react';
-import { MODULE_TYPES, DIFFICULTY_LEVELS, PROGRAMMING_LANGUAGES, COURSE_TIERS, VALIDATION } from '../constants/courseConstants';
+import { ChevronLeft, Plus, X, Info, Sparkles, Gem } from 'lucide-react';
+import { MODULE_TYPES, DIFFICULTY_LEVELS, PROGRAMMING_LANGUAGES, VALIDATION } from '../constants/courseConstants';
 
 export const ModuleFormEditor = ({ module, onSave, onCancel }) => {
   const textareaRef = useRef(null);
+
+  /** Insert markdown syntax at the cursor position in the article textarea */
+  const insertMarkdown = (before, after) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const text = el.value;
+    const selected = text.substring(start, end) || 'text';
+    const newText = text.substring(0, start) + before + selected + after + text.substring(end);
+    setData((prev) => ({ ...prev, content: newText }));
+    // Restore cursor after React re-render
+    requestAnimationFrame(() => {
+      el.selectionStart = start + before.length;
+      el.selectionEnd = start + before.length + selected.length;
+      el.focus();
+    });
+  };
+
   const [data, setData] = useState(module);
   const [hintInput, setHintInput] = useState('');
   const [requiredCodeInput, setRequiredCodeInput] = useState('');

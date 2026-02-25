@@ -8,7 +8,7 @@ import {
   ArrowLeft, Plus, Calendar, Clock, Users, Trash2, 
   Radio, Square, Edit3, Save, X, MonitorPlay,
   GraduationCap, CreditCard, CheckCircle2, XCircle,
-  Loader2, AlertCircle, ChevronDown, ChevronUp, Award, Download
+  Loader2, AlertCircle, Award, Download
 } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 import { 

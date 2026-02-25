@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen, AlertCircle, Shield, BookOpen, Layers, Server, ServerOff, Languages, Globe, Lock } from 'lucide-react';
+import { FileText, Plus, Edit2, Trash2, Check, Eye, Download, Upload, FolderOpen, AlertCircle, Shield, BookOpen, Layers, Languages, Lock } from 'lucide-react';
 import { CourseEditor } from './ModuleEditor';
 import { CoursePreview } from './CoursePreview';
 import { SecurityDashboard } from './SecurityDashboard';
 import { CourseTranslationEditor } from './CourseTranslationEditor';
-import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, clearAllCSRFTokens, sanitizeInput } from '../utils/securityUtils';
-import { publishCourse, saveCourse, checkServerHealth, getSessionToken, login as adminLogin } from '../utils/courseApi';
+import { generateCSRFToken, verifyCSRFToken, logSecurityEvent, sanitizeInput } from '../utils/securityUtils';
+import { publishCourse, checkServerHealth, getSessionToken, login as adminLogin } from '../utils/courseApi';
 import { updateCourse } from '../api/courses';
 import { useDrafts } from '../hooks/useDrafts';
 import { COURSES, useCourses } from '../data/courses';
