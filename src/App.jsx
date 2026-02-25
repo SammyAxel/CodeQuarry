@@ -30,6 +30,7 @@ const BootcampManagePage = lazy(() => import('./bootcamp/pages/BootcampManagePag
 const BatchDetailPage = lazy(() => import('./bootcamp/pages/BatchDetailPage'));
 const ClassroomPage = lazy(() => import('./bootcamp/components/ClassroomPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
+const CertificateVerifyPage = lazy(() => import('./pages/CertificateVerifyPage'));
 import { useUser } from './context/UserContext';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './context/LanguageContext';
@@ -356,6 +357,15 @@ export default function App() {
     );
   }
 
+  // Certificate verification is public — anyone (incl. employers) can verify a cert UUID
+  if (location.pathname.match(/^\/verify\/[a-f0-9-]{36}$/i)) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#0d1117] flex items-center justify-center text-yellow-400">Verifying...</div>}>
+        <CertificateVerifyPage />
+      </Suspense>
+    );
+  }
+
   // Batch detail page requires login
   if (location.pathname.match(/^\/bootcamp\/batch\/\d+$/)) {
     if (!currentUser) {
@@ -396,7 +406,7 @@ export default function App() {
     }
     // Update URL to /login (but not if we're on a public route)
     // Save the intended URL so we can restore it after login
-    if (location.pathname !== '/login' && !location.pathname.startsWith('/user/') && location.pathname !== '/leaderboard') {
+    if (location.pathname !== '/login' && !location.pathname.startsWith('/user/') && location.pathname !== '/leaderboard' && !location.pathname.startsWith('/verify/')) {
       sessionStorage.setItem('intendedUrl', location.pathname);
     }
     return (

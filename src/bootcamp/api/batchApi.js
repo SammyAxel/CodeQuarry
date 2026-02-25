@@ -153,3 +153,59 @@ export async function fetchBatchEnrollments(batchId) {
   if (!res.ok) throw new Error(data.error);
   return data.enrollments;
 }
+
+// ─────────────────────────────────────────────
+// Certificates
+// ─────────────────────────────────────────────
+
+export async function fetchCertificateTemplate(batchId) {
+  const res = await fetch(`${API_URL}/api/batches/${batchId}/certificate/template`, { headers: getHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data.template;
+}
+
+export async function saveCertificateTemplate(batchId, templateData) {
+  const res = await fetch(`${API_URL}/api/batches/${batchId}/certificate/template`, {
+    method: 'PUT', headers: getHeaders(), body: JSON.stringify(templateData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data.template;
+}
+
+export async function fetchEligibleStudents(batchId) {
+  const res = await fetch(`${API_URL}/api/batches/${batchId}/certificate/eligible`, { headers: getHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return { eligible: data.eligible, threshold: data.threshold };
+}
+
+export async function issueCertificates(batchId, userIds) {
+  const res = await fetch(`${API_URL}/api/batches/${batchId}/certificate/issue`, {
+    method: 'POST', headers: getHeaders(),
+    body: JSON.stringify(userIds ? { userIds } : {}),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data;
+}
+
+export async function fetchMyCertificate(batchId) {
+  const res = await fetch(`${API_URL}/api/batches/${batchId}/certificate`, { headers: getHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data.certificate;
+}
+
+export async function fetchBatchCertificates(batchId) {
+  const res = await fetch(`${API_URL}/api/batches/${batchId}/certificates`, { headers: getHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data.certificates;
+}
+
+export function getCertificatePdfUrl(certUuid) {
+  const token = localStorage.getItem('userToken') || '';
+  return `${API_URL}/api/batches/cert/${certUuid}/pdf?token=${encodeURIComponent(token)}`;
+}

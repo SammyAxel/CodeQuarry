@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { ScrollText, Mail, Phone, ChevronDown, ChevronUp } from 'lucide-react';
 
-const LAST_UPDATED = '23 Februari 2026 / 23 February 2026';
+const LAST_UPDATED = 'Juli 2025 / July 2025';
 const CONTACT_EMAIL = 'codequarry.sammy@gmail.com';
 const CONTACT_WA_1 = '+62 821-1255-9775';
 const CONTACT_WA_2 = '+62 813-131-5166';
@@ -245,6 +245,30 @@ export default function TermsPage() {
           <BiParagraph
             id="Syarat & Ketentuan ini diatur oleh dan ditafsirkan sesuai dengan hukum Republik Indonesia. Segala sengketa yang timbul akan diselesaikan melalui musyawarah mufakat terlebih dahulu, dan jika tidak tercapai kesepakatan, akan diselesaikan melalui jalur hukum yang berlaku di Indonesia."
             en="These Terms & Conditions are governed by and construed in accordance with the laws of the Republic of Indonesia. Any disputes shall first be resolved through amicable negotiation, and if no agreement is reached, through applicable legal channels in Indonesia."
+          />
+        </Section>
+
+        {/* 12. Sertifikat Penyelesaian */}
+        <Section titleId="12. Sertifikat Penyelesaian" titleEn="12. Certificates of Completion">
+          <BiParagraph
+            id="CodeQuarry menerbitkan Sertifikat Penyelesaian kepada peserta yang telah memenuhi syarat kehadiran dan partisipasi dalam program Bootcamp. Sertifikat ini merupakan pengakuan atas penyelesaian program pelatihan dan bukan merupakan kualifikasi akademik atau profesi yang terakreditasi."
+            en="CodeQuarry issues Certificates of Completion to participants who have met the attendance and participation requirements of a Bootcamp program. These certificates acknowledge completion of a training program and are not accredited academic or professional qualifications."
+          />
+          <BiParagraph
+            id="Setiap sertifikat dilengkapi dengan UUID (Universally Unique Identifier) yang unik. Siapa pun dapat memverifikasi keaslian sertifikat melalui halaman verifikasi publik di codequarry.app/verify/<uuid>. UUID yang tercetak pada sertifikat harus cocok dengan hasil verifikasi online untuk membuktikan keasliannya."
+            en="Each certificate includes a unique UUID (Universally Unique Identifier). Anyone may verify the authenticity of a certificate through the public verification page at codequarry.app/verify/<uuid>. The UUID printed on the certificate must match the online verification result to establish authenticity."
+          />
+          <BiParagraph
+            id="CodeQuarry berhak mencabut atau membatalkan sertifikat yang diterbitkan apabila ditemukan bukti kecurangan, pelanggaran Syarat & Ketentuan, atau kesalahan administrasi. Sertifikat yang dicabut tidak lagi dapat diverifikasi melalui sistem."
+            en="CodeQuarry reserves the right to revoke or void any issued certificate if evidence of fraud, violation of these Terms, or administrative error is discovered. Revoked certificates will no longer be verifiable through the system."
+          />
+          <BiParagraph
+            id="Nama lengkap peserta yang dicantumkan dalam sertifikat diproses dan disimpan sesuai Undang-Undang Perlindungan Data Pribadi (UU PDP) yang berlaku di Indonesia. Peserta dapat mengajukan permintaan koreksi atau penghapusan data melalui email resmi CodeQuarry. Penghapusan data dapat mengakibatkan sertifikat terkait tidak dapat diverifikasi."
+            en="The participant's full name appearing on the certificate is processed and stored in accordance with Indonesia's Personal Data Protection Law (UU PDP). Participants may request correction or deletion of their data via CodeQuarry's official email. Data deletion may result in the associated certificate becoming unverifiable."
+          />
+          <BiParagraph
+            id="Sertifikat CodeQuarry tidak menjamin penerimaan kerja, kenaikan jabatan, atau hasil profesional tertentu. Pengguna bertanggung jawab atas cara mereka mempresentasikan sertifikat kepada pihak ketiga."
+            en="A CodeQuarry certificate does not guarantee employment, promotion, or any specific professional outcome. Users are responsible for how they present certificates to third parties."
           />
         </Section>
 

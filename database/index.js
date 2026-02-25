@@ -354,6 +354,44 @@ const initDatabase = async () => {
       )
     `);
 
+    // Certificate templates (one per batch, admin-authored)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS batch_certificate_templates (
+        id SERIAL PRIMARY KEY,
+        batch_id INTEGER NOT NULL UNIQUE,
+        title TEXT NOT NULL DEFAULT 'Certificate of Completion',
+        subtitle TEXT DEFAULT 'This certifies that',
+        body_text TEXT DEFAULT '{{studentName}} has successfully completed {{batchTitle}}.',
+        instructor_name TEXT,
+        footer_text TEXT DEFAULT 'CodeQuarry Online Learning Platform',
+        accent_color TEXT DEFAULT '#7c3aed',
+        attendance_threshold INTEGER DEFAULT 75,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (batch_id) REFERENCES bootcamp_batches(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Issued certificates (one per student per batch)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_certificates (
+        id SERIAL PRIMARY KEY,
+        cert_uuid TEXT NOT NULL UNIQUE DEFAULT gen_random_uuid()::text,
+        batch_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        student_name TEXT NOT NULL,
+        batch_title TEXT NOT NULL,
+        instructor_name TEXT,
+        completion_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        issued_by INTEGER,
+        UNIQUE(batch_id, user_id),
+        FOREIGN KEY (batch_id) REFERENCES bootcamp_batches(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
     await client.query('COMMIT');
     console.log('✅ Database tables initialized');
 

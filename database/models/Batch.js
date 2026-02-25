@@ -357,3 +357,155 @@ export const getUserSessionAttendance = async (batchId, userId) => {
     joinedAt: row.joined_at,
   }));
 };
+
+// ─────────────────────────────────────────────
+// Certificate Templates
+// ─────────────────────────────────────────────
+
+const formatTemplate = (row) => ({
+  id: row.id,
+  batchId: row.batch_id,
+  title: row.title,
+  subtitle: row.subtitle,
+  bodyText: row.body_text,
+  instructorName: row.instructor_name,
+  footerText: row.footer_text,
+  accentColor: row.accent_color,
+  attendanceThreshold: row.attendance_threshold,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+export const getCertificateTemplate = async (batchId) => {
+  const result = await pool.query(
+    `SELECT * FROM batch_certificate_templates WHERE batch_id = $1`,
+    [batchId]
+  );
+  return result.rows[0] ? formatTemplate(result.rows[0]) : null;
+};
+
+export const upsertCertificateTemplate = async (batchId, data) => {
+  const { title, subtitle, bodyText, instructorName, footerText, accentColor, attendanceThreshold } = data;
+  const result = await pool.query(
+    `INSERT INTO batch_certificate_templates
+       (batch_id, title, subtitle, body_text, instructor_name, footer_text, accent_color, attendance_threshold)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (batch_id) DO UPDATE SET
+       title = EXCLUDED.title,
+       subtitle = EXCLUDED.subtitle,
+       body_text = EXCLUDED.body_text,
+       instructor_name = EXCLUDED.instructor_name,
+       footer_text = EXCLUDED.footer_text,
+       accent_color = EXCLUDED.accent_color,
+       attendance_threshold = EXCLUDED.attendance_threshold,
+       updated_at = CURRENT_TIMESTAMP
+     RETURNING *`,
+    [batchId, title, subtitle, bodyText, instructorName, footerText, accentColor, attendanceThreshold ?? 75]
+  );
+  return formatTemplate(result.rows[0]);
+};
+
+// ─────────────────────────────────────────────
+// Issued Certificates
+// ─────────────────────────────────────────────
+
+const formatCertificate = (row) => ({
+  id: row.id,
+  certUuid: row.cert_uuid,
+  batchId: row.batch_id,
+  userId: row.user_id,
+  studentName: row.student_name,
+  batchTitle: row.batch_title,
+  instructorName: row.instructor_name,
+  completionDate: row.completion_date,
+  issuedAt: row.issued_at,
+  issuedBy: row.issued_by,
+});
+
+export const getUserCertificate = async (batchId, userId) => {
+  const result = await pool.query(
+    `SELECT * FROM user_certificates WHERE batch_id = $1 AND user_id = $2`,
+    [batchId, userId]
+  );
+  return result.rows[0] ? formatCertificate(result.rows[0]) : null;
+};
+
+export const getCertificateByUuid = async (certUuid) => {
+  const result = await pool.query(
+    `SELECT * FROM user_certificates WHERE cert_uuid = $1`,
+    [certUuid]
+  );
+  return result.rows[0] ? formatCertificate(result.rows[0]) : null;
+};
+
+export const issueCertificate = async (batchId, userId, data, issuedBy) => {
+  const { studentName, batchTitle, instructorName, completionDate } = data;
+  const result = await pool.query(
+    `INSERT INTO user_certificates
+       (batch_id, user_id, student_name, batch_title, instructor_name, completion_date, issued_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
+     ON CONFLICT (batch_id, user_id) DO UPDATE SET
+       student_name = EXCLUDED.student_name,
+       batch_title = EXCLUDED.batch_title,
+       instructor_name = EXCLUDED.instructor_name,
+       completion_date = EXCLUDED.completion_date,
+       issued_by = EXCLUDED.issued_by
+     RETURNING *`,
+    [batchId, userId, studentName, batchTitle, instructorName || null,
+     completionDate || new Date(), issuedBy || null]
+  );
+  return formatCertificate(result.rows[0]);
+};
+
+export const getBatchCertificates = async (batchId) => {
+  const result = await pool.query(
+    `SELECT uc.*, u.username, u.display_name, u.email
+     FROM user_certificates uc
+     JOIN users u ON uc.user_id = u.id
+     WHERE uc.batch_id = $1
+     ORDER BY uc.issued_at DESC`,
+    [batchId]
+  );
+  return result.rows.map(row => ({ ...formatCertificate(row), username: row.username, email: row.email, displayName: row.display_name }));
+};
+
+/**
+ * Get all paid enrollees for a batch and check if they meet attendance threshold.
+ * Returns array of { userId, displayName, email, attendanceCount, sessionCount, meetsThreshold }.
+ */
+export const getBatchEligibleForCertificate = async (batchId, threshold = 75) => {
+  const result = await pool.query(
+    `SELECT
+       be.user_id,
+       COALESCE(u.display_name, u.username) AS display_name,
+       u.email,
+       COUNT(DISTINCT CASE WHEN ba.attended THEN ba.session_id END) AS attended_count,
+       COUNT(DISTINCT bs.id) AS session_count,
+       EXISTS (
+         SELECT 1 FROM user_certificates uc
+         WHERE uc.batch_id = $1 AND uc.user_id = be.user_id
+       ) AS already_issued
+     FROM batch_enrollments be
+     JOIN users u ON u.id = be.user_id
+     LEFT JOIN bootcamp_sessions bs ON bs.batch_id = $1
+     LEFT JOIN bootcamp_enrollments ba ON ba.session_id = bs.id AND ba.user_id = be.user_id
+     WHERE be.batch_id = $1 AND be.payment_status = 'paid'
+     GROUP BY be.user_id, u.display_name, u.username, u.email`,
+    [batchId]
+  );
+  return result.rows.map(row => {
+    const pct = row.session_count > 0
+      ? Math.round((parseInt(row.attended_count) / parseInt(row.session_count)) * 100)
+      : 0;
+    return {
+      userId: row.user_id,
+      displayName: row.display_name,
+      email: row.email,
+      attendedCount: parseInt(row.attended_count),
+      sessionCount: parseInt(row.session_count),
+      attendancePct: pct,
+      meetsThreshold: pct >= threshold,
+      alreadyIssued: row.already_issued,
+    };
+  });
+};

@@ -20,6 +20,7 @@ import rateLimit from 'express-rate-limit';
 import { verifyUserSession } from '../middleware/auth.middleware.js';
 import db from '../../database/index.js';
 import { sendPaymentApprovedEmail, sendPaymentRejectedEmail } from '../utils/email.js';
+import { generateCertificatePdf } from '../utils/certificate.js';
 
 // ─────────────────────────────────────────────
 // Rate limiters
@@ -501,6 +502,194 @@ router.post('/:id/enroll/manual', verifyUserSession, enrollLimiter, async (req, 
   } catch (err) {
     console.error('Manual enrollment error:', err);
     res.status(500).json({ error: 'Failed to register enrollment' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// Certificate Routes
+// ─────────────────────────────────────────────
+
+/**
+ * GET /api/batches/:id/certificate/template
+ * Returns the certificate template for a batch (admin only).
+ */
+router.get('/:id/certificate/template', verifyUserSession, async (req, res) => {
+  try {
+    if (!await requireAdmin(req, res)) return;
+    const template = await db.getCertificateTemplate(parseInt(req.params.id));
+    res.json({ template: template || null });
+  } catch (err) {
+    console.error('Error fetching certificate template:', err);
+    res.status(500).json({ error: 'Failed to fetch certificate template' });
+  }
+});
+
+/**
+ * PUT /api/batches/:id/certificate/template
+ * Admin upserts the certificate template for a batch.
+ * Body: { title, subtitle, bodyText, instructorName, footerText, accentColor, attendanceThreshold }
+ */
+router.put('/:id/certificate/template', verifyUserSession, async (req, res) => {
+  try {
+    if (!await requireAdmin(req, res)) return;
+    const batchId = parseInt(req.params.id);
+    const { title, subtitle, bodyText, instructorName, footerText, accentColor, attendanceThreshold } = req.body;
+    const template = await db.upsertCertificateTemplate(batchId, {
+      title, subtitle, bodyText, instructorName, footerText, accentColor, attendanceThreshold,
+    });
+    res.json({ template });
+  } catch (err) {
+    console.error('Error saving certificate template:', err);
+    res.status(500).json({ error: 'Failed to save certificate template' });
+  }
+});
+
+/**
+ * GET /api/batches/:id/certificate/eligible
+ * Returns all paid enrollees with their attendance stats.
+ * Admin only.
+ */
+router.get('/:id/certificate/eligible', verifyUserSession, async (req, res) => {
+  try {
+    if (!await requireAdmin(req, res)) return;
+    const batchId = parseInt(req.params.id);
+    const template = await db.getCertificateTemplate(batchId);
+    const threshold = template?.attendanceThreshold ?? 75;
+    const eligible = await db.getBatchEligibleForCertificate(batchId, threshold);
+    res.json({ eligible, threshold });
+  } catch (err) {
+    console.error('Error fetching eligible students:', err);
+    res.status(500).json({ error: 'Failed to fetch eligible students' });
+  }
+});
+
+/**
+ * POST /api/batches/:id/certificate/issue
+ * Admin issues certificates. Issues to all eligible or a specific list.
+ * Body: { userIds?: number[] }  — omit userIds to issue to all who meet threshold.
+ */
+router.post('/:id/certificate/issue', verifyUserSession, async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const batchId = parseInt(req.params.id);
+    const batch = await db.getBatch(batchId);
+    if (!batch) return res.status(404).json({ error: 'Batch not found' });
+
+    const template = await db.getCertificateTemplate(batchId);
+    const threshold = template?.attendanceThreshold ?? 75;
+    const eligible = await db.getBatchEligibleForCertificate(batchId, threshold);
+
+    const { userIds } = req.body;
+    const targets = userIds
+      ? eligible.filter(e => userIds.includes(e.userId))
+      : eligible.filter(e => e.meetsThreshold && !e.alreadyIssued);
+
+    const issued = [];
+    for (const student of targets) {
+      const cert = await db.issueCertificate(batchId, student.userId, {
+        studentName: student.displayName,
+        batchTitle: batch.title,
+        instructorName: template?.instructorName || batch.instructorName,
+        completionDate: new Date(),
+      }, admin.id);
+      issued.push(cert);
+    }
+
+    res.json({ issued: issued.length, certificates: issued });
+  } catch (err) {
+    console.error('Error issuing certificates:', err);
+    res.status(500).json({ error: 'Failed to issue certificates' });
+  }
+});
+
+/**
+ * GET /api/batches/:id/certificate
+ * Returns the logged-in user's certificate for a batch (if issued).
+ */
+router.get('/:id/certificate', verifyUserSession, async (req, res) => {
+  try {
+    const cert = await db.getUserCertificate(parseInt(req.params.id), req.user.id);
+    res.json({ certificate: cert || null });
+  } catch (err) {
+    console.error('Error fetching certificate:', err);
+    res.status(500).json({ error: 'Failed to fetch certificate' });
+  }
+});
+
+/**
+ * GET /api/batches/:id/certificates
+ * Returns all issued certificates for a batch (admin only).
+ */
+router.get('/:id/certificates', verifyUserSession, async (req, res) => {
+  try {
+    if (!await requireAdmin(req, res)) return;
+    const certs = await db.getBatchCertificates(parseInt(req.params.id));
+    res.json({ certificates: certs });
+  } catch (err) {
+    console.error('Error fetching batch certificates:', err);
+    res.status(500).json({ error: 'Failed to fetch certificates' });
+  }
+});
+
+/**
+ * GET /api/batches/cert/:certUuid/verify  (PUBLIC — no auth)
+ * Returns certificate details for the public verification page.
+ */
+router.get('/cert/:certUuid/verify', async (req, res) => {
+  try {
+    const cert = await db.getCertificateByUuid(req.params.certUuid);
+    if (!cert) return res.status(404).json({ error: 'Certificate not found' });
+    // Return only safe public fields
+    res.json({
+      valid: true,
+      studentName: cert.studentName,
+      batchTitle: cert.batchTitle,
+      instructorName: cert.instructorName,
+      completionDate: cert.completionDate,
+      issuedAt: cert.issuedAt,
+      certUuid: cert.certUuid,
+    });
+  } catch (err) {
+    console.error('Error verifying certificate:', err);
+    res.status(500).json({ error: 'Failed to verify certificate' });
+  }
+});
+
+/**
+ * GET /api/batches/cert/:certUuid/pdf
+
+ * Accepts token via x-user-token header OR ?token= query param (for direct browser downloads).
+ */
+router.get('/cert/:certUuid/pdf', async (req, res) => {
+  try {
+    // Accept token from header or query string
+    const token = req.headers['x-user-token'] || req.query.token;
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+
+    const session = await db.findSession(token);
+    if (!session) return res.status(401).json({ error: 'Invalid or expired session' });
+
+    const user = { id: session.user_id, role: session.role };
+
+    const cert = await db.getCertificateByUuid(req.params.certUuid);
+    if (!cert) return res.status(404).json({ error: 'Certificate not found' });
+
+    const isOwner = cert.userId === user.id;
+    const isAdmin = user.role === 'admin';
+    if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    const template = await db.getCertificateTemplate(cert.batchId);
+
+    const safeName = cert.studentName.replace(/[^a-z0-9_\- ]/gi, '').trim().replace(/\s+/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="certificate_${safeName}.pdf"`);
+
+    generateCertificatePdf(template || {}, cert, res);
+  } catch (err) {
+    console.error('Error generating certificate PDF:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to generate PDF' });
   }
 });
 

@@ -8,7 +8,7 @@ import {
   ArrowLeft, Plus, Calendar, Clock, Users, Trash2, 
   Radio, Square, Edit3, Save, X, MonitorPlay,
   GraduationCap, CreditCard, CheckCircle2, XCircle,
-  Loader2, AlertCircle, ChevronDown, ChevronUp
+  Loader2, AlertCircle, ChevronDown, ChevronUp, Award, Download
 } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 import { 
@@ -18,7 +18,10 @@ import {
 import {
   fetchBatches, createBatch, updateBatch, deleteBatch,
   fetchPendingEnrollments, approveEnrollment, rejectEnrollment,
-  refundEnrollment, fetchBatchEnrollments
+  refundEnrollment, fetchBatchEnrollments,
+  fetchCertificateTemplate, saveCertificateTemplate,
+  fetchEligibleStudents, issueCertificates, fetchBatchCertificates,
+  getCertificatePdfUrl,
 } from '../api/batchApi';
 
 const IDR = (amount) =>
@@ -242,6 +245,86 @@ export default function BootcampManagePage() {
       if (viewBatchEnrollees) handleViewBatchEnrollees(viewBatchEnrollees);
       loadTab();
     } catch (err) { setActionError(err.message); }
+  };
+
+  // ─────────── CERTIFICATE HANDLERS ───────────
+  const handleOpenCertModal = async (batch) => {
+    setCertModalBatch(batch);
+    setCertTab('template');
+    setCertLoading(true);
+    try {
+      const [tmpl, { eligible }, issued] = await Promise.all([
+        fetchCertificateTemplate(batch.id).catch(() => null),
+        fetchEligibleStudents(batch.id).catch(() => ({ eligible: [] })),
+        fetchBatchCertificates(batch.id).catch(() => []),
+      ]);
+      setCertTemplate(tmpl);
+      if (tmpl) {
+        setCertTemplateForm({
+          title: tmpl.title || 'Certificate of Completion',
+          subtitle: tmpl.subtitle || 'This certifies that',
+          bodyText: tmpl.bodyText || '{{studentName}} has successfully completed {{batchTitle}}.',
+          instructorName: tmpl.instructorName || '',
+          footerText: tmpl.footerText || 'CodeQuarry Online Learning Platform',
+          accentColor: tmpl.accentColor || '#7c3aed',
+          attendanceThreshold: tmpl.attendanceThreshold ?? 75,
+        });
+      } else {
+        setCertTemplateForm({
+          title: 'Certificate of Completion',
+          subtitle: 'This certifies that',
+          bodyText: '{{studentName}} has successfully completed {{batchTitle}}.',
+          instructorName: batch.instructorName || '',
+          footerText: 'CodeQuarry Online Learning Platform',
+          accentColor: '#7c3aed',
+          attendanceThreshold: 75,
+        });
+      }
+      setCertEligible(eligible);
+      setCertIssuedList(issued);
+    } catch (err) { setActionError(err.message); }
+    finally { setCertLoading(false); }
+  };
+
+  const handleSaveCertTemplate = async () => {
+    setCertSaving(true);
+    try {
+      const tmpl = await saveCertificateTemplate(certModalBatch.id, certTemplateForm);
+      setCertTemplate(tmpl);
+      setActionError('');
+    } catch (err) { setActionError(err.message); }
+    finally { setCertSaving(false); }
+  };
+
+  const handleIssueAll = async () => {
+    if (!confirm('Issue certificates to all students who meet the attendance threshold?')) return;
+    setCertIssuing(true);
+    try {
+      const res = await issueCertificates(certModalBatch.id);
+      const [{ eligible }, issued] = await Promise.all([
+        fetchEligibleStudents(certModalBatch.id),
+        fetchBatchCertificates(certModalBatch.id),
+      ]);
+      setCertEligible(eligible);
+      setCertIssuedList(issued);
+      setActionError('');
+      alert(`Issued ${res.issued} certificate(s).`);
+    } catch (err) { setActionError(err.message); }
+    finally { setCertIssuing(false); }
+  };
+
+  const handleIssueSingle = async (userId) => {
+    setCertIssuing(true);
+    try {
+      await issueCertificates(certModalBatch.id, [userId]);
+      const [{ eligible }, issued] = await Promise.all([
+        fetchEligibleStudents(certModalBatch.id),
+        fetchBatchCertificates(certModalBatch.id),
+      ]);
+      setCertEligible(eligible);
+      setCertIssuedList(issued);
+    } catch (err) { setActionError(err.message); }
+    finally { setCertIssuing(false); }
   };
 
   const formatDate = (d) => new Date(d).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -552,6 +635,7 @@ export default function BootcampManagePage() {
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button onClick={() => handleViewBatchEnrollees(batch.id)} className="flex items-center gap-1 px-2 py-1.5 text-gray-500 hover:text-white text-xs"><Users className="w-3.5 h-3.5" /> Enrollees</button>
+                          <button onClick={() => handleOpenCertModal(batch)} className="flex items-center gap-1 px-2 py-1.5 text-gray-500 hover:text-yellow-400 text-xs"><Award className="w-3.5 h-3.5" /> Certificate</button>
                           <button onClick={() => startEditBatch(batch)} className="p-1.5 text-gray-500 hover:text-white"><Edit3 className="w-4 h-4" /></button>
                           <button onClick={() => handleDeleteBatch(batch.id)} className="p-1.5 text-gray-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                         </div>
@@ -714,6 +798,149 @@ export default function BootcampManagePage() {
         )}
 
       </div>
+
+      {/* Certificate Template & Issue Modal */}
+      {certModalBatch && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => setCertModalBatch(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-yellow-400" />
+                <h3 className="font-bold text-lg">Certificate — {certModalBatch.title}</h3>
+              </div>
+              <button onClick={() => setCertModalBatch(null)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-800 px-6">
+              {['template', 'issue'].map(t => (
+                <button key={t} onClick={() => setCertTab(t)}
+                  className={`px-4 py-3 text-sm font-bold capitalize border-b-2 transition-colors -mb-px ${
+                    certTab === t ? 'border-yellow-400 text-white' : 'border-transparent text-gray-500 hover:text-gray-300'
+                  }`}>
+                  {t === 'template' ? 'Template' : `Issue (${certIssuedList.length} issued)`}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {certLoading ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-purple-400" /></div>
+              ) : certTab === 'template' ? (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-500">Supported variables: <code className="bg-gray-800 px-1 rounded">{'{{studentName}}'}</code> <code className="bg-gray-800 px-1 rounded">{'{{batchTitle}}'}</code> <code className="bg-gray-800 px-1 rounded">{'{{completionDate}}'}</code> <code className="bg-gray-800 px-1 rounded">{'{{instructorName}}'}</code></p>
+
+                  {[['title', 'Certificate Title', 'text'],
+                    ['subtitle', 'Subtitle (above student name)', 'text'],
+                    ['bodyText', 'Body Text', 'textarea'],
+                    ['instructorName', 'Instructor Name (signature)', 'text'],
+                    ['footerText', 'Footer Text', 'text'],
+                  ].map(([field, label, type]) => (
+                    <div key={field}>
+                      <label className="block text-xs text-gray-400 mb-1">{label}</label>
+                      {type === 'textarea' ? (
+                        <textarea rows={3} value={certTemplateForm[field]}
+                          onChange={e => setCertTemplateForm(p => ({ ...p, [field]: e.target.value }))}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500 resize-none" />
+                      ) : (
+                        <input type="text" value={certTemplateForm[field]}
+                          onChange={e => setCertTemplateForm(p => ({ ...p, [field]: e.target.value }))}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Accent Color</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={certTemplateForm.accentColor}
+                          onChange={e => setCertTemplateForm(p => ({ ...p, accentColor: e.target.value }))}
+                          className="w-10 h-9 rounded cursor-pointer bg-transparent border-0" />
+                        <input type="text" value={certTemplateForm.accentColor}
+                          onChange={e => setCertTemplateForm(p => ({ ...p, accentColor: e.target.value }))}
+                          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500 font-mono" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Attendance Threshold (%)</label>
+                      <input type="number" min={0} max={100} value={certTemplateForm.attendanceThreshold}
+                        onChange={e => setCertTemplateForm(p => ({ ...p, attendanceThreshold: parseInt(e.target.value) || 0 }))}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                    </div>
+                  </div>
+
+                  <button onClick={handleSaveCertTemplate} disabled={certSaving}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 rounded-xl font-bold text-sm transition-colors">
+                    {certSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {certSaving ? 'Saving…' : 'Save Template'}
+                  </button>
+                  {!certTemplate && <p className="text-xs text-gray-600 text-center">Template must be saved before issuing certificates.</p>}
+                </div>
+              ) : (
+                /* Issue tab */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400">{certEligible.length} enrolled students · threshold {certTemplateForm.attendanceThreshold}%</span>
+                    <button onClick={handleIssueAll} disabled={certIssuing || !certTemplate}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 rounded-xl font-bold text-sm transition-colors">
+                      {certIssuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
+                      Issue to All Eligible
+                    </button>
+                  </div>
+
+                  {certEligible.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">No paid enrollees yet.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {certEligible.map(s => {
+                        const issued = certIssuedList.find(c => c.userId === s.userId);
+                        return (
+                          <div key={s.userId} className="flex items-center justify-between gap-3 px-3 py-2.5 bg-gray-800 rounded-lg">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-white truncate">{s.displayName}</span>
+                                {s.meetsThreshold
+                                  ? <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded font-bold shrink-0">ELIGIBLE</span>
+                                  : <span className="text-[10px] px-1.5 py-0.5 bg-gray-700 text-gray-500 rounded font-bold shrink-0">BELOW</span>
+                                }
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {s.attendedCount}/{s.sessionCount} sessions ({s.attendancePct}%)
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {issued ? (
+                                <>
+                                  <span className="text-[10px] px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded font-bold">ISSUED</span>
+                                  <a href={getCertificatePdfUrl(issued.certUuid)} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-gray-300 transition-colors">
+                                    <Download className="w-3 h-3" /> PDF
+                                  </a>
+                                </>
+                              ) : (
+                                <button onClick={() => handleIssueSingle(s.userId)} disabled={certIssuing || !certTemplate}
+                                  className="px-3 py-1 bg-yellow-700/40 hover:bg-yellow-600/50 disabled:opacity-40 text-yellow-300 rounded-lg text-xs font-bold transition-colors">
+                                  Issue
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -14,10 +14,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, Clock, Users, Radio, MonitorPlay,
   PlayCircle, CheckCircle2, Loader2, AlertCircle, GraduationCap,
-  Lock, Video
+  Lock, Video, Award, Download
 } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
-import { fetchBatch, fetchBatchEnrollment, fetchBatchAttendance } from '../api/batchApi';
+import { fetchBatch, fetchBatchEnrollment, fetchBatchAttendance, fetchMyCertificate, getCertificatePdfUrl } from '../api/batchApi';
 
 const IDR = (amount) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -30,6 +30,7 @@ export default function BatchDetailPage() {
   const [batch, setBatch] = useState(null);
   const [enrollment, setEnrollment] = useState(null);
   const [attendanceMap, setAttendanceMap] = useState({});
+  const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -64,6 +65,12 @@ export default function BatchDetailPage() {
           const map = {};
           att.forEach(a => { map[a.sessionId] = a; });
           setAttendanceMap(map);
+        } catch { /* non-critical */ }
+
+        // Fetch certificate if issued
+        try {
+          const cert = await fetchMyCertificate(parseInt(id));
+          setCertificate(cert);
         } catch { /* non-critical */ }
       }
     } catch (err) {
@@ -222,6 +229,27 @@ export default function BatchDetailPage() {
 
       {/* Sessions List */}
       <div className="max-w-5xl mx-auto px-6 pb-16">
+
+        {/* Certificate card */}
+        {certificate && (
+          <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-700/30 rounded-xl flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Award className="w-6 h-6 text-yellow-400 shrink-0" />
+              <div>
+                <div className="font-bold text-yellow-300 text-sm">Certificate of Completion</div>
+                <div className="text-xs text-gray-400 mt-0.5">Issued {new Date(certificate.issuedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+              </div>
+            </div>
+            <a
+              href={getCertificatePdfUrl(certificate.certUuid)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-bold text-sm transition-colors shrink-0"
+            >
+              <Download className="w-4 h-4" /> Download PDF
+            </a>
+          </div>
+        )}
         {sessions.length === 0 ? (
           <div className="text-center py-20">
             <MonitorPlay className="w-16 h-16 text-gray-700 mx-auto mb-4" />
