@@ -6,26 +6,26 @@
 
 ## Table of Contents
 
-1. [Before You Start](#1-before-you-start)
-2. [Course Structure Overview](#2-course-structure-overview)
-3. [Step 1 — Plan Your Course](#3-step-1--plan-your-course)
-4. [Step 2 — Create the Course in Admin Panel](#4-step-2--create-the-course-in-admin-panel)
-5. [Step 3 — Build Practice Modules](#5-step-3--build-practice-modules)
-6. [Step 4 — Build Article Modules](#6-step-4--build-article-modules)
-7. [Step 5 — Build Video Modules](#7-step-5--build-video-modules)
-8. [Step 6 — Add Refinery Challenges](#8-step-6--add-refinery-challenges)
-9. [Writing Good Instructions](#9-writing-good-instructions)
-10. [Writing Good Theory](#10-writing-good-theory)
-11. [Writing Good Hints](#11-writing-good-hints)
-12. [Choosing the Right Tier](#12-choosing-the-right-tier)
-13. [Course Layout Patterns](#13-course-layout-patterns)
-14. [Quality Checklist](#14-quality-checklist)
-15. [Common Mistakes](#15-common-mistakes)
-16. [Example: Building a Python Basics Course](#16-example-building-a-python-basics-course)
+1. [Before You Start](#before-you-start)
+2. [Course Structure Overview](#course-structure-overview)
+3. [Plan Your Course](#plan-your-course)
+4. [Create the Course in Admin Panel](#create-the-course-in-admin-panel)
+5. [Build Practice Modules](#build-practice-modules)
+6. [Build Article Modules](#build-article-modules)
+7. [Build Video Modules](#build-video-modules)
+8. [Add Refinery Challenges](#add-refinery-challenges)
+9. [Writing Good Instructions](#writing-good-instructions)
+10. [Writing Good Theory](#writing-good-theory)
+11. [Writing Good Hints](#writing-good-hints)
+12. [Choosing the Right Tier](#choosing-the-right-tier)
+13. [Course Layout Patterns](#course-layout-patterns)
+14. [Quality Checklist](#quality-checklist)
+15. [Common Mistakes](#common-mistakes)
+16. [Example - Building a Python Basics Course](#example---building-a-python-basics-course)
 
 ---
 
-## 1. Before You Start
+## Before You Start
 
 You need:
 - An **admin account** on CodeQuarry
@@ -39,7 +39,7 @@ Ask yourself:
 
 ---
 
-## 2. Course Structure Overview
+## Course Structure Overview
 
 A CodeQuarry course is a **linear sequence of modules**. Each module is one of three types:
 
@@ -53,7 +53,7 @@ Students progress through modules in order. Each practice module rewards gems on
 
 ---
 
-## 3. Step 1 — Plan Your Course
+## Plan Your Course
 
 Before touching the admin panel, **outline on paper**:
 
@@ -82,7 +82,7 @@ Modules:
 
 ---
 
-## 4. Step 2 — Create the Course in Admin Panel
+## Create the Course in Admin Panel
 
 1. Log in → click **Admin** in the navbar → you're in the Admin Dashboard.
 2. Go to the **Drafts** tab.
@@ -93,7 +93,7 @@ Modules:
 |---|---|
 | **Title** | Short, clear. Good: `Python Basics`, `JavaScript Functions`. Bad: `Learn All About the Fundamentals of Python Programming Language` |
 | **Description** | 1–2 sentences. What will the student learn and why it matters? |
-| **Level / Tier** | See [§12 — Choosing the Right Tier](#12-choosing-the-right-tier) |
+| **Level / Tier** | See [§12: Choosing the Right Tier](#choosing-the-right-tier) |
 | **Icon** | Pick an emoji (e.g. `🐍` for Python) or upload an image. Keep it recognizable at small sizes. |
 | **Language** | Default programming language for practice modules (can override per module) |
 
@@ -101,7 +101,7 @@ Modules:
 
 ---
 
-## 5. Step 3 — Build Practice Modules
+## Build Practice Modules
 
 Practice modules are the heart of every course. Each one has:
 
@@ -110,8 +110,8 @@ Practice modules are the heart of every course. Each one has:
 | Field | What it does | Example |
 |---|---|---|
 | **Title** | Short module name | `Variables & Assignment` |
-| **Theory** | Markdown explanation shown in the sidebar | See [§10](#10-writing-good-theory) |
-| **Instruction** | Step-by-step task the student must complete | See [§9](#9-writing-good-instructions) |
+| **Theory** | Markdown explanation shown in the sidebar | See [§10](#writing-good-theory) |
+| **Instruction** | Step-by-step task the student must complete | See [§9](#writing-good-instructions) |
 | **Initial Code** | What appears in the editor when the student starts | `# Write your code below\n` |
 | **Expected Output** | The exact text the student's code must print | `Hello, Alice!\nYou are 25 years old.` |
 | **Language** | `python`, `javascript`, or `c` | `python` |
@@ -120,7 +120,7 @@ Practice modules are the heart of every course. Each one has:
 
 | Field | What it does |
 |---|---|
-| **Hints** | Progressive hints (shown one at a time). See [§11](#11-writing-good-hints) |
+| **Hints** | Progressive hints (shown one at a time). See [§11](#writing-good-hints) |
 | **Solution** | Full working code. Shown as last resort. |
 | **Required Syntax** | Regex the code must match (e.g. `/for\s+\w+\s+in/` to require a for loop) |
 | **Required Code** | Exact strings the code must contain |
@@ -167,9 +167,9 @@ Solution:
   print(f"Hello, {name}! You are {age} years old.")
 ```
 
----
+```
 
-## 6. Step 4 — Build Article Modules
+## Build Article Modules
 
 Articles are for **explaining concepts** that practice modules can't cover well (diagrams, comparisons, history, motivation).
 
@@ -190,7 +190,7 @@ Articles are for **explaining concepts** that practice modules can't cover well 
 
 ---
 
-## 7. Step 5 — Build Video Modules
+## Build Video Modules
 
 Videos work best for:
 - Course introductions / welcomes
@@ -215,7 +215,7 @@ Videos work best for:
 
 ---
 
-## 8. Step 6 — Add Refinery Challenges
+## Add Refinery Challenges
 
 Refinery challenges are **optional bonus problems** attached to practice modules. They reward extra gems and encourage code optimization.
 
@@ -236,7 +236,7 @@ See the [Refinery Guide](REFINERY.md) for full field reference.
 
 ---
 
-## 9. Writing Good Instructions
+## Writing Good Instructions
 
 Instructions tell the student _what to do_. They are the most important part of a practice module.
 
@@ -268,13 +268,13 @@ Step 3: Print the greeting and name together, separated by a comma and space.
 
 ---
 
-## 10. Writing Good Theory
+## Writing Good Theory
 
 Theory appears in the sidebar while the student is coding. It's their reference material.
 
 ### Structure
 
-```markdown
+````markdown
 ## [Concept Name]
 
 [1-2 sentence explanation of what this concept is and why it matters.]
@@ -289,7 +289,7 @@ example_code_here()
 ### Key Points
 - Point 1
 - Point 2
-```
+````
 
 ### Rules
 
@@ -300,7 +300,7 @@ example_code_here()
 
 ---
 
-## 11. Writing Good Hints
+## Writing Good Hints
 
 Hints are revealed one at a time when the student gets stuck. They should form a **progressive reveal**:
 
@@ -319,7 +319,7 @@ Hints are revealed one at a time when the student gets stuck. They should form a
 
 ---
 
-## 12. Choosing the Right Tier
+## Choosing the Right Tier
 
 | Tier | Badge | Who is it for? | Module count | Hints per module |
 |---|---|---|---|---|
@@ -334,7 +334,7 @@ See [TIER_SYSTEM.md](TIER_SYSTEM.md) for full details on tier colors, UI present
 
 ---
 
-## 13. Course Layout Patterns
+## Course Layout Patterns
 
 ### Pattern A: The Classic (recommended for Copper/Silver)
 
@@ -371,7 +371,7 @@ See [TIER_SYSTEM.md](TIER_SYSTEM.md) for full details on tier colors, UI present
 
 ---
 
-## 14. Quality Checklist
+## Quality Checklist
 
 Before publishing, verify every module:
 
@@ -397,7 +397,7 @@ And for the course as a whole:
 
 ---
 
-## 15. Common Mistakes
+## Common Mistakes
 
 | Mistake | Why it's bad | Fix |
 |---|---|---|
@@ -412,7 +412,7 @@ And for the course as a whole:
 
 ---
 
-## 16. Example: Building a Python Basics Course
+## Example - Building a Python Basics Course
 
 Here's what a complete Copper-tier Python Basics course might look like:
 
