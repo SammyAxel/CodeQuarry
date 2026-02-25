@@ -3,27 +3,25 @@
 A compact, actionable roadmap to implement advanced editor themes, Shiki-based syntax highlighting, and a pet companion feature.
 
 ## Priority: High
-- [ ] Add Shiki integration for syntax highlighting (Option B)
-  - Create `src/utils/shikiHighlighter.js` (async loader + `highlight(code, lang, theme)` API)
-  - Add fallback to `highlight.js` when Shiki unavailable
-  - Include initial themes: `GitHub Light`, `GitHub Dark`, `One Dark` (configurable)
-  - Unit tests: `test/shiki.test.js` for language/theme output
+- [x] Add Shiki integration for syntax highlighting
+  - `src/utils/shikiHighlighter.js` — async loader, LRU cache (200 entries), 14 languages, CSS-class tokens
+  - Falls back to `highlight.js` when Shiki unavailable
+  - Uses `github-dark` theme for tokenization, emits `cq-tok cq-<category>` classes (CSS-driven colors)
+  - Tests: `test/syntaxHighlighterAsync.test.js` covers Shiki + hljs fallback paths
 
-- [ ] Fix `SyntaxHighlighter` to prefer Shiki then fallback to highlight.js
-  - Update `src/utils/SyntaxHighlighter.js` to export same `highlightSyntax(code, language)` API
-  - Ensure existing `CodeEditor` works without changes
+- [x] Fix `SyntaxHighlighter` to prefer Shiki then fallback to highlight.js
+  - `src/utils/SyntaxHighlighter.js` exports `highlightSyntax` (sync hljs) + `highlightSyntaxAsync` (Shiki-first)
+  - `CodeEditor.jsx` uses `highlightSyntaxAsync` for all rendering; no API change needed
 
 ## Priority: Medium
-- [ ] Editor Themes as Cosmetics
-  - Extend `cosmetics` schema to accept theme metadata (`backgroundImage`, `fontFamily`, `cssVars`) via migration
-  - Add server support to upload theme assets (validate & sanitize)
-  - UI: `ThemePreview` component and add equip action in `CosmeticsShop.jsx`
-  - `CodeEditor` apply: `background-image`, `font-family`, CSS variable overrides for token colors
-  - Add small preview snapshot tests for `ThemePreview`
+- [x] Editor Themes as Cosmetics
+  - `src/data/cosmetics.js` carries full `editorStyles` per theme (`backgroundImage`, `fontFamily`, `textShadow`, `caretColor`, overlay type/intensity)
+  - `ThemePreview` component exists in `CosmeticsShop.jsx` with Shiki-highlighted snippet preview
+  - `CodeEditor.jsx` applies all `editorStyles` properties (background, font, caret, shadows)
 
-- [ ] Performance & Lazy Loading
-  - Load Shiki and large theme assets lazily (on first editor open or on theme preview)
-  - Cache compiled HTML (or CSS) per theme/language pair if necessary
+- [x] Performance & Lazy Loading
+  - Shiki loads via `import('shiki')` dynamic import — zero cost on initial page load
+  - 200-entry LRU HTML cache in `shikiHighlighter.js` prevents re-tokenizing identical snippets
 
 ## Priority: Low (Future/Optional)
 - [ ] Pet Companion MVP
@@ -37,12 +35,6 @@ A compact, actionable roadmap to implement advanced editor themes, Shiki-based s
   - If we need a true sandbox (full language server features), migrate only the sandbox route to CodeMirror/Monaco
   - Keep main editor lightweight (textarea + highlight layer) for performance and simplicity
 
-## Acceptance Criteria
-- Shiki highlighting is available and visibly richer than highlight.js
-- Themes can be equipped and previewed in the cosmetics shop, and `CodeEditor` reflects the selected theme immediately
-- Pets show up on the UI and persist state to the server (MVP can be read-only initially)
-- No regression in current editor features (indentation, auto-pairing, keyboard shortcuts)
-
 ---
 
 # TODO: Bootcamp / Online Class Features
@@ -51,48 +43,38 @@ Main revenue feature — complete the full student + instructor lifecycle.
 
 ## Priority: Critical (unblocks paid users)
 - [x] `/bootcamp/batch/:id` — Batch Detail Page
-  - Route is already navigated to from the "My Sessions" button in My Classes tab but the page + route don't exist
-  - Show all sessions belonging to the batch (scheduled, live, ended)
-  - "Join Live" button for live sessions the user is enrolled in
-  - "Watch Recording" button for ended sessions that have a `recordingUrl`
-  - Guard: redirect to `/bootcamp` if user is not a paid enrollee of that batch
-
 - [x] Backend: batch session access control
-  - `POST /api/bootcamp/sessions/:id/join` must verify the user has a `paid` enrollment in the session's parent batch
-  - Already implemented — checks `isUserEnrolledInBatch` when session has `batchId`
 
 ## Priority: High
 - [x] Admin UI: assign `batch_id` when creating/editing a session
-  - Batch selector dropdown in create/edit session forms, populated from `fetchBatches()`
-  - Session list shows batch name badge next to session title
-
 - [x] Admin UI: set recording URL on ended sessions
-  - Recording URL input appears in edit form when session `status === 'ended'`
-
-- [x] Prevent duplicate enrollment rows on double-click / double enroll
-  - Both `/enroll/online` and `/enroll/manual` routes detect existing pending enrollments and return them
+- [x] Prevent duplicate enrollment rows
+- [x] WS auth: server-side token verification (removed client-trusted params)
+- [x] API rate limiting on enrollment + webhook routes
+- [x] Chat abuse prevention: 2000 char limit + 15 msg/10s rate limiting
+- [x] Atomic enrollment capacity check (PostgreSQL FOR UPDATE transaction)
 
 ## Priority: Medium
 - [x] Email notification on manual payment approve / reject
-  - Nodemailer utility at `server/utils/email.js` with bilingual (ID) templates
-  - Wired into approve/reject endpoints (fire-and-forget)
-
 - [x] My Classes tab: richer enrollment card
-  - Shows batch dates, session count, next upcoming session, instructor name, tags
+- [x] Refund admin flow: `PUT /enrollments/:id/refund` + admin modal
+- [x] Admin batch enrollee list: modal with payment status + inline refund
+- [x] Provider default aligned: DB schema `'100ms'`
+- [x] WS reconnect feedback: Live / Reconnecting / Connection lost states
+- [x] Replace all `alert()` with inline `actionError` banner
 
 - [ ] Midtrans approval post-actions
-  - Once `VITE_MIDTRANS_ENABLED=true` is live: send payment receipt email from the webhook handler
-  - Document the exact Cloudflare Pages env vars to set: `VITE_MIDTRANS_ENABLED=true`, `VITE_MIDTRANS_CLIENT_KEY`
+  - Blocked until `VITE_MIDTRANS_ENABLED=true` is live
+  - Once live: send payment receipt email from webhook handler
+  - Env vars needed: `VITE_MIDTRANS_ENABLED=true`, `VITE_MIDTRANS_CLIENT_KEY`
 
 ## Priority: Low (post-launch)
-- [x] Attendance tracking per session
-  - `markAttendance` already records join in `bootcamp_enrollments`
-  - New `GET /api/batches/:id/attendance` returns per-session attendance for logged-in user
-  - BatchDetailPage shows "Attended" badge per session and X/Y attendance summary in header
-  - Admin enrollments modal already shows ATTENDED badge
+- [x] Attendance tracking per session (join recording + BatchDetailPage badges)
 
-- [ ] Completion certificate / badge on batch finish
-  - Trigger when all sessions in a batch are `ended` and user attended ≥ threshold
-  - Simple PDF or shareable image generated server-side
-
----
+- [ ] Completion certificate / badge on batch finish ← IN PROGRESS
+  - Admin creates a certificate template per batch (title, body text with variables, instructor name, accent color, attendance threshold)
+  - Variables supported: `{{studentName}}`, `{{batchTitle}}`, `{{completionDate}}`, `{{instructorName}}`
+  - Admin can issue certificates manually to eligible students
+  - Student downloads PDF from BatchDetailPage
+  - PDF generated server-side via `pdfkit` (A4 landscape, branded)
+  - `batch_certificate_templates` + `user_certificates` tables in DB
